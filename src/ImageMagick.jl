@@ -1,5 +1,6 @@
 module ImageMagick
 
-# package code goes here
+include("colortypes.jl")
+include("libmagickwand.jl")
 
 end # module
