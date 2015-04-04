@@ -1,2 +1,9 @@
 *.jl.cov
 *.jl.mem
+deps/deps.jl
+deps/versioninfo.jl
+deps/downloads/*
+deps/usr/*
+deps/deps.jl
+deps/versioninfo.jl
+deps/deps.jl

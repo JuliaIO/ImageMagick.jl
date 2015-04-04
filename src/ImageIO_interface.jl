@@ -1,32 +1,49 @@
-# register the file endings ImageMagick can read
-read(file::File{:jpg}) = read(file, ::Val{:imagemagick})
-read(file::File{:png}) = read(file, ::Val{:imagemagick})
-read(file::File{:pdf}) = read(file, ::Val{:imagemagick})
-read(file::File{:gif}) = read(file, ::Val{:imagemagick})
+module ImageMagickIO
+
+using FixedPointNumbers, ColorTypes, Compat, ImageIO
+const is_little_endian = ENDIAN_BOM == 0x04030201
+
+include("libmagickwand.jl")
+export MagickWand
+export constituteimage
+export exportimagepixels!
+export getblob
+export getimagealphachannel
+export getimagecolorspace
+export getimagedepth
+export getnumberimages
+export importimagepixels
+export readimage
+export resetiterator
+export setimagecolorspace
+export setimagecompression
+export setimagecompressionquality
+export setimageformat
+export writeimage
 
 
-function read(file::File, ::Type{Val{:imagemagick}})
-    wand = LibMagick.MagickWand()
-    LibMagick.readimage(wand, file)
-    LibMagick.resetiterator(wand)
+function imagemagickread(file::AbstractString)
+    wand = MagickWand()
+    readimage(wand, file)
+    resetiterator(wand)
 
 
-    imtype = LibMagick.getimagetype(wand)
+    imtype = getimagetype(wand)
     # Determine what we need to know about the image format
     sz = size(wand)
-    n = LibMagick.getnumberimages(wand)
+    n = getnumberimages(wand)
     if n > 1
         sz = tuple(sz..., n)
     end
-    havealpha = LibMagick.getimagealphachannel(wand)
+    havealpha = getimagealphachannel(wand)
     prop = Dict("spatialorder" => ["x", "y"], "pixelspacing" => [1,1])
-    cs = LibMagick.getimagecolorspace(wand)
+    cs = getimagecolorspace(wand)
     if imtype == "GrayscaleType" || imtype == "GrayscaleMatteType"
         cs = "Gray"
     end
     prop["IMcs"] = cs
 
-    depth = LibMagick.getimagechanneldepth(wand, LibMagick.DefaultChannels)
+    depth = getimagechanneldepth(wand, DefaultChannels)
     if depth <= 8
         T = Ufixed8     # always use 8-bit for 8-bit and less
     else
@@ -57,9 +74,11 @@ function read(file::File, ::Type{Val{:imagemagick}})
     end
     # Allocate the buffer and get the pixel data
     buf = Array(T, sz...)
-    LibMagick.exportimagepixels!(buf, wand, cs, channelorder)
+    exportimagepixels!(buf, wand, cs, channelorder)
     if n > 1
         prop["timedim"] = ndims(buf)
     end
-    Image(buf, prop)
+    ImageIO.Image(buf, prop)
+end
+
 end

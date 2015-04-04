@@ -1,1 +1,1 @@
-const libversion = v"6.8.9"
+const libversion = v"7.0.0"
