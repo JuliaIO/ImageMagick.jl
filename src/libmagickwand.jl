@@ -1,27 +1,3 @@
-module LibMagick
-
-using Color, FixedPointNumbers, ..ColorTypes, Compat
-
-import Base: error, size
-
-export MagickWand,
-    constituteimage,
-    exportimagepixels!,
-    getblob,
-    getimagealphachannel,
-    getimagecolorspace,
-    getimagedepth,
-    getnumberimages,
-    importimagepixels,
-    readimage,
-    resetiterator,
-    setimagecolorspace,
-    setimagecompression,
-    setimagecompressionquality,
-    setimageformat,
-    writeimage
-
-
 # Find the library
 depsfile = joinpath(dirname(@__FILE__),"..","deps","deps.jl")
 versionfile = joinpath(dirname(@__FILE__),"..","deps","versioninfo.jl")
@@ -59,45 +35,54 @@ storagetype(::Type{Uint16}) = SHORTPIXEL
 storagetype(::Type{Uint32}) = INTEGERPIXEL
 storagetype(::Type{Float32}) = FLOATPIXEL
 storagetype(::Type{Float64}) = DOUBLEPIXEL
-storagetype{T<:Ufixed}(::Type{T}) = storagetype(FixedPointNumbers.rawtype(T))
-storagetype{CV<:ColorValue}(::Type{CV}) = storagetype(eltype(CV))
-storagetype{CV<:AbstractAlphaColorValue}(::Type{CV}) = storagetype(eltype(CV))
+
+#bitdepth{C<:ColorType}(buffer::AbstractArray{C}) = 8*eltype(C)
+#storagetype{T<:Ufixed}(::Type{T}) = storagetype(FixedPointNumbers.rawtype(T))
+#storagetype{CV<:ColorValue}(::Type{CV}) = storagetype(eltype(CV))
+#storagetype{CV<:AbstractAlphaColorValue}(::Type{CV}) = storagetype(eltype(CV))
+#getsize{C<:Union(ColorValue,AbstractAlphaColorValue)}(buffer::AbstractArray{C}, channelorder) = size(buffer, 1), size(buffer, 2), size(buffer, 3)
+#colorsize{C<:Union(ColorValue,AbstractAlphaColorValue)}(buffer::AbstractArray{C}, channelorder) = 1
 
 # Channel types
 type ChannelType
     value::Uint32
 end
-const UndefinedChannel = ChannelType(0x00000000)
-const RedChannel = ChannelType(0x00000001)
-const GrayChannel = ChannelType(0x00000001)
-const CyanChannel = ChannelType(0x00000001)
-const GreenChannel = ChannelType(0x00000002)
-const MagentaChannel = ChannelType(0x00000002)
-const BlueChannel = ChannelType(0x00000004)
-const YellowChannel = ChannelType(0x00000004)
-const AlphaChannel = ChannelType(0x00000008)
-const MatteChannel = ChannelType(0x00000008)
-const OpacityChannel = ChannelType(0x00000008)
-const BlackChannel = ChannelType(0x00000020)
-const IndexChannel = ChannelType(0x00000020)
+const UndefinedChannel  = ChannelType(0x00000000)
+const RedChannel        = ChannelType(0x00000001)
+const GrayChannel       = ChannelType(0x00000001)
+const CyanChannel       = ChannelType(0x00000001)
+const GreenChannel      = ChannelType(0x00000002)
+const MagentaChannel    = ChannelType(0x00000002)
+const BlueChannel       = ChannelType(0x00000004)
+const YellowChannel     = ChannelType(0x00000004)
+const AlphaChannel      = ChannelType(0x00000008)
+const MatteChannel      = ChannelType(0x00000008)
+const OpacityChannel    = ChannelType(0x00000008)
+const BlackChannel      = ChannelType(0x00000020)
+const IndexChannel      = ChannelType(0x00000020)
 const CompositeChannels = ChannelType(0x0000002F)
-const TrueAlphaChannel = ChannelType(0x00000040)
-const RGBChannels = ChannelType(0x00000080)
-const GrayChannels = ChannelType(0x00000080)
-const SyncChannels = ChannelType(0x00000100)
-const AllChannels = ChannelType(0x7fffffff)
-const DefaultChannels = ChannelType( (AllChannels.value | SyncChannels.value) &~ OpacityChannel.value )
+const TrueAlphaChannel  = ChannelType(0x00000040)
+const RGBChannels       = ChannelType(0x00000080)
+const GrayChannels      = ChannelType(0x00000080)
+const SyncChannels      = ChannelType(0x00000100)
+const AllChannels       = ChannelType(0x7fffffff)
+const DefaultChannels   = ChannelType( (AllChannels.value | SyncChannels.value) &~ OpacityChannel.value )
 
 
 # Image type
 const IMType = ["BilevelType", "GrayscaleType", "GrayscaleMatteType", "PaletteType", "PaletteMatteType", "TrueColorType", "TrueColorMatteType", "ColorSeparationType", "ColorSeparationMatteType", "OptimizeType", "PaletteBilevelMatteType"]
 const IMTypedict = Dict([(IMType[i], i) for i = 1:length(IMType)])
 
-const CStoIMTypedict = @compat Dict("Gray" => "GrayscaleType", "GrayAlpha" => "GrayscaleMatteType", "RGB" => "TrueColorType", "ARGB" => "TrueColorMatteType", "CMYK" => "ColorSeparationType")
+const CStoIMTypedict        = Dict{UTF8String, UTF8String}()
+CStoIMTypedict["Gray"]      = "GrayscaleType"
+CStoIMTypedict["GrayAlpha"] = "GrayscaleMatteType"
+CStoIMTypedict["RGB"]       = "TrueColorType"
+CStoIMTypedict["ARGB"]      = "TrueColorMatteType"
+CStoIMTypedict["CMYK"]      = "ColorSeparationType"
 
 # Colorspace
 const IMColorspace = ["RGB", "Gray", "Transparent", "OHTA", "Lab", "XYZ", "YCbCr", "YCC", "YIQ", "YPbPr", "YUV", "CMYK", "sRGB"]
-const IMColordict = Dict([(IMColorspace[i], i) for i = 1:length(IMColorspace)])
+const IMColordict  = [IMColorspace[i] => i for i=1:length(IMColorspace)]
 
 function nchannels(imtype::String, cs::String, havealpha = false)
     n = 3
@@ -122,34 +107,32 @@ type MagickWand
 end
 
 function MagickWand()
-    wand = MagickWand(ccall((:NewMagickWand, libwand), Ptr{Void}, ()))
-    finalizer(wand, destroymagickwand)
+    wand = MagickWand()
+    finalizer(wand, DestroyMagickWand)
     wand
 end
 
-destroymagickwand(wand::MagickWand) = ccall((:DestroyMagickWand, libwand), Ptr{Void}, (Ptr{Void},), wand.ptr)
 
 type PixelWand
     ptr::Ptr{Void}
 end
 
 function PixelWand()
-    wand = PixelWand(ccall((:NewPixelWand, libwand), Ptr{Void}, ()))
-    finalizer(wand, destroypixelwand)
+    wand = NewPixelWand()
+    finalizer(wand, DestroyPixelWand)
     wand
 end
 
-destroypixelwand(wand::PixelWand) = ccall((:DestroyPixelWand, libwand), Ptr{Void}, (Ptr{Void},), wand.ptr)
 
 const IMExceptionType = Array(Cint, 1)
 function error(wand::MagickWand)
-    pMsg = ccall((:MagickGetException, libwand), Ptr{Uint8}, (Ptr{Void}, Ptr{Cint}), wand.ptr, IMExceptionType)
+    pMsg = MagickGetException(wand, IMExceptionType)
     msg = bytestring(pMsg)
     relinquishmemory(pMsg)
     error(msg)
 end
 function error(wand::PixelWand)
-    pMsg = ccall((:PixelGetException, libwand), Ptr{Uint8}, (Ptr{Void}, Ptr{Cint}), wand.ptr, IMExceptionType)
+    pMsg = PixelGetException(wand, IMExceptionType)
     msg = bytestring(pMsg)
     relinquishmemory(pMsg)
     error(msg)
@@ -162,12 +145,9 @@ function getsize(buffer, channelorder)
         return size(buffer, 2), size(buffer, 3), size(buffer, 4)
     end
 end
-getsize{C<:Union(ColorValue,AbstractAlphaColorValue)}(buffer::AbstractArray{C}, channelorder) = size(buffer, 1), size(buffer, 2), size(buffer, 3)
 
 colorsize(buffer, channelorder) = channelorder == "I" ? 1 : size(buffer, 1)
-colorsize{C<:Union(ColorValue,AbstractAlphaColorValue)}(buffer::AbstractArray{C}, channelorder) = 1
 
-bitdepth{C<:ColorType}(buffer::AbstractArray{C}) = 8*eltype(C)
 bitdepth{T}(buffer::AbstractArray{T}) = 8*sizeof(T)
 
 # colorspace is included for consistency with constituteimage, but it is not used
@@ -176,7 +156,7 @@ function exportimagepixels!{T}(buffer::AbstractArray{T}, wand::MagickWand,  colo
     ncolors = colorsize(buffer, channelorder)
     p = pointer(buffer)
     for i = 1:nimages
-        status = ccall((:MagickExportImagePixels, libwand), Cint, (Ptr{Void}, Cssize_t, Cssize_t, Csize_t, Csize_t, Ptr{Uint8}, Cint, Ptr{Void}), wand.ptr, x, y, cols, rows, channelorder, storagetype(T), p)
+        status = MagickExportImagePixels(wand, x, y, cols, rows, channelorder, storagetype(T), p)
         status == 0 && error(wand)
         nextimage(wand)
         p += sizeof(T)*cols*rows*ncolors
@@ -359,6 +339,3 @@ function queryoption(option::String)
     bytestring(p)
 end
 
-end
-
-LibMagick.have_imagemagick
