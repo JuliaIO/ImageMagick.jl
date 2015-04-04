@@ -3,11 +3,11 @@ module ImageMagick
 using Requires
 importall FileIO
 
-# Define the Backend Name
+# Define the Back-end Name
 global const BACKEND = Val{:imagemagick}
-# Include the supported formats first, so they are immidiately availabl
+# Include the supported formats first, so they are immediately available
 include("supported_formats.jl")
-# lazyly load the core modules
+# lazily load the core modules
 @lazymod ImageMagickIO "imageio_interface.jl"
 
 #just if read is actually used, load the full IO module
