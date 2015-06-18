@@ -21,7 +21,7 @@ export setimagecompressionquality
 export setimageformat
 export writeimage
 
-
+const ufixedtype = Dict(10=>Ufixed10, 12=>Ufixed12, 14=>Ufixed14, 16=>Ufixed16)
 function imagemagickread(file::AbstractString)
     wand = MagickWand()
     readimage(wand, file)
