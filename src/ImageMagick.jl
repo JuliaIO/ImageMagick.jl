@@ -60,7 +60,7 @@ function load_(file::Union(AbstractString,IO))
                 T, channelorder = ARGB{T}, "ARGB"
             end
         elseif channelorder == "Gray"
-            T, channelorder = GrayAlpha{T}, "IA"
+            T, channelorder = TransparentGray{T}, "IA"
         else
             error("Cannot parse colorspace $channelorder")
         end
@@ -103,7 +103,7 @@ function image2wand(img; cs=colorstring(img), channelorder=colorstring(img), qua
     end
     if channelorder == "Gray"
         channelorder = "I"
-    elseif channelorder == "GrayAlpha"
+    elseif channelorder == "TransparentGray"
         channelorder = "IA"
     end
     tmp = to_explicit(to_contiguous(data(img)))
@@ -126,8 +126,8 @@ to_explicit{T<:Ufixed}(A::AbstractArray{RGB{T}}) = reinterpret(FixedPointNumbers
 to_explicit{T<:FloatingPoint}(A::AbstractArray{RGB{T}}) = to_explicit(map(ClipMinMax(RGB{Ufixed8}, zero(RGB{T}), one(RGB{T})), A))
 to_explicit{T<:Ufixed}(A::AbstractArray{Gray{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, size(A))
 to_explicit{T<:FloatingPoint}(A::AbstractArray{Gray{T}}) = to_explicit(map(ClipMinMax(Gray{Ufixed8}, zero(Gray{T}), one(Gray{T})), A))
-to_explicit{T<:Ufixed}(A::AbstractArray{GrayAlpha{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(2, size(A)...))
-to_explicit{T<:FloatingPoint}(A::AbstractArray{GrayAlpha{T}}) = to_explicit(map(ClipMinMax(GrayAlpha{Ufixed8}, zero(GrayAlpha{T}), one(GrayAlpha{T})), A))
+to_explicit{T<:Ufixed}(A::AbstractArray{TransparentGray{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(2, size(A)...))
+to_explicit{T<:FloatingPoint}(A::AbstractArray{TransparentGray{T}}) = to_explicit(map(ClipMinMax(TransparentGray{Ufixed8}, zero(TransparentGray{T}), one(TransparentGray{T})), A))
 to_explicit{T<:Ufixed}(A::AbstractArray{BGRA{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(4, size(A)...))
 to_explicit{T<:FloatingPoint}(A::AbstractArray{BGRA{T}}) = to_explicit(map(ClipMinMax(BGRA{Ufixed8}, zero(BGRA{T}), one(BGRA{T})), A))
 to_explicit{T<:Ufixed}(A::AbstractArray{RGBA{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(4, size(A)...))
