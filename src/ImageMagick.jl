@@ -60,7 +60,7 @@ function load_(file::Union(AbstractString,IO))
                 T, channelorder = ARGB{T}, "ARGB"
             end
         elseif channelorder == "Gray"
-            T, channelorder = TransparentGray{T}, "IA"
+            T, channelorder = GrayA{T}, "IA"
         else
             error("Cannot parse colorspace $channelorder")
         end
@@ -123,14 +123,17 @@ to_contiguous(A::SubArray) = copy(A)
 to_explicit(A::AbstractArray) = A
 to_explicit{T<:Ufixed}(A::AbstractArray{T}) = reinterpret(FixedPointNumbers.rawtype(T), A)
 to_explicit{T<:Ufixed}(A::AbstractArray{RGB{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(3, size(A)...))
-to_explicit{T<:FloatingPoint}(A::AbstractArray{RGB{T}}) = to_explicit(map(ClipMinMax(RGB{Ufixed8}, zero(RGB{T}), one(RGB{T})), A))
+to_explicit{T<:FloatingPoint}(A::AbstractArray{RGB{T}}) = to_explicit(map(ClampMinMax(RGB{Ufixed8}, zero(RGB{T}), one(RGB{T})), A))
 to_explicit{T<:Ufixed}(A::AbstractArray{Gray{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, size(A))
-to_explicit{T<:FloatingPoint}(A::AbstractArray{Gray{T}}) = to_explicit(map(ClipMinMax(Gray{Ufixed8}, zero(Gray{T}), one(Gray{T})), A))
-to_explicit{T<:Ufixed}(A::AbstractArray{TransparentGray{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(2, size(A)...))
-to_explicit{T<:FloatingPoint}(A::AbstractArray{TransparentGray{T}}) = to_explicit(map(ClipMinMax(TransparentGray{Ufixed8}, zero(TransparentGray{T}), one(TransparentGray{T})), A))
+to_explicit{T<:FloatingPoint}(A::AbstractArray{Gray{T}}) = to_explicit(map(ClampMinMax(Gray{Ufixed8}, zero(Gray{T}), one(Gray{T})), A))
+
+to_explicit{P<:TransparentGray}(A::AbstractArray{P}) = to_explicit(A, eltype(A))
+to_explicit{P<:TransparentGray,T<:Ufixed}(A::AbstractArray{P}, ::Type{T}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(2, size(A)...))
+to_explicit{P<:TransparentGray,T<:Real}(A::AbstractArray{P}, ::Type{T}) = to_explicit(map(ClampMinMax(GrayA{Ufixed8}, zero(GrayA{T}), one(GrayA{T})), A))
+
 to_explicit{T<:Ufixed}(A::AbstractArray{BGRA{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(4, size(A)...))
-to_explicit{T<:FloatingPoint}(A::AbstractArray{BGRA{T}}) = to_explicit(map(ClipMinMax(BGRA{Ufixed8}, zero(BGRA{T}), one(BGRA{T})), A))
+to_explicit{T<:FloatingPoint}(A::AbstractArray{BGRA{T}}) = to_explicit(map(ClampMinMax(BGRA{Ufixed8}, zero(BGRA{T}), one(BGRA{T})), A))
 to_explicit{T<:Ufixed}(A::AbstractArray{RGBA{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(4, size(A)...))
-to_explicit{T<:FloatingPoint}(A::AbstractArray{RGBA{T}}) = to_explicit(map(ClipMinMax(RGBA{Ufixed8}, zero(RGBA{T}), one(RGBA{T})), A))
+to_explicit{T<:FloatingPoint}(A::AbstractArray{RGBA{T}}) = to_explicit(map(ClampMinMax(RGBA{Ufixed8}, zero(RGBA{T}), one(RGBA{T})), A))
 
 end # module
