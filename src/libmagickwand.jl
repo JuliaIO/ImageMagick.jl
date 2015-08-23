@@ -39,8 +39,7 @@ storagetype(::Type{Uint32}) = INTEGERPIXEL
 storagetype(::Type{Float32}) = FLOATPIXEL
 storagetype(::Type{Float64}) = DOUBLEPIXEL
 storagetype{T<:Ufixed}(::Type{T}) = storagetype(FixedPointNumbers.rawtype(T))
-storagetype{CV<:Color}(::Type{CV}) = storagetype(eltype(CV))
-storagetype{CV<:Transparent}(::Type{CV}) = storagetype(eltype(CV))
+storagetype{CV<:Colorant}(::Type{CV}) = storagetype(eltype(CV))
 
 # Channel types
 type ChannelType
@@ -141,12 +140,12 @@ function getsize(buffer, channelorder)
         return size(buffer, 2), size(buffer, 3), size(buffer, 4)
     end
 end
-getsize{C <: Paint}(buffer::AbstractArray{C}, channelorder) = size(buffer, 1), size(buffer, 2), size(buffer, 3)
+getsize{C <: Colorant}(buffer::AbstractArray{C}, channelorder) = size(buffer, 1), size(buffer, 2), size(buffer, 3)
 
 colorsize(buffer, channelorder) = channelorder == "I" ? 1 : size(buffer, 1)
-colorsize{C<:Paint}(buffer::AbstractArray{C}, channelorder) = 1
+colorsize{C<:Colorant}(buffer::AbstractArray{C}, channelorder) = 1
 
-bitdepth{C<:Paint}(buffer::AbstractArray{C}) = 8*eltype(C)
+bitdepth{C<:Colorant}(buffer::AbstractArray{C}) = 8*eltype(C)
 bitdepth{T}(buffer::AbstractArray{T}) = 8*sizeof(T)
 
 # colorspace is included for consistency with constituteimage, but it is not used
