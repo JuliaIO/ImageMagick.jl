@@ -73,7 +73,7 @@ save(image::File{format"WMF"}, args...; key_args...) = save_(image, args...; key
 load(image::File{format"WPG"}, args...; key_args...) = load_(image, args...; key_args...)
 save(image::File{format"WPG"}, args...; key_args...) = save_(image, args...; key_args...)
 
-
+const ufixedtype = @compat Dict(10=>Ufixed10, 12=>Ufixed12, 14=>Ufixed14, 16=>Ufixed16)
 
 load_(file::File) = load_(filename(file))
 
