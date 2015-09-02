@@ -1,6 +1,6 @@
 module ImageMagick
 
-using FixedPointNumbers, ColorTypes, FileIO, Compat
+using FixedPointNumbers, ColorTypes, FileIO, Compat, Images
 
 export MagickWand
 export constituteimage
@@ -21,63 +21,54 @@ export writeimage
 
 include("libmagickwand.jl")
 
+typealias AbstractGray{T} Color{T, 1}
+
 const is_little_endian = ENDIAN_BOM == 0x04030201
 
 import FileIO: load, save
 
 # Image / Video formats
-load(image::File{format"BMP"}, args...; key_args...) = load_(image, args...; key_args...)
-save(image::File{format"BMP"}, args...; key_args...) = save_(image, args...; key_args...)
-load(image::File{format"AVI"}, args...; key_args...) = load_(image, args...; key_args...)
-save(image::File{format"AVI"}, args...; key_args...) = save_(image, args...; key_args...)
-load(image::File{format"CRW"}, args...; key_args...) = load_(image, args...; key_args...)
-save(image::File{format"CRW"}, args...; key_args...) = save_(image, args...; key_args...)
-load(image::File{format"CUR"}, args...; key_args...) = load_(image, args...; key_args...)
-save(image::File{format"CUR"}, args...; key_args...) = save_(image, args...; key_args...)
-load(image::File{format"DCX"}, args...; key_args...) = load_(image, args...; key_args...)
-save(image::File{format"DCX"}, args...; key_args...) = save_(image, args...; key_args...)
-load(image::File{format"DOT"}, args...; key_args...) = load_(image, args...; key_args...)
-save(image::File{format"DOT"}, args...; key_args...) = save_(image, args...; key_args...)
-load(image::File{format"EPS"}, args...; key_args...) = load_(image, args...; key_args...)
-save(image::File{format"EPS"}, args...; key_args...) = save_(image, args...; key_args...)
-load(image::File{format"GIF"}, args...; key_args...) = load_(image, args...; key_args...)
-save(image::File{format"GIF"}, args...; key_args...) = save_(image, args...; key_args...)
-load(image::File{format"HDR"}, args...; key_args...) = load_(image, args...; key_args...)
-save(image::File{format"HDR"}, args...; key_args...) = save_(image, args...; key_args...)
-load(image::File{format"ICO"}, args...; key_args...) = load_(image, args...; key_args...)
-save(image::File{format"ICO"}, args...; key_args...) = save_(image, args...; key_args...)
-load(image::File{format"INFO"}, args...; key_args...) = load_(image, args...; key_args...)
-save(image::File{format"INFO"}, args...; key_args...) = save_(image, args...; key_args...)
-load(image::File{format"JP2"}, args...; key_args...) = load_(image, args...; key_args...)
-save(image::File{format"JP2"}, args...; key_args...) = save_(image, args...; key_args...)
-load(image::File{format"JPEG"}, args...; key_args...) = load_(image, args...; key_args...)
-save(image::File{format"JPEG"}, args...; key_args...) = save_(image, args...; key_args...)
-load(image::File{format"PCX"}, args...; key_args...) = load_(image, args...; key_args...)
-save(image::File{format"PCX"}, args...; key_args...) = save_(image, args...; key_args...)
-load(image::File{format"PDB"}, args...; key_args...) = load_(image, args...; key_args...)
-save(image::File{format"PDB"}, args...; key_args...) = save_(image, args...; key_args...)
-load(image::File{format"PDF"}, args...; key_args...) = load_(image, args...; key_args...)
-save(image::File{format"PDF"}, args...; key_args...) = save_(image, args...; key_args...)
-load(image::File{format"PGM"}, args...; key_args...) = load_(image, args...; key_args...)
-save(image::File{format"PGM"}, args...; key_args...) = save_(image, args...; key_args...)
-load(image::File{format"PNG"}, args...; key_args...) = load_(image, args...; key_args...)
-save(image::File{format"PNG"}, args...; key_args...) = save_(image, args...; key_args...)
-load(image::File{format"PSD"}, args...; key_args...) = load_(image, args...; key_args...)
-save(image::File{format"PSD"}, args...; key_args...) = save_(image, args...; key_args...)
-load(image::File{format"RGB"}, args...; key_args...) = load_(image, args...; key_args...)
-save(image::File{format"RGB"}, args...; key_args...) = save_(image, args...; key_args...)
-load(image::File{format"TIFF"}, args...; key_args...) = load_(image, args...; key_args...)
-save(image::File{format"TIFF"}, args...; key_args...) = save_(image, args...; key_args...)
-load(image::File{format"WMF"}, args...; key_args...) = load_(image, args...; key_args...)
-save(image::File{format"WMF"}, args...; key_args...) = save_(image, args...; key_args...)
-load(image::File{format"WPG"}, args...; key_args...) = load_(image, args...; key_args...)
-save(image::File{format"WPG"}, args...; key_args...) = save_(image, args...; key_args...)
+
+image_formats = [
+    format"BMP",
+    format"AVI",
+    format"CRW",
+    format"CUR",
+    format"DCX",
+    format"DOT",
+    format"EPS",
+    format"GIF",
+    format"HDR",
+    format"ICO",
+    format"INFO",
+    format"JP2",
+    format"JPEG",
+    format"PCX",
+    format"PDB",
+    format"PDF",
+    format"PGM",
+    format"PNG",
+    format"PSD",
+    format"RGB",
+    format"TIFF",
+    format"WMF",
+    format"WPG"
+]
+
+for format in image_formats
+    eval(quote
+        load(image::File{$format}, args...; key_args...) = load_(filename(image), args...; key_args...)
+        save(image::File{$format}, args...; key_args...) = save_(filename(image), args...; key_args...)
+
+        load(image::Stream{$format}, args...; key_args...) = load_(stream(image), args...; key_args...)
+        save(image::Stream{$format}, args...; key_args...) = save_(stream(image), args...; key_args...)
+    end)
+end
 
 const ufixedtype = @compat Dict(10=>Ufixed10, 12=>Ufixed12, 14=>Ufixed14, 16=>Ufixed16)
 
-load_(file::File) = load_(filename(file))
 
-function load_(file::Union(AbstractString,IO))
+function load_(file::Union(AbstractString,IO), ImageType=Image)
     wand = MagickWand()
     readimage(wand, file)
     resetiterator(wand)
@@ -129,36 +120,48 @@ function load_(file::Union(AbstractString,IO))
     buf = Array(T, sz...)
     exportimagepixels!(buf, wand, cs, channelorder)
 
-    buf
+    prop = Dict{UTF8String, Any}()
+    prop["spatialorder"] = ["x", "y"]
+    n > 1 && (prop["timedim"] = ndims(buf))
+    prop["colorspace"] = cs
+
+    ImageType(buf, prop)
 end
+
+
 
 save_(file::File; kwargs...) = save_(filename(file); kwargs...)
-
-function save_(file::ByteString, img; kwargs...)
-    wand = image2wand(img; kwargs...)
-    writeimage(wand, file)
-end
-
 save_(s::Stream, img; kwargs...) = save_(stream(s), img; kwargs...)
 
-function save_(io::IO, img; fmt="png", kwargs...)
-    wand = image2wand(img; kwargs...)
-    blob = getblob(wand, fmt)
-    write(io, blob)
+
+function save_(filename::AbstractString, img; mapi = mapinfo(img), quality = nothing)
+    wand = image2wand(img, mapi, quality)
+    writeimage(wand, filename)
 end
 
-function image2wand(img; cs=colorstring(img), channelorder=colorstring(img), quality=nothing)
-    wand = MagickWand()
-
-    if in(cs, ("RGB", "RGBA", "ARGB", "BGRA"))
-        cs = libversion > v"6.7.5" ? "sRGB" : "RGB"
+function image2wand(img, mapi, quality)
+    imgw = map(mapi, img)
+    #imgw = permutedims_horizontal(imgw)
+    have_color = colordim(imgw)!=0
+    if ndims(imgw) > 3+have_color
+        error("At most 3 dimensions are supported")
     end
+    wand = MagickWand()
+    if haskey(img, "colorspace")
+        cs = img["colorspace"]
+    else
+        cs = colorspace(imgw)
+        if in(cs, ("RGB", "RGBA", "ARGB", "BGRA"))
+            cs = libversion > v"6.7.5" ? "sRGB" : "RGB"
+        end
+    end
+    channelorder = colorspace(imgw)
     if channelorder == "Gray"
         channelorder = "I"
-    elseif channelorder == "TransparentGray"
+    elseif channelorder == "GrayA"
         channelorder = "IA"
     end
-    tmp = to_explicit(to_contiguous(data(img)))
+    tmp = to_explicit(to_contiguous(data(imgw)))
     constituteimage(tmp, wand, cs, channelorder)
     if quality != nothing
         setimagecompressionquality(wand, quality)
@@ -166,7 +169,51 @@ function image2wand(img; cs=colorstring(img), channelorder=colorstring(img), qua
     resetiterator(wand)
     wand
 end
+# ImageMagick mapinfo client. Converts to RGB and uses Ufixed.
+mapinfo{T<:Ufixed}(img::AbstractArray{T}) = MapNone{T}()
+mapinfo{T<:FloatingPoint}(img::AbstractArray{T}) = MapNone{Ufixed8}()
+for ACV in (Color, AbstractRGB)
+    for CV in subtypes(ACV)
+        (length(CV.parameters) == 1 && !(CV.abstract)) || continue
+        CVnew = CV<:AbstractGray ? Gray : RGB
+        @eval mapinfo{T<:Ufixed}(img::AbstractArray{$CV{T}}) = MapNone{$CVnew{T}}()
+        @eval mapinfo{CV<:$CV}(img::AbstractArray{CV}) = MapNone{$CVnew{Ufixed8}}()
+        CVnew = CV<:AbstractGray ? Gray : BGR
+        AC, CA       = alphacolor(CV), coloralpha(CV)
+        ACnew, CAnew = alphacolor(CVnew), coloralpha(CVnew)
+        @eval begin
+            mapinfo{T<:Ufixed}(img::AbstractArray{$AC{T}}) = MapNone{$ACnew{T}}()
+            mapinfo{P<:$AC}(img::AbstractArray{P}) = MapNone{$ACnew{Ufixed8}}()
+            mapinfo{T<:Ufixed}(img::AbstractArray{$CA{T}}) = MapNone{$CAnew{T}}()
+            mapinfo{P<:$CA}(img::AbstractArray{P}) = MapNone{$CAnew{Ufixed8}}()
+        end
+    end
+end
+mapinfo(img::AbstractArray{RGB24}) = MapNone{RGB{Ufixed8}}()
+mapinfo(img::AbstractArray{ARGB32}) = MapNone{BGRA{Ufixed8}}()
 
+# Clamping mapinfo client. Converts to RGB and uses Ufixed, clamping floating-point values to [0,1].
+mapinfo{T<:Ufixed}(::Type{Images.Clamp}, img::AbstractArray{T}) = MapNone{T}()
+mapinfo{T<:FloatingPoint}(::Type{Images.Clamp}, img::AbstractArray{T}) = ClampMinMax(Ufixed8, zero(T), one(T))
+for ACV in (Color, AbstractRGB)
+    for CV in subtypes(ACV)
+        (length(CV.parameters) == 1 && !(CV.abstract)) || continue
+        CVnew = CV<:AbstractGray ? Gray : RGB
+        @eval mapinfo{T<:Ufixed}(::Type{Images.Clamp}, img::AbstractArray{$CV{T}}) = MapNone{$CVnew{T}}()
+        @eval mapinfo{CV<:$CV}(::Type{Images.Clamp}, img::AbstractArray{CV}) = Images.Clamp{$CVnew{Ufixed8}}()
+        CVnew = CV<:AbstractGray ? Gray : BGR
+        AC, CA       = alphacolor(CV), coloralpha(CV)
+        ACnew, CAnew = alphacolor(CVnew), coloralpha(CVnew)
+        @eval begin
+            mapinfo{T<:Ufixed}(::Type{Images.Clamp}, img::AbstractArray{$AC{T}}) = MapNone{$ACnew{T}}()
+            mapinfo{P<:$AC}(::Type{Images.Clamp}, img::AbstractArray{P}) = Images.Clamp{$ACnew{Ufixed8}}()
+            mapinfo{T<:Ufixed}(::Type{Images.Clamp}, img::AbstractArray{$CA{T}}) = MapNone{$CAnew{T}}()
+            mapinfo{P<:$CA}(::Type{Images.Clamp}, img::AbstractArray{P}) = Images.Clamp{$CAnew{Ufixed8}}()
+        end
+    end
+end
+mapinfo(::Type{Images.Clamp}, img::AbstractArray{RGB24}) = MapNone{RGB{Ufixed8}}()
+mapinfo(::Type{Images.Clamp}, img::AbstractArray{ARGB32}) = MapNone{BGRA{Ufixed8}}()
 # Make the data contiguous in memory, this is necessary for
 # imagemagick since it doesn't handle stride.
 to_contiguous(A::AbstractArray) = A
@@ -187,4 +234,107 @@ to_explicit{T<:FloatingPoint}(A::AbstractArray{BGRA{T}}) = to_explicit(map(Clamp
 to_explicit{T<:Ufixed}(A::AbstractArray{RGBA{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(4, size(A)...))
 to_explicit{T<:FloatingPoint}(A::AbstractArray{RGBA{T}}) = to_explicit(map(ClampMinMax(RGBA{Ufixed8}, zero(RGBA{T}), one(RGBA{T})), A))
 
+
+
+# Permute to a color, horizontal, vertical, ... storage order (with time always last)
+function permutation_horizontal(img)
+    cd = colordim(img)
+    td = timedim(img)
+    p = spatialpermutation(["x", "y"], img)
+    if cd != 0
+        p[p .>= cd] += 1
+        insert!(p, 1, cd)
+    end
+    if td != 0
+        push!(p, td)
+    end
+    p
+end
+
+permutedims_horizontal(img) = permutedims(img, permutation_horizontal(img))
+
+
+
+
+
+
+function load(s::Stream{format"PGMBinary"})
+    io = stream(s)
+    w, h = parse_netpbm_size(io)
+    maxval = parse_netpbm_maxval(io)
+    local dat
+    if maxval <= 255
+        dat = read(io, Ufixed8, w, h)
+    elseif maxval <= typemax(Uint16)
+        datraw = Array(Uint16, w, h)
+        if !is_little_endian
+            for indx = 1:w*h
+                datraw[indx] = read(io, Uint16)
+            end
+        else
+            for indx = 1:w*h
+                datraw[indx] = bswap(read(io, Uint16))
+            end
+        end
+        # Determine the appropriate Ufixed type
+        T = ufixedtype[ceil(Int, log2(maxval)/2)<<1]
+        dat = reinterpret(RGB{T}, datraw, (w, h))
+    else
+        error("Image file may be corrupt. Are there really more than 16 bits in this image?")
+    end
+    T = eltype(dat)
+    Image(dat, @compat Dict("colorspace" => "Gray", "spatialorder" => ["x", "y"], "pixelspacing" => [1,1]))
+end
+
+function load(s::Stream{format"PBMBinary"})
+    io = stream(s)
+    w, h = parse_netpbm_size(io)
+    dat = BitArray(w, h)
+    nbytes_per_row = ceil(Int, w/8)
+    for irow = 1:h, j = 1:nbytes_per_row
+        tmp = read(io, Uint8)
+        offset = (j-1)*8
+        for k = 1:min(8, w-offset)
+            dat[offset+k, irow] = (tmp>>>(8-k))&0x01
+        end
+    end
+    Image(dat, @compat Dict("spatialorder" => ["x", "y"], "pixelspacing" => [1,1]))
+end
+
+function save(filename::File{format"PPMBinary"}, img)
+    open(filename, "w") do s
+        write(s, "P6\n")
+        write(s, "# ppm file written by Julia\n")
+        save(s, img)
+    end
+end
+
+pnmmax{T<:FloatingPoint}(::Type{T}) = 255
+pnmmax{T<:Ufixed}(::Type{T}) = reinterpret(FixedPointNumbers.rawtype(T), one(T))
+pnmmax{T<:Unsigned}(::Type{T}) = typemax(T)
+
+function save{T<:Color}(s::Stream{format"PPMBinary"}, img::AbstractArray{T}, mapi = mapinfo(img))
+    w, h = widthheight(img)
+    TE = eltype(T)
+    mx = pnmmax(TE)
+    write(s, "$w $h\n$mx\n")
+    p = permutation_horizontal(img)
+    writepermuted(s, img, mapi, p; gray2color = T <: AbstractGray)
+end
+
+function save{T}(s::Stream{format"PPMBinary"}, img::AbstractArray{T}, mapi = mapinfo(ImageMagick, img))
+    io = stream(s)
+    w, h = widthheight(img)
+    cs = colorspace(img)
+    in(cs, ("RGB", "Gray")) || error("colorspace $cs not supported")
+    mx = pnmmax(T)
+    write(io, "$w $h\n$mx\n")
+    p = permutation_horizontal(img)
+    writepermuted(io, img, mapi, p; gray2color = cs == "Gray")
+end
+
+
+
+
 end # module
+
