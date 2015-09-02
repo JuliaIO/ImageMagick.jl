@@ -88,7 +88,7 @@ facts("IO") do
         @fact B --> map(Gray{Ufixed8}, A)
     end
 
-    @unix_only context("Reading from a stream (issue #312)") do
+    context("Reading from a stream (issue #312)") do
         fn = joinpath(workdir, "2by2.png")
         io = open(query(fn))
         img = load(io)

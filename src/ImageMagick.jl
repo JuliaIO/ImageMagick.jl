@@ -28,52 +28,42 @@ const is_little_endian = ENDIAN_BOM == 0x04030201
 import FileIO: load, save
 
 # Image / Video formats
-load(image::File{format"BMP"}, args...; key_args...) = load_(filename(image), args...; key_args...)
-save(image::File{format"BMP"}, args...; key_args...) = save_(filename(image), args...; key_args...)
-load(image::File{format"AVI"}, args...; key_args...) = load_(filename(image), args...; key_args...)
-save(image::File{format"AVI"}, args...; key_args...) = save_(filename(image), args...; key_args...)
-load(image::File{format"CRW"}, args...; key_args...) = load_(filename(image), args...; key_args...)
-save(image::File{format"CRW"}, args...; key_args...) = save_(filename(image), args...; key_args...)
-load(image::File{format"CUR"}, args...; key_args...) = load_(filename(image), args...; key_args...)
-save(image::File{format"CUR"}, args...; key_args...) = save_(filename(image), args...; key_args...)
-load(image::File{format"DCX"}, args...; key_args...) = load_(filename(image), args...; key_args...)
-save(image::File{format"DCX"}, args...; key_args...) = save_(filename(image), args...; key_args...)
-load(image::File{format"DOT"}, args...; key_args...) = load_(filename(image), args...; key_args...)
-save(image::File{format"DOT"}, args...; key_args...) = save_(filename(image), args...; key_args...)
-load(image::File{format"EPS"}, args...; key_args...) = load_(filename(image), args...; key_args...)
-save(image::File{format"EPS"}, args...; key_args...) = save_(filename(image), args...; key_args...)
-load(image::File{format"GIF"}, args...; key_args...) = load_(filename(image), args...; key_args...)
-save(image::File{format"GIF"}, args...; key_args...) = save_(filename(image), args...; key_args...)
-load(image::File{format"HDR"}, args...; key_args...) = load_(filename(image), args...; key_args...)
-save(image::File{format"HDR"}, args...; key_args...) = save_(filename(image), args...; key_args...)
-load(image::File{format"ICO"}, args...; key_args...) = load_(filename(image), args...; key_args...)
-save(image::File{format"ICO"}, args...; key_args...) = save_(filename(image), args...; key_args...)
-load(image::File{format"INFO"}, args...; key_args...) = load_(filename(image), args...; key_args...)
-save(image::File{format"INFO"}, args...; key_args...) = save_(filename(image), args...; key_args...)
-load(image::File{format"JP2"}, args...; key_args...) = load_(filename(image), args...; key_args...)
-save(image::File{format"JP2"}, args...; key_args...) = save_(filename(image), args...; key_args...)
-load(image::File{format"JPEG"}, args...; key_args...) = load_(filename(image), args...; key_args...)
-save(image::File{format"JPEG"}, args...; key_args...) = save_(filename(image), args...; key_args...)
-load(image::File{format"PCX"}, args...; key_args...) = load_(filename(image), args...; key_args...)
-save(image::File{format"PCX"}, args...; key_args...) = save_(filename(image), args...; key_args...)
-load(image::File{format"PDB"}, args...; key_args...) = load_(filename(image), args...; key_args...)
-save(image::File{format"PDB"}, args...; key_args...) = save_(filename(image), args...; key_args...)
-load(image::File{format"PDF"}, args...; key_args...) = load_(filename(image), args...; key_args...)
-save(image::File{format"PDF"}, args...; key_args...) = save_(filename(image), args...; key_args...)
-load(image::File{format"PGM"}, args...; key_args...) = load_(filename(image), args...; key_args...)
-save(image::File{format"PGM"}, args...; key_args...) = save_(filename(image), args...; key_args...)
-load(image::File{format"PNG"}, args...; key_args...) = load_(filename(image), args...; key_args...)
-save(image::File{format"PNG"}, args...; key_args...) = save_(filename(image), args...; key_args...)
-load(image::File{format"PSD"}, args...; key_args...) = load_(filename(image), args...; key_args...)
-save(image::File{format"PSD"}, args...; key_args...) = save_(filename(image), args...; key_args...)
-load(image::File{format"RGB"}, args...; key_args...) = load_(filename(image), args...; key_args...)
-save(image::File{format"RGB"}, args...; key_args...) = save_(filename(image), args...; key_args...)
-load(image::File{format"TIFF"}, args...; key_args...) = load_(filename(image), args...; key_args...)
-save(image::File{format"TIFF"}, args...; key_args...) = save_(filename(image), args...; key_args...)
-load(image::File{format"WMF"}, args...; key_args...) = load_(filename(image), args...; key_args...)
-save(image::File{format"WMF"}, args...; key_args...) = save_(filename(image), args...; key_args...)
-load(image::File{format"WPG"}, args...; key_args...) = load_(filename(image), args...; key_args...)
-save(image::File{format"WPG"}, args...; key_args...) = save_(filename(image), args...; key_args...)
+
+image_formats = [
+    format"BMP",
+    format"AVI",
+    format"CRW",
+    format"CUR",
+    format"DCX",
+    format"DOT",
+    format"EPS",
+    format"GIF",
+    format"HDR",
+    format"ICO",
+    format"INFO",
+    format"JP2",
+    format"JPEG",
+    format"PCX",
+    format"PDB",
+    format"PDF",
+    format"PGM",
+    format"PNG",
+    format"PSD",
+    format"RGB",
+    format"TIFF",
+    format"WMF",
+    format"WPG"
+]
+
+for format in image_formats
+    eval(quote
+        load(image::File{$format}, args...; key_args...) = load_(filename(image), args...; key_args...)
+        save(image::File{$format}, args...; key_args...) = save_(filename(image), args...; key_args...)
+
+        load(image::Stream{$format}, args...; key_args...) = load_(stream(image), args...; key_args...)
+        save(image::Stream{$format}, args...; key_args...) = save_(stream(image), args...; key_args...)
+    end)
+end
 
 const ufixedtype = @compat Dict(10=>Ufixed10, 12=>Ufixed12, 14=>Ufixed14, 16=>Ufixed16)
 
