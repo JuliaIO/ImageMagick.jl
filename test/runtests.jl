@@ -1,4 +1,4 @@
-using ImageMagick, Images, Colors, FixedPointNumbers, FileIO
+using Images, ColorTypes, FixedPointNumbers, FileIO
 using FactCheck
 
 # write your own tests here
