@@ -77,9 +77,8 @@ save(image::File{format"WPG"}, args...; key_args...) = save_(filename(image), ar
 
 const ufixedtype = @compat Dict(10=>Ufixed10, 12=>Ufixed12, 14=>Ufixed14, 16=>Ufixed16)
 
-load_(file::File) = load_(filename(file))
 
-function load_(file::Union(AbstractString,IO))
+function load_(file::Union(AbstractString,IO), ImageType=Image)
     wand = MagickWand()
     readimage(wand, file)
     resetiterator(wand)
@@ -131,8 +130,15 @@ function load_(file::Union(AbstractString,IO))
     buf = Array(T, sz...)
     exportimagepixels!(buf, wand, cs, channelorder)
 
-    buf
+    prop = Dict{UTF8String, Any}()
+    prop["spatialorder"] = ["x", "y"]
+    n > 1 && (prop["timedim"] = ndims(buf))
+    prop["colorspace"] = cs
+
+    ImageType(buf, prop)
 end
+
+
 
 save_(file::File; kwargs...) = save_(filename(file); kwargs...)
 save_(s::Stream, img; kwargs...) = save_(stream(s), img; kwargs...)
@@ -145,14 +151,14 @@ end
 
 function image2wand(img, mapi, quality)
     imgw = map(mapi, img)
-    imgw = permutedims_horizontal(imgw)
+    #imgw = permutedims_horizontal(imgw)
     have_color = colordim(imgw)!=0
     if ndims(imgw) > 3+have_color
         error("At most 3 dimensions are supported")
     end
     wand = MagickWand()
-    if haskey(img, "IMcs")
-        cs = img["IMcs"]
+    if haskey(img, "colorspace")
+        cs = img["colorspace"]
     else
         cs = colorspace(imgw)
         if in(cs, ("RGB", "RGBA", "ARGB", "BGRA"))
@@ -180,21 +186,21 @@ for ACV in (Color, AbstractRGB)
     for CV in subtypes(ACV)
         (length(CV.parameters) == 1 && !(CV.abstract)) || continue
         CVnew = CV<:AbstractGray ? Gray : RGB
-        @eval mapinfo{T<:Ufixed}(image, img::AbstractArray{$CV{T}}) = MapNone{$CVnew{T}}()
-        @eval mapinfo{CV<:$CV}(image, img::AbstractArray{CV}) = MapNone{$CVnew{Ufixed8}}()
+        @eval mapinfo{T<:Ufixed}(img::AbstractArray{$CV{T}}) = MapNone{$CVnew{T}}()
+        @eval mapinfo{CV<:$CV}(img::AbstractArray{CV}) = MapNone{$CVnew{Ufixed8}}()
         CVnew = CV<:AbstractGray ? Gray : BGR
         AC, CA       = alphacolor(CV), coloralpha(CV)
         ACnew, CAnew = alphacolor(CVnew), coloralpha(CVnew)
         @eval begin
-            mapinfo{T<:Ufixed}(image, img::AbstractArray{$AC{T}}) = MapNone{$ACnew{T}}()
-            mapinfo{P<:$AC}(image, img::AbstractArray{P}) = MapNone{$ACnew{Ufixed8}}()
-            mapinfo{T<:Ufixed}(image, img::AbstractArray{$CA{T}}) = MapNone{$CAnew{T}}()
-            mapinfo{P<:$CA}(image, img::AbstractArray{P}) = MapNone{$CAnew{Ufixed8}}()
+            mapinfo{T<:Ufixed}(img::AbstractArray{$AC{T}}) = MapNone{$ACnew{T}}()
+            mapinfo{P<:$AC}(img::AbstractArray{P}) = MapNone{$ACnew{Ufixed8}}()
+            mapinfo{T<:Ufixed}(img::AbstractArray{$CA{T}}) = MapNone{$CAnew{T}}()
+            mapinfo{P<:$CA}(img::AbstractArray{P}) = MapNone{$CAnew{Ufixed8}}()
         end
     end
 end
-mapinfo(image, img::AbstractArray{RGB24}) = MapNone{RGB{Ufixed8}}()
-mapinfo(image, img::AbstractArray{ARGB32}) = MapNone{BGRA{Ufixed8}}()
+mapinfo(img::AbstractArray{RGB24}) = MapNone{RGB{Ufixed8}}()
+mapinfo(img::AbstractArray{ARGB32}) = MapNone{BGRA{Ufixed8}}()
 
 # Clamping mapinfo client. Converts to RGB and uses Ufixed, clamping floating-point values to [0,1].
 mapinfo{T<:Ufixed}(::Type{Images.Clamp}, img::AbstractArray{T}) = MapNone{T}()
@@ -257,4 +263,88 @@ end
 
 permutedims_horizontal(img) = permutedims(img, permutation_horizontal(img))
 
+
+
+
+
+
+function load(s::Stream{format"PGMBinary"})
+    io = stream(s)
+    w, h = parse_netpbm_size(io)
+    maxval = parse_netpbm_maxval(io)
+    local dat
+    if maxval <= 255
+        dat = read(io, Ufixed8, w, h)
+    elseif maxval <= typemax(Uint16)
+        datraw = Array(Uint16, w, h)
+        if !is_little_endian
+            for indx = 1:w*h
+                datraw[indx] = read(io, Uint16)
+            end
+        else
+            for indx = 1:w*h
+                datraw[indx] = bswap(read(io, Uint16))
+            end
+        end
+        # Determine the appropriate Ufixed type
+        T = ufixedtype[ceil(Int, log2(maxval)/2)<<1]
+        dat = reinterpret(RGB{T}, datraw, (w, h))
+    else
+        error("Image file may be corrupt. Are there really more than 16 bits in this image?")
+    end
+    T = eltype(dat)
+    Image(dat, @compat Dict("colorspace" => "Gray", "spatialorder" => ["x", "y"], "pixelspacing" => [1,1]))
+end
+
+function load(s::Stream{format"PBMBinary"})
+    io = stream(s)
+    w, h = parse_netpbm_size(io)
+    dat = BitArray(w, h)
+    nbytes_per_row = ceil(Int, w/8)
+    for irow = 1:h, j = 1:nbytes_per_row
+        tmp = read(io, Uint8)
+        offset = (j-1)*8
+        for k = 1:min(8, w-offset)
+            dat[offset+k, irow] = (tmp>>>(8-k))&0x01
+        end
+    end
+    Image(dat, @compat Dict("spatialorder" => ["x", "y"], "pixelspacing" => [1,1]))
+end
+
+function save(filename::File{format"PPMBinary"}, img)
+    open(filename, "w") do s
+        write(s, "P6\n")
+        write(s, "# ppm file written by Julia\n")
+        save(s, img)
+    end
+end
+
+pnmmax{T<:FloatingPoint}(::Type{T}) = 255
+pnmmax{T<:Ufixed}(::Type{T}) = reinterpret(FixedPointNumbers.rawtype(T), one(T))
+pnmmax{T<:Unsigned}(::Type{T}) = typemax(T)
+
+function save{T<:Color}(s::Stream{format"PPMBinary"}, img::AbstractArray{T}, mapi = mapinfo(img))
+    w, h = widthheight(img)
+    TE = eltype(T)
+    mx = pnmmax(TE)
+    write(s, "$w $h\n$mx\n")
+    p = permutation_horizontal(img)
+    writepermuted(s, img, mapi, p; gray2color = T <: AbstractGray)
+end
+
+function save{T}(s::Stream{format"PPMBinary"}, img::AbstractArray{T}, mapi = mapinfo(ImageMagick, img))
+    io = stream(s)
+    w, h = widthheight(img)
+    cs = colorspace(img)
+    in(cs, ("RGB", "Gray")) || error("colorspace $cs not supported")
+    mx = pnmmax(T)
+    write(io, "$w $h\n$mx\n")
+    p = permutation_horizontal(img)
+    writepermuted(io, img, mapi, p; gray2color = cs == "Gray")
+end
+
+
+
+
 end # module
+
