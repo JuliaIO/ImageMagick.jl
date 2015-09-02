@@ -32,15 +32,15 @@ end
     magick_base = "http://www.imagemagick.org/download/binaries"
     binariesfn = download(magick_base)
     str = readall(binariesfn)
-    pattern = ">ImageMagick-6.9.*-Q16-$(OS_ARCH)-dll.exe"
+    pattern = "ImageMagick-6.9.*-Q16-$(OS_ARCH)-dll.exe"
     m = match(Regex(pattern), str)
-    magick_exe = convert(ASCIIString, m.match)[2:end]
+    magick_exe = convert(ASCIIString, m.match)
 
     magick_tmpdir = BinDeps.downloadsdir(libwand)
     magick_url = "$(magick_base)/$(magick_exe)"
     magick_libdir = joinpath(BinDeps.libdir(libwand), OS_ARCH)
 
-    innounp_url = "https://julialang.s3.amazonaws.com/bin/winnt/extras/innounp.exe"
+    innounp_url = "https://bintray.com/artifact/download/julialang/generic/innounp.exe"
 
     provides(BuildProcess,
         (@build_steps begin
@@ -74,7 +74,7 @@ end
     function __init__()
         ENV["MAGICK_CONFIGURE_PATH"] = joinpath("$(Homebrew.prefix("imagemagick"))","lib","ImageMagick","config-Q16")
         ENV["MAGICK_CODER_MODULE_PATH"] = joinpath("$(Homebrew.prefix("imagemagick"))", "lib","ImageMagick","modules-Q16","coders")
-        ENV["PATH"] *= ":" * joinpath("$(Homebrew.prefix("imagemagick"))", "bin")
+        ENV["PATH"] = joinpath("$(Homebrew.prefix("imagemagick"))", "bin") * ":" * ENV["PATH"]
     end
     """ )
 end

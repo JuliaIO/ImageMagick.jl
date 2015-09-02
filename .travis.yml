@@ -8,6 +8,9 @@ julia:
 notifications:
   email: false
 # uncomment the following lines to override the default test script
-#script:
-#  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-#  - julia --check-bounds=yes -e 'Pkg.clone(pwd()); Pkg.build("ImageMagick"); Pkg.test("ImageMagick"; coverage=true)'
+script:
+  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
+  - julia -e 'Pkg.clone("https://github.com/JuliaIO/FileIO.jl.git"); Pkg.checkout("FileIO", "sd/improvements")'
+  - julia -e 'Pkg.clone(pwd()); Pkg.build("ImageMagick"); Pkg.checkout("Images", "sd/fileio")'
+  - julia --check-bounds=yes -e 'Pkg.test("ImageMagick"; coverage=true)'
+  - julia -e 'cd(Pkg.dir("ImageMagick")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(process_folder()); Codecov.submit(process_folder())'
