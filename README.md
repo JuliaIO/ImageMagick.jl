@@ -6,4 +6,4 @@
 
 Seperated ImageMagick from Images.jl to make ImageIO more lightweight.
 
-This is basically not my work so all credit goes to: [Images.jl](https://github.com/timholy/Images.jl)
+Credits go to: [Images.jl](https://github.com/timholy/Images.jl)
