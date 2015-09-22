@@ -68,7 +68,7 @@ end
 const ufixedtype = @compat Dict(10=>Ufixed10, 12=>Ufixed12, 14=>Ufixed14, 16=>Ufixed16)
 
 
-function load_(file::Union(AbstractString,IO), ImageType=Image)
+function load_(file::Union{AbstractString,IO}, ImageType=Image)
     wand = MagickWand()
     readimage(wand, file)
     resetiterator(wand)
@@ -134,14 +134,14 @@ save_(file::File; kwargs...) = save_(filename(file); kwargs...)
 save_(s::Stream, img; kwargs...) = save_(stream(s), img; kwargs...)
 
 
-function save_(filename::AbstractString, img; mapi = mapinfo(img), quality = nothing)
-    wand = image2wand(img, mapi, quality)
+function save_(filename::AbstractString, img, permute_horizontal=false; mapi = mapinfo(img), quality = nothing)
+    wand = image2wand(img, mapi, quality, permute_horizontal)
     writeimage(wand, filename)
 end
 
-function image2wand(img, mapi, quality)
+function image2wand(img, mapi, quality, permute_horizontal=false)
     imgw = map(mapi, img)
-    #imgw = permutedims_horizontal(imgw)
+    permute_horizontal && (imgw = permutedims_horizontal(imgw))
     have_color = colordim(imgw)!=0
     if ndims(imgw) > 3+have_color
         error("At most 3 dimensions are supported")
@@ -171,7 +171,7 @@ function image2wand(img, mapi, quality)
 end
 # ImageMagick mapinfo client. Converts to RGB and uses Ufixed.
 mapinfo{T<:Ufixed}(img::AbstractArray{T}) = MapNone{T}()
-mapinfo{T<:FloatingPoint}(img::AbstractArray{T}) = MapNone{Ufixed8}()
+mapinfo{T<:AbstractFloat}(img::AbstractArray{T}) = MapNone{Ufixed8}()
 for ACV in (Color, AbstractRGB)
     for CV in subtypes(ACV)
         (length(CV.parameters) == 1 && !(CV.abstract)) || continue
@@ -194,7 +194,7 @@ mapinfo(img::AbstractArray{ARGB32}) = MapNone{BGRA{Ufixed8}}()
 
 # Clamping mapinfo client. Converts to RGB and uses Ufixed, clamping floating-point values to [0,1].
 mapinfo{T<:Ufixed}(::Type{Images.Clamp}, img::AbstractArray{T}) = MapNone{T}()
-mapinfo{T<:FloatingPoint}(::Type{Images.Clamp}, img::AbstractArray{T}) = ClampMinMax(Ufixed8, zero(T), one(T))
+mapinfo{T<:AbstractFloat}(::Type{Images.Clamp}, img::AbstractArray{T}) = ClampMinMax(Ufixed8, zero(T), one(T))
 for ACV in (Color, AbstractRGB)
     for CV in subtypes(ACV)
         (length(CV.parameters) == 1 && !(CV.abstract)) || continue
@@ -222,17 +222,17 @@ to_contiguous(A::SubArray) = copy(A)
 to_explicit(A::AbstractArray) = A
 to_explicit{T<:Ufixed}(A::AbstractArray{T}) = reinterpret(FixedPointNumbers.rawtype(T), A)
 to_explicit{T<:Ufixed}(A::AbstractArray{RGB{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(3, size(A)...))
-to_explicit{T<:FloatingPoint}(A::AbstractArray{RGB{T}}) = to_explicit(map(ClampMinMax(RGB{Ufixed8}, zero(RGB{T}), one(RGB{T})), A))
+to_explicit{T<:AbstractFloat}(A::AbstractArray{RGB{T}}) = to_explicit(map(ClampMinMax(RGB{Ufixed8}, zero(RGB{T}), one(RGB{T})), A))
 to_explicit{T<:Ufixed}(A::AbstractArray{Gray{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, size(A))
-to_explicit{T<:FloatingPoint}(A::AbstractArray{Gray{T}}) = to_explicit(map(ClampMinMax(Gray{Ufixed8}, zero(Gray{T}), one(Gray{T})), A))
+to_explicit{T<:AbstractFloat}(A::AbstractArray{Gray{T}}) = to_explicit(map(ClampMinMax(Gray{Ufixed8}, zero(Gray{T}), one(Gray{T})), A))
 
 to_explicit{T<:Ufixed}(A::AbstractArray{GrayA{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, size(A))
-to_explicit{T<:FloatingPoint}(A::AbstractArray{GrayA{T}}) = to_explicit(map(ClampMinMax(GrayA{Ufixed8}, zero(GrayA{T}), one(GrayA{T})), A))
+to_explicit{T<:AbstractFloat}(A::AbstractArray{GrayA{T}}) = to_explicit(map(ClampMinMax(GrayA{Ufixed8}, zero(GrayA{T}), one(GrayA{T})), A))
 
 to_explicit{T<:Ufixed}(A::AbstractArray{BGRA{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(4, size(A)...))
-to_explicit{T<:FloatingPoint}(A::AbstractArray{BGRA{T}}) = to_explicit(map(ClampMinMax(BGRA{Ufixed8}, zero(BGRA{T}), one(BGRA{T})), A))
+to_explicit{T<:AbstractFloat}(A::AbstractArray{BGRA{T}}) = to_explicit(map(ClampMinMax(BGRA{Ufixed8}, zero(BGRA{T}), one(BGRA{T})), A))
 to_explicit{T<:Ufixed}(A::AbstractArray{RGBA{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(4, size(A)...))
-to_explicit{T<:FloatingPoint}(A::AbstractArray{RGBA{T}}) = to_explicit(map(ClampMinMax(RGBA{Ufixed8}, zero(RGBA{T}), one(RGBA{T})), A))
+to_explicit{T<:AbstractFloat}(A::AbstractArray{RGBA{T}}) = to_explicit(map(ClampMinMax(RGBA{Ufixed8}, zero(RGBA{T}), one(RGBA{T})), A))
 
 
 
@@ -254,10 +254,6 @@ end
 permutedims_horizontal(img) = permutedims(img, permutation_horizontal(img))
 
 
-
-
-
-
 function load(s::Stream{format"PGMBinary"})
     io = stream(s)
     w, h = parse_netpbm_size(io)
@@ -265,15 +261,15 @@ function load(s::Stream{format"PGMBinary"})
     local dat
     if maxval <= 255
         dat = read(io, Ufixed8, w, h)
-    elseif maxval <= typemax(Uint16)
-        datraw = Array(Uint16, w, h)
+    elseif maxval <= typemax(UInt16)
+        datraw = Array(UInt16, w, h)
         if !is_little_endian
             for indx = 1:w*h
-                datraw[indx] = read(io, Uint16)
+                datraw[indx] = read(io, UInt16)
             end
         else
             for indx = 1:w*h
-                datraw[indx] = bswap(read(io, Uint16))
+                datraw[indx] = bswap(read(io, UInt16))
             end
         end
         # Determine the appropriate Ufixed type
@@ -286,13 +282,14 @@ function load(s::Stream{format"PGMBinary"})
     Image(dat, @compat Dict("colorspace" => "Gray", "spatialorder" => ["x", "y"], "pixelspacing" => [1,1]))
 end
 
+
 function load(s::Stream{format"PBMBinary"})
     io = stream(s)
     w, h = parse_netpbm_size(io)
     dat = BitArray(w, h)
     nbytes_per_row = ceil(Int, w/8)
     for irow = 1:h, j = 1:nbytes_per_row
-        tmp = read(io, Uint8)
+        tmp = read(io, UInt8)
         offset = (j-1)*8
         for k = 1:min(8, w-offset)
             dat[offset+k, irow] = (tmp>>>(8-k))&0x01
@@ -309,7 +306,7 @@ function save(filename::File{format"PPMBinary"}, img)
     end
 end
 
-pnmmax{T<:FloatingPoint}(::Type{T}) = 255
+pnmmax{T<:AbstractFloat}(::Type{T}) = 255
 pnmmax{T<:Ufixed}(::Type{T}) = reinterpret(FixedPointNumbers.rawtype(T), one(T))
 pnmmax{T<:Unsigned}(::Type{T}) = typemax(T)
 
