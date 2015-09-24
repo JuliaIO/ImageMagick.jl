@@ -98,3 +98,4 @@ facts("IO") do
 end
 
 
+FactCheck.exitstatus()
