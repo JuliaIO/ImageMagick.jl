@@ -1,4 +1,22 @@
+
 import Base: error, size
+
+export MagickWand,
+    constituteimage,
+    exportimagepixels!,
+    getblob,
+    getimagealphachannel,
+    getimagecolorspace,
+    getimagedepth,
+    getnumberimages,
+    importimagepixels,
+    readimage,
+    resetiterator,
+    setimagecolorspace,
+    setimagecompression,
+    setimagecompressionquality,
+    setimageformat,
+    writeimage
 
 
 # Find the library
@@ -12,14 +30,12 @@ end
 if isfile(versionfile)
     include(versionfile)
 end
+
 const have_imagemagick = isdefined(:libwand)
 
 # Initialize the library
-function init()
-    global libwand
-    if have_imagemagick
-        eval(:(ccall((:MagickWandGenesis, $libwand), Void, ())))
-    else
+function __init__()
+    if !have_imagemagick
         warn("ImageMagick utilities not found. Install for more file format support.")
     end
 end
@@ -32,7 +48,7 @@ const DOUBLEPIXEL = 2
 const FLOATPIXEL = 3
 const INTEGERPIXEL = 4
 const SHORTPIXEL = 7
-IMStorageTypes = Union{UInt8, UInt16, UInt32, Float32, Float64}
+@compat IMStorageTypes = Union{UInt8, UInt16, UInt32, Float32, Float64}
 storagetype(::Type{UInt8}) = CHARPIXEL
 storagetype(::Type{UInt16}) = SHORTPIXEL
 storagetype(::Type{UInt32}) = INTEGERPIXEL
@@ -71,7 +87,7 @@ const DefaultChannels = ChannelType( (AllChannels.value | SyncChannels.value) &~
 const IMType = ["BilevelType", "GrayscaleType", "GrayscaleMatteType", "PaletteType", "PaletteMatteType", "TrueColorType", "TrueColorMatteType", "ColorSeparationType", "ColorSeparationMatteType", "OptimizeType", "PaletteBilevelMatteType"]
 const IMTypedict = Dict([(IMType[i], i) for i = 1:length(IMType)])
 
-const CStoIMTypedict = @compat Dict("Gray" => "GrayscaleType", "GrayAlpha" => "GrayscaleMatteType", "RGB" => "TrueColorType", "ARGB" => "TrueColorMatteType", "CMYK" => "ColorSeparationType")
+const CStoIMTypedict = @compat Dict("Gray" => "GrayscaleType", "GrayA" => "GrayscaleMatteType", "RGB" => "TrueColorType", "ARGB" => "TrueColorMatteType", "CMYK" => "ColorSeparationType")
 
 # Colorspace
 const IMColorspace = ["RGB", "Gray", "Transparent", "OHTA", "Lab", "XYZ", "YCbCr", "YCC", "YIQ", "YPbPr", "YUV", "CMYK", "sRGB"]
@@ -81,7 +97,7 @@ function nchannels(imtype::AbstractString, cs::AbstractString, havealpha = false
     n = 3
     if startswith(imtype, "Grayscale") || startswith(imtype, "Bilevel")
         n = 1
-        cs = havealpha ? "GrayAlpha" : "Gray"
+        cs = havealpha ? "GrayA" : "Gray"
     elseif cs == "CMYK"
         n = 4
     else
@@ -90,7 +106,7 @@ function nchannels(imtype::AbstractString, cs::AbstractString, havealpha = false
     n + havealpha, cs
 end
 
-# channelorder = ["Gray" => "I", "GrayAlpha" => "IA", "RGB" => "RGB", "ARGB" => "ARGB", "RGBA" => "RGBA", "CMYK" => "CMYK"]
+# channelorder = ["Gray" => "I", "GrayA" => "IA", "RGB" => "RGB", "ARGB" => "ARGB", "RGBA" => "RGBA", "CMYK" => "CMYK"]
 
 # Compression
 const NoCompression = 1
@@ -140,7 +156,7 @@ function getsize(buffer, channelorder)
         return size(buffer, 2), size(buffer, 3), size(buffer, 4)
     end
 end
-getsize{C <: Colorant}(buffer::AbstractArray{C}, channelorder) = size(buffer, 1), size(buffer, 2), size(buffer, 3)
+getsize{C<:Colorant}(buffer::AbstractArray{C}, channelorder) = size(buffer, 1), size(buffer, 2), size(buffer, 3)
 
 colorsize(buffer, channelorder) = channelorder == "I" ? 1 : size(buffer, 1)
 colorsize{C<:Colorant}(buffer::AbstractArray{C}, channelorder) = 1
@@ -148,17 +164,15 @@ colorsize{C<:Colorant}(buffer::AbstractArray{C}, channelorder) = 1
 bitdepth{C<:Colorant}(buffer::AbstractArray{C}) = 8*eltype(C)
 bitdepth{T}(buffer::AbstractArray{T}) = 8*sizeof(T)
 
-MagickExportImagePixels(wand, x, y, cols, rows, channelorder, T, p) = ccall((:MagickExportImagePixels, libwand), Cint, (Ptr{Void}, Cssize_t, Cssize_t, Csize_t, Csize_t, Ptr{UInt8}, Cint, Ptr{Void}), wand.ptr, x, y, cols, rows, channelorder, storagetype(T), p)
-
 # colorspace is included for consistency with constituteimage, but it is not used
 function exportimagepixels!{T}(buffer::AbstractArray{T}, wand::MagickWand,  colorspace::ASCIIString, channelorder::ASCIIString; x = 0, y = 0)
     cols, rows, nimages = getsize(buffer, channelorder)
     ncolors = colorsize(buffer, channelorder)
     p = pointer(buffer)
     for i = 1:nimages
-        status = MagickExportImagePixels(wand, x, y, cols, rows, channelorder, T, p)
-        status == 0 && error(wand)
         nextimage(wand)
+        status = ccall((:MagickExportImagePixels, libwand), Cint, (Ptr{Void}, Cssize_t, Cssize_t, Csize_t, Csize_t, Ptr{UInt8}, Cint, Ptr{Void}), wand.ptr, x, y, cols, rows, channelorder, storagetype(T), p)
+        status == 0 && error(wand)
         p += sizeof(T)*cols*rows*ncolors
     end
     buffer
@@ -256,7 +270,7 @@ end
 
 function getimageproperty(wand::MagickWand,prop::AbstractString)
     p = ccall((:MagickGetImageProperty, libwand),Ptr{UInt8},(Ptr{Void},Ptr{UInt8}),wand.ptr,prop)
-    if p == C_NULL
+    if p == convert(Ptr{UInt8}, C_NULL)
         possib = getimageproperties(wand,"*")
         warn("Undefined property, possible names are \"$(join(possib,"\",\""))\"")
         nothing

@@ -1,6 +1,6 @@
 module ImageMagick
 
-using FixedPointNumbers, ColorTypes, FileIO, Compat, Images
+using FixedPointNumbers, ColorTypes, FileIO, Compat, Images, ColorVectorSpace
 
 export MagickWand
 export constituteimage
@@ -68,7 +68,7 @@ end
 const ufixedtype = @compat Dict(10=>Ufixed10, 12=>Ufixed12, 14=>Ufixed14, 16=>Ufixed16)
 
 
-function load_(file::Union{AbstractString,IO}, ImageType=Image)
+function load_(file::@compat(Union{AbstractString,IO}), ImageType=Image)
     wand = MagickWand()
     readimage(wand, file)
     resetiterator(wand)
