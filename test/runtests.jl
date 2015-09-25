@@ -89,7 +89,7 @@ facts("IO") do
 
     context("Reading from a stream (issue #312)") do
         fn = joinpath(workdir, "2by2.png")
-        io = open(query(fn))
+        io = open(fn)
         img = load(io)
         close(io)
         @fact isa(img, Images.Image) --> true
