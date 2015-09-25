@@ -38,6 +38,7 @@ function __init__()
     if !have_imagemagick
         warn("ImageMagick utilities not found. Install for more file format support.")
     end
+    magick_hooks()
 end
 
 

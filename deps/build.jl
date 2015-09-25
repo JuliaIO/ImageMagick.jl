@@ -2,6 +2,20 @@ using BinDeps, Compat
 
 @BinDeps.setup
 
+function cleanup()
+    base_path       = dirname(@__FILE__)
+    downpath        = joinpath(base_path, "downloads")
+    usrpath         = joinpath(base_path, "usr")
+    depspath        = joinpath(base_path, "deps.jl")
+    versioninfopath = joinpath(base_path, "versioninfo.jl")
+
+    isdir(downpath)         && try rm(downpath, recursive=true) end # its not strictly necessary to succeed and there are too many factors for this to error
+    isdir(usrpath)          && try rm(usrpath, recursive=true) end
+    isfile(depspath)        && try rm(depspath) end
+    isfile(versioninfopath) && try rm(versioninfopath) end
+end
+cleanup()
+
 mpath = get(ENV, "MAGICK_HOME", "") # If MAGICK_HOME is defined, add to library search path
 if !isempty(mpath)
     push!(DL_LOAD_PATH, mpath)
@@ -15,7 +29,7 @@ aliases = vec(libnames.*transpose(suffixes).*reshape(options,(1,1,length(options
 libwand = library_dependency("libwand", aliases = aliases)
 
 @linux_only begin
-    kwargs = Any[(:onload, "ccall((:MagickWandGenesis,libwand), Void, ())")]
+    kwargs = Any[(:onload, "ccall((:MagickWandGenesis,libwand), Void, ())"), (:preload, "magick_hooks() = nothing")]
     provides(AptGet, "libmagickwand4", libwand; kwargs...)
     provides(AptGet, "libmagickwand5", libwand; kwargs...)
     provides(AptGet, "libmagickwand-6.q16-2", libwand; kwargs...)
@@ -61,8 +75,10 @@ end
         unpacked_dir = magick_libdir,
         preload =
             """
-            ENV["MAGICK_CONFIGURE_PATH"] = \"$(escape_string(magick_libdir))\"
-            ENV["MAGICK_CODER_MODULE_PATH"] = \"$(escape_string(magick_libdir))\"
+            function magick_hooks()
+                ENV["MAGICK_CONFIGURE_PATH"] = \"$(escape_string(magick_libdir))\"
+                ENV["MAGICK_CODER_MODULE_PATH"] = \"$(escape_string(magick_libdir))\"
+            end
             """,
         onload = "ccall((:MagickWandGenesis,libwand), Void, ())")
 end
@@ -74,7 +90,7 @@ end
     using Homebrew
     provides( Homebrew.HB, "imagemagick", libwand, os = :Darwin, onload =
     """
-    function __init__()
+    function magick_hooks()
         ENV["MAGICK_CONFIGURE_PATH"] = joinpath("$(Homebrew.prefix("imagemagick"))","lib","ImageMagick","config-Q16")
         ENV["MAGICK_CODER_MODULE_PATH"] = joinpath("$(Homebrew.prefix("imagemagick"))", "lib","ImageMagick","modules-Q16","coders")
         ENV["PATH"] = joinpath("$(Homebrew.prefix("imagemagick"))", "bin") * ":" * ENV["PATH"]
