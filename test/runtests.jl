@@ -1,7 +1,6 @@
 using Images, ColorTypes, FixedPointNumbers, FileIO
 using FactCheck
 
-# write your own tests here
 facts("IO") do
     workdir = joinpath(tempdir(), "Images")
     isdir(workdir) && rm(workdir, recursive=true)

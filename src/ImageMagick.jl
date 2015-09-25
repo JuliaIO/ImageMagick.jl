@@ -1,7 +1,8 @@
 VERSION >= v"0.4.0-dev+6521" && __precompile__(true)
 module ImageMagick
 
-using FixedPointNumbers, ColorTypes, FileIO, Compat, Images, ColorVectorSpace
+using FixedPointNumbers, ColorTypes, Compat, Images, ColorVectorSpace
+import FileIO: @format_str, File, Stream, filename, stream
 
 export MagickWand
 export constituteimage
