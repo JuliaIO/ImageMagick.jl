@@ -27,8 +27,6 @@ typealias AbstractGray{T} Color{T, 1}
 
 const is_little_endian = ENDIAN_BOM == 0x04030201
 
-import FileIO: load, save
-
 # Image / Video formats
 
 image_formats = [
@@ -54,7 +52,8 @@ image_formats = [
     format"RGB",
     format"TIFF",
     format"WMF",
-    format"WPG"
+    format"WPG",
+    format"TGA"
 ]
 
 for format in image_formats
