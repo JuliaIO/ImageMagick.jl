@@ -1,4 +1,4 @@
-using Images, ColorTypes, FixedPointNumbers, FileIO
+using ImageMagick, Images, ColorTypes, FixedPointNumbers, FileIO
 using FactCheck
 
 facts("IO") do
@@ -91,10 +91,8 @@ facts("IO") do
         fn = joinpath(workdir, "2by2.png")
         io = open(fn)
         img = load(io)
-        close(io)
         @fact isa(img, Images.Image) --> true
+        close(io)
     end
 end
-
-
 FactCheck.exitstatus()

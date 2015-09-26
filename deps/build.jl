@@ -106,9 +106,7 @@ end
 module CheckVersion
 using Compat
 include("deps.jl")
-if isdefined(:__init__)
-    __init__()
-end
+magick_hooks()
 p = ccall((:MagickQueryConfigureOption, libwand), Ptr{UInt8}, (Ptr{UInt8},), "LIB_VERSION_NUMBER")
 vstr = string("v\"", join(split(bytestring(p), ',')[1:3], '.'), "\"")
 open(joinpath(dirname(@__FILE__),"versioninfo.jl"), "w") do file
