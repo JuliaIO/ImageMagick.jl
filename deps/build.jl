@@ -15,7 +15,9 @@ aliases = vec(libnames.*transpose(suffixes).*reshape(options,(1,1,length(options
 libwand = library_dependency("libwand", aliases = aliases)
 
 initfun = """
-__init__() = ccall((:MagickWandGenesis,libwand), Void, ())
+function init_deps()
+    ccall((:MagickWandGenesis,libwand), Void, ())
+end
 """
 
 @linux_only begin
@@ -63,12 +65,17 @@ end
         libwand,
         os = :Windows,
         unpacked_dir = magick_libdir,
-        preload =
-            """
+        preload ="""
+        function init_deps()
             ENV["MAGICK_CONFIGURE_PATH"] = \"$(escape_string(magick_libdir))\"
             ENV["MAGICK_CODER_MODULE_PATH"] = \"$(escape_string(magick_libdir))\"
-            """,
-        onload = initfun)
+        end
+        init_deps()
+        """,
+        onload = """
+        ccall((:MagickWandGenesis,libwand), Void, ())
+        
+        """)
 end
 
 @osx_only begin
@@ -76,15 +83,16 @@ end
             error("Homebrew package not installed, please run Pkg.add(\"Homebrew\")")
     end
     using Homebrew
-    provides( Homebrew.HB, "imagemagick", libwand, os = :Darwin, onload =
+    provides( Homebrew.HB, "imagemagick", libwand, os = :Darwin, preload =
     """
-    function __init__()
+    function init_deps()
         ENV["MAGICK_CONFIGURE_PATH"] = joinpath("$(Homebrew.prefix("imagemagick"))","lib","ImageMagick","config-Q16")
         ENV["MAGICK_CODER_MODULE_PATH"] = joinpath("$(Homebrew.prefix("imagemagick"))", "lib","ImageMagick","modules-Q16","coders")
         ENV["PATH"] = joinpath("$(Homebrew.prefix("imagemagick"))", "bin") * ":" * ENV["PATH"]
         ccall((:MagickWandGenesis,libwand), Void, ())
     end
-    """ )
+    """,
+    onload="init_deps()")
 end
 
 @BinDeps.install Dict([(:libwand, :libwand)])
@@ -94,9 +102,6 @@ end
 module CheckVersion
 using Compat
 include("deps.jl")
-if isdefined(:__init__)
-    __init__()
-end
 p = ccall((:MagickQueryConfigureOption, libwand), Ptr{UInt8}, (Ptr{UInt8},), "LIB_VERSION_NUMBER")
 vstr = string("v\"", join(split(bytestring(p), ',')[1:3], '.'), "\"")
 open(joinpath(dirname(@__FILE__),"versioninfo.jl"), "w") do file
