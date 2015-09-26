@@ -34,10 +34,9 @@ end
 const have_imagemagick = isdefined(:libwand)
 
 # Initialize the library
-if !have_imagemagick
-    function __init__()
-        warn("ImageMagick utilities not found. Install for more file format support.")
-    end
+function __init__()
+    init_deps()
+    !have_imagemagick && warn("ImageMagick utilities not found. Install for more file format support.")
 end
 
 
