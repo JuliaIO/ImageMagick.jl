@@ -2,20 +2,6 @@ using BinDeps, Compat
 
 @BinDeps.setup
 
-function cleanup()
-    base_path       = dirname(@__FILE__)
-    downpath        = joinpath(base_path, "downloads")
-    usrpath         = joinpath(base_path, "usr")
-    depspath        = joinpath(base_path, "deps.jl")
-    versioninfopath = joinpath(base_path, "versioninfo.jl")
-
-    isdir(downpath)         && try rm(downpath, recursive=true) end # its not strictly necessary to succeed and there are too many factors for this to error
-    isdir(usrpath)          && try rm(usrpath, recursive=true) end
-    isfile(depspath)        && try rm(depspath) end
-    isfile(versioninfopath) && try rm(versioninfopath) end
-end
-cleanup()
-
 mpath = get(ENV, "MAGICK_HOME", "") # If MAGICK_HOME is defined, add to library search path
 if !isempty(mpath)
     push!(DL_LOAD_PATH, mpath)
@@ -28,8 +14,12 @@ extensions = ["", ".so.2", ".so.4", ".so.5"]
 aliases = vec(libnames.*transpose(suffixes).*reshape(options,(1,1,length(options))).*reshape(extensions,(1,1,1,length(extensions))))
 libwand = library_dependency("libwand", aliases = aliases)
 
+initfun = """
+__init__() = ccall((:MagickWandGenesis,libwand), Void, ())
+"""
+
 @linux_only begin
-    kwargs = Any[(:onload, "ccall((:MagickWandGenesis,libwand), Void, ())"), (:preload, "magick_hooks() = nothing")]
+    kwargs = Any[(:onload, initfun)]
     provides(AptGet, "libmagickwand4", libwand; kwargs...)
     provides(AptGet, "libmagickwand5", libwand; kwargs...)
     provides(AptGet, "libmagickwand-6.q16-2", libwand; kwargs...)
@@ -75,12 +65,10 @@ end
         unpacked_dir = magick_libdir,
         preload =
             """
-            function magick_hooks()
-                ENV["MAGICK_CONFIGURE_PATH"] = \"$(escape_string(magick_libdir))\"
-                ENV["MAGICK_CODER_MODULE_PATH"] = \"$(escape_string(magick_libdir))\"
-            end
+            ENV["MAGICK_CONFIGURE_PATH"] = \"$(escape_string(magick_libdir))\"
+            ENV["MAGICK_CODER_MODULE_PATH"] = \"$(escape_string(magick_libdir))\"
             """,
-        onload = "ccall((:MagickWandGenesis,libwand), Void, ())")
+        onload = initfun)
 end
 
 @osx_only begin
@@ -90,13 +78,11 @@ end
     using Homebrew
     provides( Homebrew.HB, "imagemagick", libwand, os = :Darwin, onload =
     """
-    function magick_hooks()
-        println(\"called magick hooks\")
+    function __init__()
         ENV["MAGICK_CONFIGURE_PATH"] = joinpath("$(Homebrew.prefix("imagemagick"))","lib","ImageMagick","config-Q16")
         ENV["MAGICK_CODER_MODULE_PATH"] = joinpath("$(Homebrew.prefix("imagemagick"))", "lib","ImageMagick","modules-Q16","coders")
         ENV["PATH"] = joinpath("$(Homebrew.prefix("imagemagick"))", "bin") * ":" * ENV["PATH"]
         ccall((:MagickWandGenesis,libwand), Void, ())
-        println(\"success\")
     end
     """ )
 end
@@ -108,7 +94,9 @@ end
 module CheckVersion
 using Compat
 include("deps.jl")
-magick_hooks()
+if isdefined(:__init__)
+    __init__()
+end
 p = ccall((:MagickQueryConfigureOption, libwand), Ptr{UInt8}, (Ptr{UInt8},), "LIB_VERSION_NUMBER")
 vstr = string("v\"", join(split(bytestring(p), ',')[1:3], '.'), "\"")
 open(joinpath(dirname(@__FILE__),"versioninfo.jl"), "w") do file

@@ -18,10 +18,10 @@ export MagickWand,
     setimageformat,
     writeimage
 
-
-# Find the library
+    # Find the library
 depsfile = joinpath(dirname(@__FILE__),"..","deps","deps.jl")
 versionfile = joinpath(dirname(@__FILE__),"..","deps","versioninfo.jl")
+
 if isfile(depsfile)
     include(depsfile)
 else
@@ -34,12 +34,12 @@ end
 const have_imagemagick = isdefined(:libwand)
 
 # Initialize the library
-function __init__()
-    if !have_imagemagick
+if !have_imagemagick
+    function __init__()
         warn("ImageMagick utilities not found. Install for more file format support.")
     end
-    magick_hooks()
 end
+
 
 
 # Constants

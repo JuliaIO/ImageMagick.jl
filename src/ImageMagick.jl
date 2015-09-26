@@ -21,6 +21,7 @@ export setimagecompressionquality
 export setimageformat
 export writeimage
 
+
 include("libmagickwand.jl")
 
 typealias AbstractGray{T} Color{T, 1}
