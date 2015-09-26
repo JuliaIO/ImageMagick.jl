@@ -1,4 +1,4 @@
-VERSION >= v"0.4.0-dev+6521" && __precompile__(true)
+VERSION >= v"0.4.0-dev+6521" && __precompile__(@unix? true : false)
 module ImageMagick
 
 using FixedPointNumbers, ColorTypes, Compat, Images, ColorVectorSpace
