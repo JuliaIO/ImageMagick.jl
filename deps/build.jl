@@ -91,10 +91,12 @@ end
     provides( Homebrew.HB, "imagemagick", libwand, os = :Darwin, onload =
     """
     function magick_hooks()
+        println(\"called magick hooks\")
         ENV["MAGICK_CONFIGURE_PATH"] = joinpath("$(Homebrew.prefix("imagemagick"))","lib","ImageMagick","config-Q16")
         ENV["MAGICK_CODER_MODULE_PATH"] = joinpath("$(Homebrew.prefix("imagemagick"))", "lib","ImageMagick","modules-Q16","coders")
         ENV["PATH"] = joinpath("$(Homebrew.prefix("imagemagick"))", "bin") * ":" * ENV["PATH"]
         ccall((:MagickWandGenesis,libwand), Void, ())
+        println(\"success\")
     end
     """ )
 end
