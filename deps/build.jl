@@ -69,11 +69,11 @@ end
         function init_deps()
             ENV["MAGICK_CONFIGURE_PATH"] = \"$(escape_string(magick_libdir))\"
             ENV["MAGICK_CODER_MODULE_PATH"] = \"$(escape_string(magick_libdir))\"
-            ccall((:MagickWandGenesis,libwand), Void, ())
+            
         end
         
         """,
-        onload = "init_deps()"
+        onload = "init_deps();ccall((:MagickWandGenesis,libwand), Void, ())"
     )
 end
 
