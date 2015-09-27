@@ -104,3 +104,6 @@ end
 end
 
 @windows_only pop!(BinDeps.defaults)
+open("deps.jl") do io
+println(readall(io))
+end
