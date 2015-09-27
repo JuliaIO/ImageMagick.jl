@@ -102,3 +102,5 @@ open(joinpath(dirname(@__FILE__),"versioninfo.jl"), "w") do file
     write(file, "const libversion = $vstr\n")
 end
 end
+
+@windows_only pop!(BinDeps.defaults)
