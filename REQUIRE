@@ -3,3 +3,5 @@ ColorTypes
 FileIO
 Compat
 Images
+@osx Homebrew
+BinDeps

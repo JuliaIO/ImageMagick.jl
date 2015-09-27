@@ -1,7 +1,6 @@
-using Images, ColorTypes, FixedPointNumbers, FileIO
+using ImageMagick, Images, ColorTypes, FixedPointNumbers, FileIO
 using FactCheck
 
-# write your own tests here
 facts("IO") do
     workdir = joinpath(tempdir(), "Images")
     isdir(workdir) && rm(workdir, recursive=true)
@@ -39,7 +38,7 @@ facts("IO") do
 
     context("Colormap usage") do
         datafloat = reshape(linspace(0.5, 1.5, 6), 2, 3)
-        dataint = round(Uint8, 254*(datafloat .- 0.5) .+ 1)  # ranges from 1 to 255
+        dataint = round(UInt8, 254*(datafloat .- 0.5) .+ 1)  # ranges from 1 to 255
         # build our colormap
         b = RGB(0,0,1)
         w = RGB(1,1,1)
@@ -88,13 +87,12 @@ facts("IO") do
         @fact B --> map(Gray{Ufixed8}, A)
     end
 
-    context("Reading from a stream (issue #312)") do
+    @unix_only context("Reading from a stream (issue #312)") do
         fn = joinpath(workdir, "2by2.png")
-        io = open(query(fn))
+        io = open(fn)
         img = load(io)
-        close(io)
         @fact isa(img, Images.Image) --> true
+        close(io)
     end
 end
-
-
+FactCheck.exitstatus()

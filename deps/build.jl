@@ -1,4 +1,4 @@
-using BinDeps
+using BinDeps, Compat
 
 @BinDeps.setup
 
@@ -7,18 +7,26 @@ if !isempty(mpath)
     push!(DL_LOAD_PATH, mpath)
     push!(DL_LOAD_PATH, joinpath(mpath,"lib"))
 end
-libnames = ["libMagickWand", "CORE_RL_wand_"]
-suffixes = ["", "-Q16", "-6.Q16", "-Q8"]
-options = ["", "HDRI"]
-extensions = ["", ".so.4", ".so.5"]
-aliases = vec(libnames.*transpose(suffixes).*reshape(options,(1,1,length(options))).*reshape(extensions,(1,1,1,length(extensions))))
-libwand = library_dependency("libwand", aliases = aliases)
+libnames    = ["libMagickWand", "CORE_RL_wand_"]
+suffixes    = ["", "-Q16", "-6.Q16", "-Q8"]
+options     = ["", "HDRI"]
+extensions  = ["", ".so.2", ".so.4", ".so.5"]
+aliases     = vec(libnames.*transpose(suffixes).*reshape(options,(1,1,length(options))).*reshape(extensions,(1,1,1,length(extensions))))
+libwand     = library_dependency("libwand", aliases = aliases)
+
+initfun = """
+function init_deps()
+    ccall((:MagickWandGenesis,libwand), Void, ())
+end
+"""
 
 @linux_only begin
-    provides(AptGet, "libmagickwand4", libwand)
-    provides(AptGet, "libmagickwand5", libwand)
-    provides(Pacman, "imagemagick", libwand)
-    provides(Yum, "ImageMagick", libwand)
+    kwargs = Any[(:onload, initfun)]
+    provides(AptGet, "libmagickwand4", libwand; kwargs...)
+    provides(AptGet, "libmagickwand5", libwand; kwargs...)
+    provides(AptGet, "libmagickwand-6.q16-2", libwand; kwargs...)
+    provides(Pacman, "imagemagick", libwand; kwargs...)
+    provides(Yum, "ImageMagick", libwand; kwargs...)
 end
 
 # TODO: remove me when upstream is fixed
@@ -30,17 +38,16 @@ end
     # TODO: checksums: we have gpg
     # Extract the appropriate filename to download
     magick_base = "http://www.imagemagick.org/download/binaries"
-    binariesfn = download(magick_base)
-    str = readall(binariesfn)
-    pattern = "ImageMagick-6.9.*-Q16-$(OS_ARCH)-dll.exe"
-    m = match(Regex(pattern), str)
-    magick_exe = convert(ASCIIString, m.match)
+    binariesfn  = download(magick_base)
+    str         = readall(binariesfn)
+    pattern     = "ImageMagick-6.9.*?-Q16-$(OS_ARCH)-dll.exe"
+    m           = match(Regex(pattern), str)
+    magick_exe  = convert(ASCIIString, m.match)
 
-    magick_tmpdir = BinDeps.downloadsdir(libwand)
-    magick_url = "$(magick_base)/$(magick_exe)"
-    magick_libdir = joinpath(BinDeps.libdir(libwand), OS_ARCH)
-
-    innounp_url = "https://bintray.com/artifact/download/julialang/generic/innounp.exe"
+    magick_tmpdir   = BinDeps.downloadsdir(libwand)
+    magick_url      = "$(magick_base)/$(magick_exe)"
+    magick_libdir   = joinpath(BinDeps.libdir(libwand), OS_ARCH)
+    innounp_url     = "https://bintray.com/artifact/download/julialang/generic/innounp.exe"
 
     provides(BuildProcess,
         (@build_steps begin
@@ -54,29 +61,33 @@ end
                 `innounp.exe -q -y -b -e -x -d$(magick_libdir) $(magick_exe)`
             end
         end),
-        libwand,
-        os = :Windows,
-        unpacked_dir = magick_libdir,
-        preload =
-            """
-            ENV["MAGICK_CONFIGURE_PATH"] = \"$(escape_string(magick_libdir))\"
+        libwand, os = :Windows, unpacked_dir = magick_libdir,
+        preload ="""
+        function init_deps()
+            ENV["MAGICK_CONFIGURE_PATH"]    = \"$(escape_string(magick_libdir))\"
             ENV["MAGICK_CODER_MODULE_PATH"] = \"$(escape_string(magick_libdir))\"
-            """)
+        end
+        init_deps()
+        """,
+        onload = "ccall((:MagickWandGenesis,libwand), Void, ())"
+    )
 end
 
 @osx_only begin
     if Pkg.installed("Homebrew") === nothing
-            error("Homebrew package not installed, please run Pkg.add(\"Homebrew\")")
+        error("Homebrew package not installed, please run Pkg.add(\"Homebrew\")")
     end
     using Homebrew
-    provides( Homebrew.HB, "imagemagick", libwand, os = :Darwin, onload =
+    provides( Homebrew.HB, "imagemagick", libwand, os = :Darwin, preload =
     """
-    function __init__()
+    function init_deps()
         ENV["MAGICK_CONFIGURE_PATH"] = joinpath("$(Homebrew.prefix("imagemagick"))","lib","ImageMagick","config-Q16")
         ENV["MAGICK_CODER_MODULE_PATH"] = joinpath("$(Homebrew.prefix("imagemagick"))", "lib","ImageMagick","modules-Q16","coders")
         ENV["PATH"] = joinpath("$(Homebrew.prefix("imagemagick"))", "bin") * ":" * ENV["PATH"]
+        ccall((:MagickWandGenesis,libwand), Void, ())
     end
-    """ )
+    """,
+    onload="init_deps()")
 end
 
 @BinDeps.install Dict([(:libwand, :libwand)])
@@ -84,11 +95,9 @@ end
 # Save the library version; by checking this now, we avoid a runtime dependency on libwand
 # See https://github.com/timholy/Images.jl/issues/184#issuecomment-55643225
 module CheckVersion
+using Compat
 include("deps.jl")
-if isdefined(:__init__)
-    __init__()
-end
-p = ccall((:MagickQueryConfigureOption, libwand), Ptr{Uint8}, (Ptr{Uint8},), "LIB_VERSION_NUMBER")
+p = ccall((:MagickQueryConfigureOption, libwand), Ptr{UInt8}, (Ptr{UInt8},), "LIB_VERSION_NUMBER")
 vstr = string("v\"", join(split(bytestring(p), ',')[1:3], '.'), "\"")
 open(joinpath(dirname(@__FILE__),"versioninfo.jl"), "w") do file
     write(file, "const libversion = $vstr\n")
