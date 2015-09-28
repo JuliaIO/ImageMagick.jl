@@ -136,12 +136,12 @@ save_(file::File; kwargs...) = save_(filename(file); kwargs...)
 save_(s::Stream, img; kwargs...) = save_(stream(s), img; kwargs...)
 
 
-function save_(filename::AbstractString, img, permute_horizontal=false; mapi = mapinfo(img), quality = nothing)
+function save_(filename::AbstractString, img, permute_horizontal=true; mapi = mapinfo(img), quality = nothing)
     wand = image2wand(img, mapi, quality, permute_horizontal)
     writeimage(wand, filename)
 end
 
-function image2wand(img, mapi, quality, permute_horizontal=false)
+function image2wand(img, mapi, quality, permute_horizontal=true)
     imgw = map(mapi, img)
     permute_horizontal && (imgw = permutedims_horizontal(imgw))
     have_color = colordim(imgw)!=0

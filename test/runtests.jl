@@ -12,22 +12,23 @@ facts("IO") do
         fn = joinpath(workdir, "2by2.png")
         save(fn, a)
         b = load(fn)
-        @fact b.data --> aa
+        @fact convert(Array, b) --> aa
         save(fn, aa)
         b = load(fn)
-        @fact b.data --> aa
+        @fact convert(Array, b) --> aa
         open(fn, "w") do io
             writemime(io, MIME("image/png"), b; minpixels=0)
         end
         bb = load(fn)
         @fact bb.data --> b.data
         aaimg = Images.grayim(aa)
+        save(fn, aaimg)
         b = load(fn)
         @fact b --> aaimg
         aa = convert(Array{Ufixed16}, a)
         save(fn, aa)
         b = load(fn)
-        @fact b.data --> aa
+        @fact convert(Array, b) --> aa
     end
 
     context("Color") do
@@ -91,7 +92,7 @@ facts("IO") do
         A[1,1] = -0.4
         fn = joinpath(workdir, "2by2.png")
         @fact_throws InexactError save(fn, A)
-        save(fn, A, mapi=ImageMagick.mapinfo(Images.Clamp, A))
+        save(fn, A, mapi=mapinfo(Images.Clamp, A))
         B = load(fn)
         A[1,1] = 0
         @fact B --> map(Gray{Ufixed8}, A)
