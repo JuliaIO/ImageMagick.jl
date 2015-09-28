@@ -71,10 +71,14 @@ const ufixedtype = @compat Dict(10=>Ufixed10, 12=>Ufixed12, 14=>Ufixed14, 16=>Uf
 
 readblob(data::Vector{UInt8}) = load_(data)
 
-function load_(file::@compat(Union{AbstractString,IO,Vector{UInt8}}), ImageType=Image)
+function load_(file::@compat(Union{AbstractString,IO,Vector{UInt8}}); ImageType=Image, extraprop="", extrapropertynames=false)
     wand = MagickWand()
     readimage(wand, file)
     resetiterator(wand)
+
+    if extrapropertynames
+        return(getimageproperties(wand, "*"))
+    end
 
     # Determine what we need to know about the image format
     sz = size(wand)
@@ -127,6 +131,12 @@ function load_(file::@compat(Union{AbstractString,IO,Vector{UInt8}}), ImageType=
     prop["spatialorder"] = ["x", "y"]
     n > 1 && (prop["timedim"] = ndims(buf))
     prop["colorspace"] = cs
+
+    if extraprop != ""
+        for extra in [extraprop;]
+            prop[extra] = getimageproperty(wand,extra)
+        end
+    end
 
     ImageType(buf, prop)
 end
