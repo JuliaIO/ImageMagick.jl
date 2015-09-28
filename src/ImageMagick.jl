@@ -13,6 +13,7 @@ export getimagecolorspace
 export getimagedepth
 export getnumberimages
 export importimagepixels
+export readblob
 export readimage
 export resetiterator
 export setimagecolorspace
@@ -20,7 +21,6 @@ export setimagecompression
 export setimagecompressionquality
 export setimageformat
 export writeimage
-
 
 include("libmagickwand.jl")
 
@@ -69,8 +69,9 @@ end
 
 const ufixedtype = @compat Dict(10=>Ufixed10, 12=>Ufixed12, 14=>Ufixed14, 16=>Ufixed16)
 
+readblob(data::Vector{UInt8}) = load_(data)
 
-function load_(file::@compat(Union{AbstractString,IO}), ImageType=Image)
+function load_(file::@compat(Union{AbstractString,IO,Vector{UInt8}}), ImageType=Image)
     wand = MagickWand()
     readimage(wand, file)
     resetiterator(wand)

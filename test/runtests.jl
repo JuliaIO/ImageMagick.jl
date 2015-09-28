@@ -105,5 +105,14 @@ facts("IO") do
         @fact isa(img, Images.Image) --> true
         close(io)
     end
+
+    @unix_only context("Reading from a byte array (issue #279)") do
+        fn = joinpath(workdir, "2by2.png")
+        io = open(fn)
+        arr = readbytes(io)
+        close(io)
+        img = readblob(arr)
+        @fact isa(img, Images.Image) --> true
+    end
 end
 FactCheck.exitstatus()
