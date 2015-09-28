@@ -256,6 +256,55 @@ end
 permutedims_horizontal(img) = permutedims(img, permutation_horizontal(img))
 
 
+###
+### writemime
+###
+
+function Base.writemime(s::Stream{format"ImageMagick"}, ::MIME"image/png", img::AbstractImage; mapi=mapinfo_writemime(img), minpixels=10^4, maxpixels=10^6)
+    io = stream(s)
+    assert2d(img)
+    A = data(img)
+    nc = ncolorelem(img)
+    npix = length(A)/nc
+    while npix > maxpixels
+        A = restrict(A, coords_spatial(img))
+        npix = length(A)/nc
+    end
+    if npix < minpixels
+        fac = ceil(Int, sqrt(minpixels/npix))
+        r = ones(Int, ndims(img))
+        r[coords_spatial(img)] = fac
+        A = repeat(A, inner=r)
+    end
+    wand = image2wand(shareproperties(img, A), mapi, nothing)
+    blob = getblob(wand, "png")
+    write(io, blob)
+end
+
+# This may get called if the FileIO callback hasn't been compiled-in
+Base.writemime(io::IO, mime::MIME"image/png", img::AbstractImage; kwargs...) =
+   writemime(Stream(format"ImageMagick", io), mime, img; kwargs...)
+
+function mapinfo_writemime(img; maxpixels=10^6)
+    if length(img) <= maxpixels
+        return mapinfo_writemime_(img)
+    end
+    mapinfo_writemime_restricted(img)
+end
+mapinfo_writemime_{T}(img::AbstractImage{Gray{T}}) = Images.mapinfo(Gray{Ufixed8},img)
+mapinfo_writemime_{C<:Color}(img::AbstractImage{C}) = Images.mapinfo(RGB{Ufixed8},img)
+mapinfo_writemime_{AC<:GrayA}(img::AbstractImage{AC}) = Images.mapinfo(GrayA{Ufixed8},img)
+mapinfo_writemime_{AC<:TransparentColor}(img::AbstractImage{AC}) = Images.mapinfo(RGBA{Ufixed8},img)
+mapinfo_writemime_(img::AbstractImage) = Images.mapinfo(Ufixed8,img)
+
+mapinfo_writemime_restricted{T}(img::AbstractImage{Gray{T}}) = ClampMinMax(Gray{Ufixed8},0.0,1.0)
+mapinfo_writemime_restricted{C<:Color}(img::AbstractImage{C}) = ClampMinMax(RGB{Ufixed8},0.0,1.0)
+mapinfo_writemime_restricted{AC<:GrayA}(img::AbstractImage{AC}) = ClampMinMax(GrayA{Ufixed8},0.0,1.0)
+mapinfo_writemime_restricted{AC<:TransparentColor}(img::AbstractImage{AC}) = ClampMinMax(RGBA{Ufixed8},0.0,1.0)
+mapinfo_writemime_restricted(img::AbstractImage) = Images.mapinfo(Ufixed8,img)
+
+
+
 function load(s::Stream{format"PGMBinary"})
     io = stream(s)
     w, h = parse_netpbm_size(io)
@@ -336,4 +385,3 @@ end
 
 
 end # module
-
