@@ -11,7 +11,7 @@ notifications:
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
   - julia -e 'Pkg.clone("https://github.com/JuliaIO/FileIO.jl.git")'
-  - julia -e 'Pkg.clone("Images"); Pkg.checkout("Images", "sd/fileio")'
+  - julia -e 'Pkg.clone("Images"); Pkg.checkout("Images", "sd_teh/fileio2")'
   - julia -e 'Pkg.clone(pwd()); Pkg.build("ImageMagick")'
   - julia --check-bounds=yes -e 'Pkg.test("ImageMagick"; coverage=true)'
   - julia -e 'cd(Pkg.dir("ImageMagick")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(process_folder()); Codecov.submit(process_folder())'

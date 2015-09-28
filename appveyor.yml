@@ -26,7 +26,7 @@ build_script:
 # Need to convert from shallow to complete for Pkg.clone to work
 #  - git fetch --unshallow
   - C:\projects\julia\bin\julia-debug -e "versioninfo(); Pkg.init(); Pkg.clone(\"https://github.com/JuliaIO/FileIO.jl.git\", \"FileIO\"")"
-  - C:\projects\julia\bin\julia-debug -e "Pkg.clone(\"Images\"); Pkg.checkout(\"Images\", \"sd/fileio2\")"
+  - C:\projects\julia\bin\julia-debug -e "Pkg.clone(\"Images\"); Pkg.checkout(\"Images\", \"sd_teh/fileio2\")"
   - C:\projects\julia\bin\julia-debug -e "Pkg.clone(pwd(), \"ImageMagick\"); Pkg.build(\"ImageMagick\")"
 
 test_script:
