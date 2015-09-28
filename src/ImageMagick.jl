@@ -1,8 +1,8 @@
 VERSION >= v"0.4.0-dev+6521" && __precompile__(true)
 module ImageMagick
 
-using FixedPointNumbers, ColorTypes, Compat, Images, ColorVectorSpace
-import FileIO: @format_str, File, Stream, filename, stream
+using FixedPointNumbers, ColorTypes, Compat, Images, ColorVectorSpace, FileIO
+import FileIO: load, save
 
 export MagickWand
 export constituteimage
@@ -13,6 +13,7 @@ export getimagecolorspace
 export getimagedepth
 export getnumberimages
 export importimagepixels
+export readblob
 export readimage
 export resetiterator
 export setimagecolorspace
@@ -20,7 +21,6 @@ export setimagecompression
 export setimagecompressionquality
 export setimageformat
 export writeimage
-
 
 include("libmagickwand.jl")
 
@@ -69,11 +69,16 @@ end
 
 const ufixedtype = @compat Dict(10=>Ufixed10, 12=>Ufixed12, 14=>Ufixed14, 16=>Ufixed16)
 
+readblob(data::Vector{UInt8}) = load_(data)
 
-function load_(file::@compat(Union{AbstractString,IO}), ImageType=Image)
+function load_(file::@compat(Union{AbstractString,IO,Vector{UInt8}}); ImageType=Image, extraprop="", extrapropertynames=false)
     wand = MagickWand()
     readimage(wand, file)
     resetiterator(wand)
+
+    if extrapropertynames
+        return(getimageproperties(wand, "*"))
+    end
 
     # Determine what we need to know about the image format
     sz = size(wand)
@@ -127,6 +132,12 @@ function load_(file::@compat(Union{AbstractString,IO}), ImageType=Image)
     n > 1 && (prop["timedim"] = ndims(buf))
     prop["colorspace"] = cs
 
+    if extraprop != ""
+        for extra in [extraprop;]
+            prop[extra] = getimageproperty(wand,extra)
+        end
+    end
+
     ImageType(buf, prop)
 end
 
@@ -136,12 +147,12 @@ save_(file::File; kwargs...) = save_(filename(file); kwargs...)
 save_(s::Stream, img; kwargs...) = save_(stream(s), img; kwargs...)
 
 
-function save_(filename::AbstractString, img, permute_horizontal=false; mapi = mapinfo(img), quality = nothing)
+function save_(filename::AbstractString, img, permute_horizontal=true; mapi = mapinfo(img), quality = nothing)
     wand = image2wand(img, mapi, quality, permute_horizontal)
     writeimage(wand, filename)
 end
 
-function image2wand(img, mapi, quality, permute_horizontal=false)
+function image2wand(img, mapi, quality, permute_horizontal=true)
     imgw = map(mapi, img)
     permute_horizontal && (imgw = permutedims_horizontal(imgw))
     have_color = colordim(imgw)!=0
@@ -171,6 +182,7 @@ function image2wand(img, mapi, quality, permute_horizontal=false)
     resetiterator(wand)
     wand
 end
+
 # ImageMagick mapinfo client. Converts to RGB and uses Ufixed.
 mapinfo{T<:Ufixed}(img::AbstractArray{T}) = MapNone{T}()
 mapinfo{T<:AbstractFloat}(img::AbstractArray{T}) = MapNone{Ufixed8}()
@@ -194,28 +206,7 @@ end
 mapinfo(img::AbstractArray{RGB24}) = MapNone{RGB{Ufixed8}}()
 mapinfo(img::AbstractArray{ARGB32}) = MapNone{BGRA{Ufixed8}}()
 
-# Clamping mapinfo client. Converts to RGB and uses Ufixed, clamping floating-point values to [0,1].
-mapinfo{T<:Ufixed}(::Type{Images.Clamp}, img::AbstractArray{T}) = MapNone{T}()
-mapinfo{T<:AbstractFloat}(::Type{Images.Clamp}, img::AbstractArray{T}) = ClampMinMax(Ufixed8, zero(T), one(T))
-for ACV in (Color, AbstractRGB)
-    for CV in subtypes(ACV)
-        (length(CV.parameters) == 1 && !(CV.abstract)) || continue
-        CVnew = CV<:AbstractGray ? Gray : RGB
-        @eval mapinfo{T<:Ufixed}(::Type{Images.Clamp}, img::AbstractArray{$CV{T}}) = MapNone{$CVnew{T}}()
-        @eval mapinfo{CV<:$CV}(::Type{Images.Clamp}, img::AbstractArray{CV}) = Images.Clamp{$CVnew{Ufixed8}}()
-        CVnew = CV<:AbstractGray ? Gray : BGR
-        AC, CA       = alphacolor(CV), coloralpha(CV)
-        ACnew, CAnew = alphacolor(CVnew), coloralpha(CVnew)
-        @eval begin
-            mapinfo{T<:Ufixed}(::Type{Images.Clamp}, img::AbstractArray{$AC{T}}) = MapNone{$ACnew{T}}()
-            mapinfo{P<:$AC}(::Type{Images.Clamp}, img::AbstractArray{P}) = Images.Clamp{$ACnew{Ufixed8}}()
-            mapinfo{T<:Ufixed}(::Type{Images.Clamp}, img::AbstractArray{$CA{T}}) = MapNone{$CAnew{T}}()
-            mapinfo{P<:$CA}(::Type{Images.Clamp}, img::AbstractArray{P}) = Images.Clamp{$CAnew{Ufixed8}}()
-        end
-    end
-end
-mapinfo(::Type{Images.Clamp}, img::AbstractArray{RGB24}) = MapNone{RGB{Ufixed8}}()
-mapinfo(::Type{Images.Clamp}, img::AbstractArray{ARGB32}) = MapNone{BGRA{Ufixed8}}()
+
 # Make the data contiguous in memory, this is necessary for
 # imagemagick since it doesn't handle stride.
 to_contiguous(A::AbstractArray) = A
@@ -228,7 +219,7 @@ to_explicit{T<:AbstractFloat}(A::AbstractArray{RGB{T}}) = to_explicit(map(ClampM
 to_explicit{T<:Ufixed}(A::AbstractArray{Gray{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, size(A))
 to_explicit{T<:AbstractFloat}(A::AbstractArray{Gray{T}}) = to_explicit(map(ClampMinMax(Gray{Ufixed8}, zero(Gray{T}), one(Gray{T})), A))
 
-to_explicit{T<:Ufixed}(A::AbstractArray{GrayA{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, size(A))
+to_explicit{T<:Ufixed}(A::AbstractArray{GrayA{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A)
 to_explicit{T<:AbstractFloat}(A::AbstractArray{GrayA{T}}) = to_explicit(map(ClampMinMax(GrayA{Ufixed8}, zero(GrayA{T}), one(GrayA{T})), A))
 
 to_explicit{T<:Ufixed}(A::AbstractArray{BGRA{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(4, size(A)...))
@@ -302,86 +293,6 @@ mapinfo_writemime_restricted{C<:Color}(img::AbstractImage{C}) = ClampMinMax(RGB{
 mapinfo_writemime_restricted{AC<:GrayA}(img::AbstractImage{AC}) = ClampMinMax(GrayA{Ufixed8},0.0,1.0)
 mapinfo_writemime_restricted{AC<:TransparentColor}(img::AbstractImage{AC}) = ClampMinMax(RGBA{Ufixed8},0.0,1.0)
 mapinfo_writemime_restricted(img::AbstractImage) = Images.mapinfo(Ufixed8,img)
-
-
-
-function load(s::Stream{format"PGMBinary"})
-    io = stream(s)
-    w, h = parse_netpbm_size(io)
-    maxval = parse_netpbm_maxval(io)
-    local dat
-    if maxval <= 255
-        dat = read(io, Ufixed8, w, h)
-    elseif maxval <= typemax(UInt16)
-        datraw = Array(UInt16, w, h)
-        if !is_little_endian
-            for indx = 1:w*h
-                datraw[indx] = read(io, UInt16)
-            end
-        else
-            for indx = 1:w*h
-                datraw[indx] = bswap(read(io, UInt16))
-            end
-        end
-        # Determine the appropriate Ufixed type
-        T = ufixedtype[ceil(Int, log2(maxval)/2)<<1]
-        dat = reinterpret(RGB{T}, datraw, (w, h))
-    else
-        error("Image file may be corrupt. Are there really more than 16 bits in this image?")
-    end
-    T = eltype(dat)
-    Image(dat, @compat Dict("colorspace" => "Gray", "spatialorder" => ["x", "y"], "pixelspacing" => [1,1]))
-end
-
-
-function load(s::Stream{format"PBMBinary"})
-    io = stream(s)
-    w, h = parse_netpbm_size(io)
-    dat = BitArray(w, h)
-    nbytes_per_row = ceil(Int, w/8)
-    for irow = 1:h, j = 1:nbytes_per_row
-        tmp = read(io, UInt8)
-        offset = (j-1)*8
-        for k = 1:min(8, w-offset)
-            dat[offset+k, irow] = (tmp>>>(8-k))&0x01
-        end
-    end
-    Image(dat, @compat Dict("spatialorder" => ["x", "y"], "pixelspacing" => [1,1]))
-end
-
-function save(filename::File{format"PPMBinary"}, img)
-    open(filename, "w") do s
-        write(s, "P6\n")
-        write(s, "# ppm file written by Julia\n")
-        save(s, img)
-    end
-end
-
-pnmmax{T<:AbstractFloat}(::Type{T}) = 255
-pnmmax{T<:Ufixed}(::Type{T}) = reinterpret(FixedPointNumbers.rawtype(T), one(T))
-pnmmax{T<:Unsigned}(::Type{T}) = typemax(T)
-
-function save{T<:Color}(s::Stream{format"PPMBinary"}, img::AbstractArray{T}, mapi = mapinfo(img))
-    w, h = widthheight(img)
-    TE = eltype(T)
-    mx = pnmmax(TE)
-    write(s, "$w $h\n$mx\n")
-    p = permutation_horizontal(img)
-    writepermuted(s, img, mapi, p; gray2color = T <: AbstractGray)
-end
-
-function save{T}(s::Stream{format"PPMBinary"}, img::AbstractArray{T}, mapi = mapinfo(ImageMagick, img))
-    io = stream(s)
-    w, h = widthheight(img)
-    cs = colorspace(img)
-    in(cs, ("RGB", "Gray")) || error("colorspace $cs not supported")
-    mx = pnmmax(T)
-    write(io, "$w $h\n$mx\n")
-    p = permutation_horizontal(img)
-    writepermuted(io, img, mapi, p; gray2color = cs == "Gray")
-end
-
-
 
 
 end # module
