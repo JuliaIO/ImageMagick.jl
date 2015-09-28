@@ -28,7 +28,6 @@ facts("IO") do
         save(fn, aa)
         b = load(fn)
         @fact b.data --> aa
-
     end
 
     context("Color") do
@@ -64,7 +63,7 @@ facts("IO") do
         cmaprgb[1:128] = [(1-x)*b + x*w for x in f]
         cmaprgb[129:end] = [(1-x)*w + x*r for x in f[2:end]]
         img = Images.ImageCmap(dataint, cmaprgb)
-        #save(File(format"PBMBinary", joinpath(workdir, "cmap.pbm")), img) # could not find any definition for this imwrite pbm
+        save(joinpath(workdir, "cmap.png"), img)
     end
 
     context("Alpha") do
