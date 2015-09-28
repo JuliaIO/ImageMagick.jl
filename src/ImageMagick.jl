@@ -1,8 +1,8 @@
 VERSION >= v"0.4.0-dev+6521" && __precompile__(true)
 module ImageMagick
 
-using FixedPointNumbers, ColorTypes, Compat, Images, ColorVectorSpace
-import FileIO: @format_str, File, Stream, filename, stream
+using FixedPointNumbers, ColorTypes, Compat, Images, ColorVectorSpace, FileIO
+import FileIO: load, save
 
 export MagickWand
 export constituteimage
@@ -171,6 +171,7 @@ function image2wand(img, mapi, quality, permute_horizontal=false)
     resetiterator(wand)
     wand
 end
+
 # ImageMagick mapinfo client. Converts to RGB and uses Ufixed.
 mapinfo{T<:Ufixed}(img::AbstractArray{T}) = MapNone{T}()
 mapinfo{T<:AbstractFloat}(img::AbstractArray{T}) = MapNone{Ufixed8}()
