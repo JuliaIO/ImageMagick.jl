@@ -16,6 +16,11 @@ facts("IO") do
         save(fn, aa)
         b = load(fn)
         @fact b.data --> aa
+        open(fn, "w") do io
+            writemime(io, MIME("image/png"), b; minpixels=0)
+        end
+        bb = load(fn)
+        @fact bb.data --> b.data
         aaimg = Images.grayim(aa)
         b = load(fn)
         @fact b --> aaimg
@@ -34,6 +39,12 @@ facts("IO") do
         b = load(fn)
         imgrgb8 = convert(Images.Image{RGB{Ufixed8}}, img)
         @fact Images.data(imgrgb8) --> Images.data(b)
+
+        open(fn, "w") do io
+            writemime(io, MIME("image/png"), imgrgb8; minpixels=0)
+        end
+        bb = load(fn)
+        @fact data(bb) --> data(imgrgb8)
     end
 
     context("Colormap usage") do
@@ -53,7 +64,7 @@ facts("IO") do
         cmaprgb[1:128] = [(1-x)*b + x*w for x in f]
         cmaprgb[129:end] = [(1-x)*w + x*r for x in f[2:end]]
         img = Images.ImageCmap(dataint, cmaprgb)
-        #save(File(format"PBMBinary", joinpath(workdir, "cmap.pbm")), img) # could not find any definition for this imwrite pbm 
+        #save(File(format"PBMBinary", joinpath(workdir, "cmap.pbm")), img) # could not find any definition for this imwrite pbm
     end
 
     context("Alpha") do
