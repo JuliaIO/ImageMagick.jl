@@ -1,8 +1,8 @@
 VERSION >= v"0.4.0-dev+6521" && __precompile__(true)
 module ImageMagick
 
-using FixedPointNumbers, ColorTypes, Compat, Images, ColorVectorSpace, FileIO
-import FileIO: load, save
+using FixedPointNumbers, ColorTypes, Compat, Images, ColorVectorSpace
+import FileIO: DataFormat, @format_str, Stream, File, filename, stream
 
 export MagickWand
 export constituteimage
@@ -23,6 +23,7 @@ export setimageformat
 export writeimage
 
 include("libmagickwand.jl")
+include("writemime.jl")
 
 typealias AbstractGray{T} Color{T, 1}
 
@@ -57,15 +58,11 @@ image_formats = [
     format"TGA"
 ]
 
-for format in image_formats
-    eval(quote
-        load(image::File{$format}, args...; key_args...) = load_(filename(image), args...; key_args...)
-        save(image::File{$format}, args...; key_args...) = save_(filename(image), args...; key_args...)
+load{T <: DataFormat}(image::File{T}, args...; key_args...) = load_(filename(image), args...; key_args...)
+save{T <: DataFormat}(image::File{T}, args...; key_args...) = save_(filename(image), args...; key_args...)
 
-        load(image::Stream{$format}, args...; key_args...) = load_(stream(image), args...; key_args...)
-        save(image::Stream{$format}, args...; key_args...) = save_(stream(image), args...; key_args...)
-    end)
-end
+load{T <: DataFormat}(image::Stream{T}, args...; key_args...) = load_(stream(image), args...; key_args...)
+save{T <: DataFormat}(image::Stream{T}, args...; key_args...) = save_(stream(image), args...; key_args...)
 
 const ufixedtype = @compat Dict(10=>Ufixed10, 12=>Ufixed12, 14=>Ufixed14, 16=>Ufixed16)
 
@@ -87,9 +84,9 @@ function load_(file::@compat(Union{AbstractString,IO,Vector{UInt8}}); ImageType=
         sz = tuple(sz..., n)
     end
 
-    imtype = getimagetype(wand)
-    havealpha = getimagealphachannel(wand)
-    cs = getimagecolorspace(wand)
+    imtype      = getimagetype(wand)
+    havealpha   = getimagealphachannel(wand)
+    cs          = getimagecolorspace(wand)
     if imtype == "GrayscaleType" || imtype == "GrayscaleMatteType"
         cs = "Gray"
     end
@@ -141,10 +138,6 @@ function load_(file::@compat(Union{AbstractString,IO,Vector{UInt8}}); ImageType=
     ImageType(buf, prop)
 end
 
-
-
-save_(file::File; kwargs...) = save_(filename(file); kwargs...)
-save_(s::Stream, img; kwargs...) = save_(stream(s), img; kwargs...)
 
 
 function save_(filename::AbstractString, img, permute_horizontal=true; mapi = mapinfo(img), quality = nothing)
@@ -246,53 +239,6 @@ end
 
 permutedims_horizontal(img) = permutedims(img, permutation_horizontal(img))
 
-
-###
-### writemime
-###
-
-function Base.writemime(s::Stream{format"ImageMagick"}, ::MIME"image/png", img::AbstractImage; mapi=mapinfo_writemime(img), minpixels=10^4, maxpixels=10^6)
-    io = stream(s)
-    assert2d(img)
-    A = data(img)
-    nc = ncolorelem(img)
-    npix = length(A)/nc
-    while npix > maxpixels
-        A = restrict(A, coords_spatial(img))
-        npix = length(A)/nc
-    end
-    if npix < minpixels
-        fac = ceil(Int, sqrt(minpixels/npix))
-        r = ones(Int, ndims(img))
-        r[coords_spatial(img)] = fac
-        A = repeat(A, inner=r)
-    end
-    wand = image2wand(shareproperties(img, A), mapi, nothing)
-    blob = getblob(wand, "png")
-    write(io, blob)
-end
-
-# This may get called if the FileIO callback hasn't been compiled-in
-Base.writemime(io::IO, mime::MIME"image/png", img::AbstractImage; kwargs...) =
-   writemime(Stream(format"ImageMagick", io), mime, img; kwargs...)
-
-function mapinfo_writemime(img; maxpixels=10^6)
-    if length(img) <= maxpixels
-        return mapinfo_writemime_(img)
-    end
-    mapinfo_writemime_restricted(img)
-end
-mapinfo_writemime_{T}(img::AbstractImage{Gray{T}}) = Images.mapinfo(Gray{Ufixed8},img)
-mapinfo_writemime_{C<:Color}(img::AbstractImage{C}) = Images.mapinfo(RGB{Ufixed8},img)
-mapinfo_writemime_{AC<:GrayA}(img::AbstractImage{AC}) = Images.mapinfo(GrayA{Ufixed8},img)
-mapinfo_writemime_{AC<:TransparentColor}(img::AbstractImage{AC}) = Images.mapinfo(RGBA{Ufixed8},img)
-mapinfo_writemime_(img::AbstractImage) = Images.mapinfo(Ufixed8,img)
-
-mapinfo_writemime_restricted{T}(img::AbstractImage{Gray{T}}) = ClampMinMax(Gray{Ufixed8},0.0,1.0)
-mapinfo_writemime_restricted{C<:Color}(img::AbstractImage{C}) = ClampMinMax(RGB{Ufixed8},0.0,1.0)
-mapinfo_writemime_restricted{AC<:GrayA}(img::AbstractImage{AC}) = ClampMinMax(GrayA{Ufixed8},0.0,1.0)
-mapinfo_writemime_restricted{AC<:TransparentColor}(img::AbstractImage{AC}) = ClampMinMax(RGBA{Ufixed8},0.0,1.0)
-mapinfo_writemime_restricted(img::AbstractImage) = Images.mapinfo(Ufixed8,img)
 
 
 end # module
