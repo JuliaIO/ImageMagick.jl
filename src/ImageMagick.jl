@@ -240,5 +240,11 @@ end
 
 permutedims_horizontal(img) = permutedims(img, permutation_horizontal(img))
 
+function writemime_(io::IO, ::MIME"image/png", img::AbstractImage)
+    wand = image2wand(img, Images.mapinfo_writemime(img), nothing)
+    blob = getblob(wand, "png")
+    write(io, blob)
+end
+export writemime_
 
 end # module
