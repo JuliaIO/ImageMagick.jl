@@ -22,6 +22,7 @@ export setimagecompressionquality
 export setimageformat
 export writeimage
 export image2wand
+export writemime_
 
 include("libmagickwand.jl")
 
@@ -240,11 +241,13 @@ end
 
 permutedims_horizontal(img) = permutedims(img, permutation_horizontal(img))
 
+#lower level writemime. Writes the png format into an IO buffer
+#gets called by writemime in images.
 function writemime_(io::IO, ::MIME"image/png", img::AbstractImage)
     wand = image2wand(img, Images.mapinfo_writemime(img), nothing)
     blob = getblob(wand, "png")
     write(io, blob)
 end
-export writemime_
+
 
 end # module
