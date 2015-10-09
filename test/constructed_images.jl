@@ -114,4 +114,31 @@ facts("IO") do
         img = readblob(arr)
         @fact isa(img, Images.Image) --> true
     end
+    
+    context("writemime") do
+        a = colorim(rand(UInt8, 3, 2, 2))
+        fn = joinpath(workdir, "2by2.png")
+        open(fn, "w") do file
+            writemime(file, MIME("image/png"), a, minpixels=0)
+        end
+        b = load(fn)
+        @fact data(b) --> data(a)
+
+        abig = colorim(rand(UInt8, 3, 1021, 1026))
+        fn = joinpath(workdir, "big.png")
+        open(fn, "w") do file
+            writemime(file, MIME("image/png"), abig, maxpixels=10^6)
+        end
+        b = load(fn)
+        @fact data(b) --> convert(Array{RGB{Ufixed8},2}, data(restrict(abig, (1,2))))
+
+        # Issue #269
+        abig = colorim(rand(UInt16, 3, 1024, 1023))
+        open(fn, "w") do file
+            writemime(file, MIME("image/png"), abig, maxpixels=10^6)
+        end
+        b = load(fn)
+        @fact data(b) --> convert(Array{RGB{Ufixed8},2}, data(restrict(abig, (1,2))))
+    end
+
 end
