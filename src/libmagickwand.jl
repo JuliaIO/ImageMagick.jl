@@ -25,7 +25,7 @@ versionfile = joinpath(dirname(@__FILE__),"..","deps","versioninfo.jl")
 if isfile(depsfile)
     include(depsfile)
 else
-    error("ImageMagick not properly installed. Please run Pkg.build(\"ImageMagick\") then restart Julia.")
+    error("ImageMagick not properly installed. Please run Pkg.build(\"ImageMagick\") then restart Julia.") # now that this is decoupled from images, should this be an error?
 end
 if isfile(versionfile)
     include(versionfile)
