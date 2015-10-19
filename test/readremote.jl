@@ -25,7 +25,7 @@ facts("Read remote") do
         @fact colorspace(img) --> "Gray"
         @fact ndims(img) --> 2
         @fact colordim(img) --> 0
-        @fact eltype(img) --> Gray{Ufixed8}
+        @fact eltype(img) --> Gray{UFixed8}
         outname = joinpath(writedir, "jigsaw_tmpl.png")
         save(outname, img)
         imgc = load(outname)
@@ -34,7 +34,7 @@ facts("Read remote") do
             map(x->x&0x00ffffff, reinterpret(UInt32, data(map(mapinfo(ARGB32, img), img))))
         @fact mapinfo(UInt32, img) --> mapinfo(RGB24, img)
         @fact data(convert(Image{Gray{Float32}}, img)) --> float32(data(img))
-        mapi = mapinfo(RGB{Ufixed8}, img)
+        mapi = mapinfo(RGB{UFixed8}, img)
         imgrgb8 = map(mapi, img)
         @fact imgrgb8[1,1].r --> img[1].val
         open(outname, "w") do file
@@ -48,7 +48,7 @@ facts("Read remote") do
         @fact colorspace(img) --> "GrayA"
         @fact ndims(img) --> 2
         @fact colordim(img) --> 0
-        @fact eltype(img) --> Images.ColorTypes.GrayA{Ufixed8}
+        @fact eltype(img) --> Images.ColorTypes.GrayA{UFixed8}
         @linux_only begin
             outname = joinpath(writedir, "wmark_image.png")
             save(outname, img)
@@ -71,7 +71,7 @@ facts("Read remote") do
         @fact colorspace(img) --> "RGB"
         @fact ndims(img) --> 2
         @fact colordim(img) --> 0
-        @fact eltype(img) --> RGB{Ufixed8}
+        @fact eltype(img) --> RGB{UFixed8}
         outname = joinpath(writedir, "rose.tiff")
         save(outname, img)
         imgc = load(outname)
@@ -84,11 +84,11 @@ facts("Read remote") do
         @fact reinterpret(UInt32, data(map(mapinfo(RGB24, img), img))) -->
             map(x->x&0x00ffffff, reinterpret(UInt32, data(map(mapinfo(ARGB32, img), img))))
         @fact mapinfo(UInt32, img) --> mapinfo(RGB24, img)
-        mapi = mapinfo(RGB{Ufixed8}, img)
+        mapi = mapinfo(RGB{UFixed8}, img)
         imgrgb8 = map(mapi, img)
         @fact data(imgrgb8) --> data(img)
-        convert(Array{Gray{Ufixed8}}, img)
-        convert(Image{Gray{Ufixed8}}, img)
+        convert(Array{Gray{UFixed8}}, img)
+        convert(Image{Gray{UFixed8}}, img)
         convert(Array{Gray}, img)
         convert(Image{Gray}, img)
         imgs = separate(img)
@@ -103,7 +103,7 @@ facts("Read remote") do
         uint32color!(buft, imA)
         uint32color(imgs)
         uint32color!(buft, imgs)
-        imr = reinterpret(Ufixed8, img)
+        imr = reinterpret(UFixed8, img)
         uint32color(imr)
         uint32color!(buf, imr)
         @osx? nothing : begin
@@ -124,7 +124,7 @@ facts("Read remote") do
         @fact colorspace(img) --> "BGRA"
         @fact ndims(img) --> 2
         @fact colordim(img) --> 0
-        @fact eltype(img) --> Images.ColorTypes.BGRA{Ufixed16}
+        @fact eltype(img) --> Images.ColorTypes.BGRA{UFixed16}
         outname = joinpath(writedir, "autumn_leaves.png")
         @osx? nothing : begin
             save(outname, img)

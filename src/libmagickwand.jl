@@ -54,7 +54,7 @@ storagetype(::Type{UInt16}) = SHORTPIXEL
 storagetype(::Type{UInt32}) = INTEGERPIXEL
 storagetype(::Type{Float32}) = FLOATPIXEL
 storagetype(::Type{Float64}) = DOUBLEPIXEL
-storagetype{T<:Ufixed}(::Type{T}) = storagetype(FixedPointNumbers.rawtype(T))
+storagetype{T<:UFixed}(::Type{T}) = storagetype(FixedPointNumbers.rawtype(T))
 storagetype{CV<:Colorant}(::Type{CV}) = storagetype(eltype(CV))
 
 # Channel types
