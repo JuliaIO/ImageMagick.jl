@@ -24,10 +24,10 @@ install:
 
 build_script:
 # Need to convert from shallow to complete for Pkg.clone to work
-#  - git fetch --unshallow
+  - IF EXIST .git\shallow (git fetch --unshallow)
   - C:\projects\julia\bin\julia-debug -e "versioninfo(); Pkg.init();"
-  - C:\projects\julia\bin\julia-debug -e "Pkg.clone(\"Images\");"
-  - C:\projects\julia\bin\julia-debug -e "Pkg.checkout(pwd()); Pkg.build(\"ImageMagick\")"
+  - C:\projects\julia\bin\julia-debug -e "Pkg.clone(pwd(), \"ImageMagick\");"
+  - C:\projects\julia\bin\julia-debug -e "Pkg.build(\"ImageMagick\")"
 
 test_script:
-  - C:\projects\julia\bin\julia --check-bounds=yes -e "Pkg.test(\"ImageMagick\")"
+  - C:\projects\julia\bin\julia -e "Pkg.test(\"ImageMagick\")"
