@@ -8,7 +8,8 @@ facts("IO") do
 
     context("Gray png") do
         a = rand(2,2)
-        aa = convert(Array{Ufixed8}, a)
+        a[1,1] = 1
+        aa = convert(Array{UFixed8}, a)
         fn = joinpath(workdir, "2by2.png")
         save(fn, a)
         b = load(fn)
@@ -25,7 +26,7 @@ facts("IO") do
         save(fn, aaimg)
         b = load(fn)
         @fact b --> aaimg
-        aa = convert(Array{Ufixed16}, a)
+        aa = convert(Array{UFixed16}, a)
         save(fn, aa)
         b = load(fn)
         @fact convert(Array, b) --> aa
@@ -33,11 +34,13 @@ facts("IO") do
 
     context("Color") do
         fn = joinpath(workdir, "2by2.png")
-        img = Images.colorim(rand(3,2,2))
+        A = rand(3,2,2)
+        A[1] = 1
+        img = Images.colorim(A)
         img24 = convert(Images.Image{RGB24}, img)
         save(fn, img24)
         b = load(fn)
-        imgrgb8 = convert(Images.Image{RGB{Ufixed8}}, img)
+        imgrgb8 = convert(Images.Image{RGB{UFixed8}}, img)
         @fact Images.data(imgrgb8) --> Images.data(b)
 
         open(fn, "w") do io
@@ -68,7 +71,7 @@ facts("IO") do
     end
 
     context("Alpha") do
-        c = reinterpret(Images.BGRA{Ufixed8}, [0xf0884422]'')
+        c = reinterpret(Images.BGRA{UFixed8}, [0xf0884422]'')
         fn = joinpath(workdir, "alpha.png")
     	save(fn, c)
         C = load(fn)
@@ -79,23 +82,28 @@ facts("IO") do
     end
 
     context("3D TIFF (issue #307)") do
-        A = Image(map(Gray{Ufixed8}, rand(0x00:0xff, 2, 2, 4)); colorspace="Gray", spatialorder=["x", "y"], timedim=3) # grayim does not use timedim, but load does...
+        Ar = rand(0x00:0xff, 2, 2, 4)
+        Ar[1] = 0xff
+        A = Image(map(x->Gray(UFixed8(x,0)), Ar); colorspace="Gray", spatialorder=["x", "y"], timedim=3) # grayim does not use timedim, but load does...
         fn = joinpath(workdir, "3d.tif")
         save(fn, A)
         B = load(fn)
 
-        #@fact A --> B # seems to have different order -.-
+        @fact A --> B
     end
 
     context("Clamping (issue #256)") do
-        A = grayim(rand(2,2))
+        Ar = rand(2,2)
+        Ar[1] = 1
+        A = grayim(Ar)
         A[1,1] = -0.4
         fn = joinpath(workdir, "2by2.png")
+        println("The following InexactError is a sign of normal operation:")
         @fact_throws InexactError save(fn, A)
         save(fn, A, mapi=mapinfo(Images.Clamp, A))
         B = load(fn)
         A[1,1] = 0
-        @fact B --> map(Gray{Ufixed8}, A)
+        @fact B --> map(Gray{UFixed8}, A)
     end
 
     @unix_only context("Reading from a stream (issue #312)") do
@@ -114,9 +122,11 @@ facts("IO") do
         img = readblob(arr)
         @fact isa(img, Images.Image) --> true
     end
-    
+
     context("writemime") do
-        a = colorim(rand(UInt8, 3, 2, 2))
+        Ar = rand(UInt8, 3, 2, 2)
+        Ar[1] = typemax(eltype(Ar))
+        a = colorim(Ar)
         fn = joinpath(workdir, "2by2.png")
         open(fn, "w") do file
             writemime(file, MIME("image/png"), a, minpixels=0)
@@ -124,21 +134,25 @@ facts("IO") do
         b = load(fn)
         @fact data(b) --> data(a)
 
-        abig = colorim(rand(UInt8, 3, 1021, 1026))
+        Ar = rand(UInt8, 3, 1021, 1026)
+        Ar[1] = typemax(eltype(Ar))
+        abig = colorim(Ar)
         fn = joinpath(workdir, "big.png")
         open(fn, "w") do file
             writemime(file, MIME("image/png"), abig, maxpixels=10^6)
         end
         b = load(fn)
-        @fact data(b) --> convert(Array{RGB{Ufixed8},2}, data(restrict(abig, (1,2))))
+        @fact data(b) --> convert(Array{RGB{UFixed8},2}, data(restrict(abig, (1,2))))
 
         # Issue #269
-        abig = colorim(rand(UInt16, 3, 1024, 1023))
+        Ar = rand(UInt16, 3, 1024, 1023)
+        Ar[1] = typemax(eltype(Ar))
+        abig = colorim(Ar)
         open(fn, "w") do file
             writemime(file, MIME("image/png"), abig, maxpixels=10^6)
         end
         b = load(fn)
-        @fact data(b) --> convert(Array{RGB{Ufixed8},2}, data(restrict(abig, (1,2))))
+        @fact data(b) --> convert(Array{RGB{UFixed8},2}, data(restrict(abig, (1,2))))
     end
 
 end

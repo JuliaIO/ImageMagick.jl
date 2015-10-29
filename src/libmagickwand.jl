@@ -48,13 +48,13 @@ const DOUBLEPIXEL = 2
 const FLOATPIXEL = 3
 const INTEGERPIXEL = 4
 const SHORTPIXEL = 7
-@compat IMStorageTypes = Union{UInt8, UInt16, UInt32, Float32, Float64}
+IMStorageTypes = Union{UInt8, UInt16, UInt32, Float32, Float64}
 storagetype(::Type{UInt8}) = CHARPIXEL
 storagetype(::Type{UInt16}) = SHORTPIXEL
 storagetype(::Type{UInt32}) = INTEGERPIXEL
 storagetype(::Type{Float32}) = FLOATPIXEL
 storagetype(::Type{Float64}) = DOUBLEPIXEL
-storagetype{T<:Ufixed}(::Type{T}) = storagetype(FixedPointNumbers.rawtype(T))
+storagetype{T<:UFixed}(::Type{T}) = storagetype(FixedPointNumbers.rawtype(T))
 storagetype{CV<:Colorant}(::Type{CV}) = storagetype(eltype(CV))
 
 # Channel types
@@ -87,7 +87,7 @@ const DefaultChannels = ChannelType( (AllChannels.value | SyncChannels.value) &~
 const IMType = ["BilevelType", "GrayscaleType", "GrayscaleMatteType", "PaletteType", "PaletteMatteType", "TrueColorType", "TrueColorMatteType", "ColorSeparationType", "ColorSeparationMatteType", "OptimizeType", "PaletteBilevelMatteType"]
 const IMTypedict = Dict([(IMType[i], i) for i = 1:length(IMType)])
 
-const CStoIMTypedict = @compat Dict("Gray" => "GrayscaleType", "GrayA" => "GrayscaleMatteType", "RGB" => "TrueColorType", "ARGB" => "TrueColorMatteType", "CMYK" => "ColorSeparationType")
+const CStoIMTypedict = Dict("Gray" => "GrayscaleType", "GrayA" => "GrayscaleMatteType", "RGB" => "TrueColorType", "ARGB" => "TrueColorMatteType", "CMYK" => "ColorSeparationType")
 
 # Colorspace
 const IMColorspace = ["RGB", "Gray", "Transparent", "OHTA", "Lab", "XYZ", "YCbCr", "YCC", "YIQ", "YPbPr", "YUV", "CMYK", "sRGB"]

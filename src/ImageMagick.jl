@@ -1,7 +1,7 @@
-VERSION >= v"0.4.0-dev+6521" && __precompile__(true)
+__precompile__(true)
 module ImageMagick
 
-using FixedPointNumbers, ColorTypes, Compat, Images, ColorVectorSpace
+using FixedPointNumbers, ColorTypes, Images, ColorVectorSpace
 import FileIO: DataFormat, @format_str, Stream, File, filename, stream
 
 export MagickWand
@@ -66,11 +66,11 @@ save{T <: DataFormat}(image::File{T}, args...; key_args...) = save_(filename(ima
 load{T <: DataFormat}(image::Stream{T}, args...; key_args...) = load_(stream(image), args...; key_args...)
 save{T <: DataFormat}(image::Stream{T}, args...; key_args...) = save_(stream(image), args...; key_args...)
 
-const ufixedtype = @compat Dict(10=>Ufixed10, 12=>Ufixed12, 14=>Ufixed14, 16=>Ufixed16)
+const ufixedtype = Dict(10=>UFixed10, 12=>UFixed12, 14=>UFixed14, 16=>UFixed16)
 
 readblob(data::Vector{UInt8}) = load_(data)
 
-function load_(file::@compat(Union{AbstractString,IO,Vector{UInt8}}); ImageType=Image, extraprop="", extrapropertynames=false)
+function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Image, extraprop="", extrapropertynames=false)
     wand = MagickWand()
     readimage(wand, file)
     resetiterator(wand)
@@ -95,7 +95,7 @@ function load_(file::@compat(Union{AbstractString,IO,Vector{UInt8}}); ImageType=
 
     depth = getimagechanneldepth(wand, DefaultChannels)
     if depth <= 8
-        T = Ufixed8     # always use 8-bit for 8-bit and less
+        T = UFixed8     # always use 8-bit for 8-bit and less
     else
         T = ufixedtype[2*((depth+1)>>1)]  # always use an even # of bits (see issue 242#issuecomment-68845157)
     end
@@ -178,28 +178,28 @@ function image2wand(img, mapi, quality, permute_horizontal=true)
     wand
 end
 
-# ImageMagick mapinfo client. Converts to RGB and uses Ufixed.
-mapinfo{T<:Ufixed}(img::AbstractArray{T}) = MapNone{T}()
-mapinfo{T<:AbstractFloat}(img::AbstractArray{T}) = MapNone{Ufixed8}()
+# ImageMagick mapinfo client. Converts to RGB and uses UFixed.
+mapinfo{T<:UFixed}(img::AbstractArray{T}) = MapNone{T}()
+mapinfo{T<:AbstractFloat}(img::AbstractArray{T}) = MapNone{UFixed8}()
 for ACV in (Color, AbstractRGB)
     for CV in subtypes(ACV)
         (length(CV.parameters) == 1 && !(CV.abstract)) || continue
         CVnew = CV<:AbstractGray ? Gray : RGB
-        @eval mapinfo{T<:Ufixed}(img::AbstractArray{$CV{T}}) = MapNone{$CVnew{T}}()
-        @eval mapinfo{CV<:$CV}(img::AbstractArray{CV}) = MapNone{$CVnew{Ufixed8}}()
+        @eval mapinfo{T<:UFixed}(img::AbstractArray{$CV{T}}) = MapNone{$CVnew{T}}()
+        @eval mapinfo{CV<:$CV}(img::AbstractArray{CV}) = MapNone{$CVnew{UFixed8}}()
         CVnew = CV<:AbstractGray ? Gray : BGR
         AC, CA       = alphacolor(CV), coloralpha(CV)
         ACnew, CAnew = alphacolor(CVnew), coloralpha(CVnew)
         @eval begin
-            mapinfo{T<:Ufixed}(img::AbstractArray{$AC{T}}) = MapNone{$ACnew{T}}()
-            mapinfo{P<:$AC}(img::AbstractArray{P}) = MapNone{$ACnew{Ufixed8}}()
-            mapinfo{T<:Ufixed}(img::AbstractArray{$CA{T}}) = MapNone{$CAnew{T}}()
-            mapinfo{P<:$CA}(img::AbstractArray{P}) = MapNone{$CAnew{Ufixed8}}()
+            mapinfo{T<:UFixed}(img::AbstractArray{$AC{T}}) = MapNone{$ACnew{T}}()
+            mapinfo{P<:$AC}(img::AbstractArray{P}) = MapNone{$ACnew{UFixed8}}()
+            mapinfo{T<:UFixed}(img::AbstractArray{$CA{T}}) = MapNone{$CAnew{T}}()
+            mapinfo{P<:$CA}(img::AbstractArray{P}) = MapNone{$CAnew{UFixed8}}()
         end
     end
 end
-mapinfo(img::AbstractArray{RGB24}) = MapNone{RGB{Ufixed8}}()
-mapinfo(img::AbstractArray{ARGB32}) = MapNone{BGRA{Ufixed8}}()
+mapinfo(img::AbstractArray{RGB24}) = MapNone{RGB{UFixed8}}()
+mapinfo(img::AbstractArray{ARGB32}) = MapNone{BGRA{UFixed8}}()
 
 
 # Make the data contiguous in memory, this is necessary for
@@ -208,19 +208,19 @@ to_contiguous(A::AbstractArray) = A
 to_contiguous(A::SubArray) = copy(A)
 
 to_explicit(A::AbstractArray) = A
-to_explicit{T<:Ufixed}(A::AbstractArray{T}) = reinterpret(FixedPointNumbers.rawtype(T), A)
-to_explicit{T<:Ufixed}(A::AbstractArray{RGB{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(3, size(A)...))
-to_explicit{T<:AbstractFloat}(A::AbstractArray{RGB{T}}) = to_explicit(map(ClampMinMax(RGB{Ufixed8}, zero(RGB{T}), one(RGB{T})), A))
-to_explicit{T<:Ufixed}(A::AbstractArray{Gray{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, size(A))
-to_explicit{T<:AbstractFloat}(A::AbstractArray{Gray{T}}) = to_explicit(map(ClampMinMax(Gray{Ufixed8}, zero(Gray{T}), one(Gray{T})), A))
+to_explicit{T<:UFixed}(A::AbstractArray{T}) = reinterpret(FixedPointNumbers.rawtype(T), A)
+to_explicit{T<:UFixed}(A::AbstractArray{RGB{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(3, size(A)...))
+to_explicit{T<:AbstractFloat}(A::AbstractArray{RGB{T}}) = to_explicit(map(ClampMinMax(RGB{UFixed8}, zero(RGB{T}), one(RGB{T})), A))
+to_explicit{T<:UFixed}(A::AbstractArray{Gray{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, size(A))
+to_explicit{T<:AbstractFloat}(A::AbstractArray{Gray{T}}) = to_explicit(map(ClampMinMax(Gray{UFixed8}, zero(Gray{T}), one(Gray{T})), A))
 
-to_explicit{T<:Ufixed}(A::AbstractArray{GrayA{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A)
-to_explicit{T<:AbstractFloat}(A::AbstractArray{GrayA{T}}) = to_explicit(map(ClampMinMax(GrayA{Ufixed8}, zero(GrayA{T}), one(GrayA{T})), A))
+to_explicit{T<:UFixed}(A::AbstractArray{GrayA{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A)
+to_explicit{T<:AbstractFloat}(A::AbstractArray{GrayA{T}}) = to_explicit(map(ClampMinMax(GrayA{UFixed8}, zero(GrayA{T}), one(GrayA{T})), A))
 
-to_explicit{T<:Ufixed}(A::AbstractArray{BGRA{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(4, size(A)...))
-to_explicit{T<:AbstractFloat}(A::AbstractArray{BGRA{T}}) = to_explicit(map(ClampMinMax(BGRA{Ufixed8}, zero(BGRA{T}), one(BGRA{T})), A))
-to_explicit{T<:Ufixed}(A::AbstractArray{RGBA{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(4, size(A)...))
-to_explicit{T<:AbstractFloat}(A::AbstractArray{RGBA{T}}) = to_explicit(map(ClampMinMax(RGBA{Ufixed8}, zero(RGBA{T}), one(RGBA{T})), A))
+to_explicit{T<:UFixed}(A::AbstractArray{BGRA{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(4, size(A)...))
+to_explicit{T<:AbstractFloat}(A::AbstractArray{BGRA{T}}) = to_explicit(map(ClampMinMax(BGRA{UFixed8}, zero(BGRA{T}), one(BGRA{T})), A))
+to_explicit{T<:UFixed}(A::AbstractArray{RGBA{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(4, size(A)...))
+to_explicit{T<:AbstractFloat}(A::AbstractArray{RGBA{T}}) = to_explicit(map(ClampMinMax(RGBA{UFixed8}, zero(RGBA{T}), one(RGBA{T})), A))
 
 
 
