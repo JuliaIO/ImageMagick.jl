@@ -1,7 +1,7 @@
-VERSION >= v"0.4.0-dev+6521" && __precompile__(true)
+__precompile__(true)
 module ImageMagick
 
-using FixedPointNumbers, ColorTypes, Compat, Images, ColorVectorSpace
+using FixedPointNumbers, ColorTypes, Images, ColorVectorSpace
 import FileIO: DataFormat, @format_str, Stream, File, filename, stream
 
 export MagickWand
@@ -66,11 +66,11 @@ save{T <: DataFormat}(image::File{T}, args...; key_args...) = save_(filename(ima
 load{T <: DataFormat}(image::Stream{T}, args...; key_args...) = load_(stream(image), args...; key_args...)
 save{T <: DataFormat}(image::Stream{T}, args...; key_args...) = save_(stream(image), args...; key_args...)
 
-const ufixedtype = @compat Dict(10=>UFixed10, 12=>UFixed12, 14=>UFixed14, 16=>UFixed16)
+const ufixedtype = Dict(10=>UFixed10, 12=>UFixed12, 14=>UFixed14, 16=>UFixed16)
 
 readblob(data::Vector{UInt8}) = load_(data)
 
-function load_(file::@compat(Union{AbstractString,IO,Vector{UInt8}}); ImageType=Image, extraprop="", extrapropertynames=false)
+function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Image, extraprop="", extrapropertynames=false)
     wand = MagickWand()
     readimage(wand, file)
     resetiterator(wand)
