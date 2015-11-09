@@ -87,11 +87,17 @@ const DefaultChannels = ChannelType( (AllChannels.value | SyncChannels.value) &~
 const IMType = ["BilevelType", "GrayscaleType", "GrayscaleMatteType", "PaletteType", "PaletteMatteType", "TrueColorType", "TrueColorMatteType", "ColorSeparationType", "ColorSeparationMatteType", "OptimizeType", "PaletteBilevelMatteType"]
 const IMTypedict = Dict([(IMType[i], i) for i = 1:length(IMType)])
 
-const CStoIMTypedict = Dict("Gray" => "GrayscaleType", "GrayA" => "GrayscaleMatteType", "RGB" => "TrueColorType", "ARGB" => "TrueColorMatteType", "CMYK" => "ColorSeparationType")
+const CStoIMTypedict = Dict("Gray" => "GrayscaleType", "GrayA" => "GrayscaleMatteType", "AGray" => "GrayscaleMatteType", "RGB" => "TrueColorType", "ARGB" => "TrueColorMatteType", "RGBA" => "TrueColorMatteType", "CMYK" => "ColorSeparationType", "I"=>"GrayscaleType", "IA"=>"GrayscaleMatteType", "AI"=>"GrayscaleMatteType", "BGRA"=>"TrueColorMatteType", "ABGR"=>"TrueColorMatteType")
 
 # Colorspace
 const IMColorspace = ["RGB", "Gray", "Transparent", "OHTA", "Lab", "XYZ", "YCbCr", "YCC", "YIQ", "YPbPr", "YUV", "CMYK", "sRGB"]
 const IMColordict = Dict([(IMColorspace[i], i) for i = 1:length(IMColorspace)])
+for AC in vcat(subtypes(AlphaColor), subtypes(ColorAlpha))
+    Cstr = ColorTypes.colorant_string(color_type(AC))
+    if haskey(IMColordict, Cstr)
+        IMColordict[ColorTypes.colorant_string(AC)] = IMColordict[Cstr]
+    end
+end
 
 function nchannels(imtype::AbstractString, cs::AbstractString, havealpha = false)
     n = 3
@@ -194,6 +200,7 @@ function constituteimage{T<:Unsigned}(buffer::AbstractArray{T}, wand::MagickWand
         status = ccall((:MagickConstituteImage, libwand), Cint, (Ptr{Void}, Cssize_t, Cssize_t, Ptr{UInt8}, Cint, Ptr{Void}), wand.ptr, cols, rows, channelorder, storagetype(T), p)
         status == 0 && error(wand)
         setimagecolorspace(wand, colorspace)
+        setimagetype(wand, buffer, channelorder)
         status = ccall((:MagickSetImageDepth, libwand), Cint, (Ptr{Void}, Csize_t), wand.ptr, depth)
         status == 0 && error(wand)
         p += sizeof(T)*cols*rows*ncolors
@@ -304,9 +311,17 @@ function getimagecolorspace(wand::MagickWand)
     IMColorspace[cs]
 end
 
-# set the colorspace
 function setimagecolorspace(wand::MagickWand, cs::ASCIIString)
     status = ccall((:MagickSetImageColorspace, libwand), Cint, (Ptr{Void},Cint), wand.ptr, IMColordict[cs])
+    status == 0 && error(wand)
+    nothing
+end
+
+imtype(buffer, cs) = IMTypedict[CStoIMTypedict[cs]]
+imtype(buffer::AbstractArray{Bool}, cs) = IMTypedict["BilevelType"]
+
+function setimagetype(wand::MagickWand, buffer, cs::ASCIIString)
+    status = ccall((:MagickSetImageType, libwand), Cint, (Ptr{Void},Cint), wand.ptr, imtype(buffer, cs))
     status == 0 && error(wand)
     nothing
 end
