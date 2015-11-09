@@ -1,6 +1,8 @@
 using ImageMagick, Images, ColorTypes, FixedPointNumbers, FileIO
 using FactCheck
 
+ontravis = haskey(ENV, "TRAVIS")
+
 facts("IO") do
     workdir = joinpath(tempdir(), "Images")
     isdir(workdir) && rm(workdir, recursive=true)
@@ -75,10 +77,27 @@ facts("IO") do
         fn = joinpath(workdir, "alpha.png")
     	save(fn, c)
         C = load(fn)
-        # @test C[1] == c[1]  # disabled because Travis has a weird, old copy of ImageMagick for which this fails (see #261)
+        if !ontravis
+            # disabled on Travis because it has a weird, old copy of
+            # ImageMagick for which this fails (see Images#261)
+            @fact C[1] --> c[1]
+        end
         save(fn, reinterpret(ARGB32, [0xf0884422]''))
         D = load(fn)
-        # @test D[1] == c[1]
+        if !ontravis
+            @fact D[1] --> c[1]
+        end
+
+        # Images#396
+        c = colorim(rand(UInt8, 2, 2, 4), "RGBA")
+        save(fn, c)
+        D = load(fn)
+        C = permutedims(convert(Image{eltype(D)}, c), spatialorder(D))
+        if !ontravis
+            for i = 1:length(D)
+                @fact D[i] --> C[i]
+            end
+        end
     end
 
     context("3D TIFF (issue #307)") do

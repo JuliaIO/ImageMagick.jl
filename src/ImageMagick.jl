@@ -159,15 +159,17 @@ function image2wand(img, mapi, quality, permute_horizontal=true)
         cs = img["colorspace"]
     else
         cs = colorspace(imgw)
-        if in(cs, ("RGB", "RGBA", "ARGB", "BGRA"))
-            cs = libversion > v"6.7.5" ? "sRGB" : "RGB"
-        end
+    end
+    if in(cs, ("RGB", "RGBA", "ARGB", "BGRA", "ABGR"))
+        cs = libversion > v"6.7.5" ? "sRGB" : "RGB"
     end
     channelorder = colorspace(imgw)
     if channelorder == "Gray"
         channelorder = "I"
     elseif channelorder == "GrayA"
         channelorder = "IA"
+    elseif channelorder == "AGray"
+        channelorder = "AI"
     end
     tmp = to_explicit(to_contiguous(data(imgw)))
     constituteimage(tmp, wand, cs, channelorder)
