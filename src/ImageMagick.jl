@@ -148,7 +148,13 @@ function save_(filename::AbstractString, img, permute_horizontal=true; mapi = ma
 end
 
 function image2wand(img, mapi, quality, permute_horizontal=true)
-    imgw = map(mapi, img)
+    local imgw
+    try
+        imgw = map(mapi, img)
+    catch
+        warn("Mapping to the storage type failed; perhaps your data had out-of-range values?\nTry `map(Images.Clamp01NaN(img), img)` to clamp values to a valid range.")
+        rethrow()
+    end
     permute_horizontal && (imgw = permutedims_horizontal(imgw))
     have_color = colordim(imgw)!=0
     if ndims(imgw) > 3+have_color
