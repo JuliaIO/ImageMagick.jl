@@ -45,8 +45,10 @@ using Homebrew
 Homebrew.rm("imagemagick")
 Homebrew.update()
 Homebrew.add("imagemagick")
-Pkg.build("Images")
+Pkg.build("ImageMagick")
 ```
+
+In particular this may fix the error `ERROR: no encode delegate for this image format 'MIFF'`.
 
 You may also find [debugging Homebrew](https://github.com/JuliaLang/Homebrew.jl/wiki/Debugging-Homebrew.jl) useful.
 
