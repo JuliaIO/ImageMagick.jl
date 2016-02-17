@@ -8,6 +8,29 @@ facts("IO") do
     isdir(workdir) && rm(workdir, recursive=true)
     mkdir(workdir)
 
+    context("Binary png") do
+        a = rand(Bool,5,5)
+        fn = joinpath(workdir, "5by5.png")
+        save(fn, a)
+        b = load(fn)
+        a8 = convert(Array{Gray{UFixed8}}, a) # IM won't read back as Bool
+        @fact convert(Array, b) --> a8
+        aim = grayim(a)
+        save(fn, aim)
+        b = load(fn)
+        @fact b --> copyproperties(aim, a8)
+        a = bitrand(5,5)
+        fn = joinpath(workdir, "5by5.png")
+        save(fn, a)
+        b = load(fn)
+        a8 = convert(Array{Gray{UFixed8}}, a)
+        @fact convert(Array, b) --> a8
+        aim = grayim(a)
+        save(fn, aim)
+        b = load(fn)
+        @fact b --> copyproperties(aim, a8)
+    end
+
     context("Gray png") do
         a = rand(2,2)
         a[1,1] = 1

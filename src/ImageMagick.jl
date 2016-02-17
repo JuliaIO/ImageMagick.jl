@@ -187,6 +187,7 @@ function image2wand(img, mapi, quality, permute_horizontal=true)
 end
 
 # ImageMagick mapinfo client. Converts to RGB and uses UFixed.
+mapinfo(img::AbstractArray{Bool}) = MapNone{UFixed8}()
 mapinfo{T<:UFixed}(img::AbstractArray{T}) = MapNone{T}()
 mapinfo{T<:AbstractFloat}(img::AbstractArray{T}) = MapNone{UFixed8}()
 for ACV in (Color, AbstractRGB)
