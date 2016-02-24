@@ -33,10 +33,54 @@ end
 
 const have_imagemagick = isdefined(:libwand)
 
+function MagickWandGenesis()
+    ccall((:MagickWandGenesis, libwand), Void, ())
+end
+function MagickWandTerminus()
+    ccall((:MagickWandTerminus, libwand), Void, ())
+end
+"""
+Finds out if MagickWandGenesis has been called
+"""
+function IsMagickWandInstantiated()
+    ccall((:IsMagickWandInstantiated, libwand), Cint, ()) == 1
+end
+
+function init()
+    if !IsMagickWandInstantiated()
+        MagickWandGenesis()
+    end
+end
+function teardown()
+    if IsMagickWandInstantiated()
+        MagickWandTerminus()
+    end
+end
+function init_paths()
+    @windows_only begin
+        im_base = dirname(libwand)
+        # coderpath folder for manual install
+        coderpath = joinpath(im_base, "modules", "coders")
+        if !isdir(coderpath) # this folder won't be there if installed via Pkg.build
+            coderpath = im_base
+        end
+        ENV["MAGICK_CONFIGURE_PATH"]    = im_base
+        ENV["MAGICK_CODER_MODULE_PATH"] = coderpath
+    end
+    @osx_only begin 
+        ENV["MAGICK_CONFIGURE_PATH"] = joinpath("$(Homebrew.prefix("imagemagick"))", "lib","ImageMagick","config-Q16")
+        ENV["MAGICK_CODER_MODULE_PATH"] = joinpath("$(Homebrew.prefix("imagemagick"))", "lib","ImageMagick","modules-Q16","coders")
+        ENV["PATH"] = joinpath("$(Homebrew.prefix("imagemagick"))", "bin") * ":" * ENV["PATH"]
+    end
+end
+
 # Initialize the library
 function __init__()
-    init_deps()
     !have_imagemagick && warn("ImageMagick utilities not found. Install for more file format support.")
+    # path initialization as early as possible!
+    init_paths()
+    # this seems to be too early to init here, so init is moved to MagickWand()
+    #atexit(teardown)
 end
 
 
@@ -122,6 +166,7 @@ type MagickWand
 end
 
 function MagickWand()
+    init() # everything starts with creation of a magick wand, so we can init here
     wand = MagickWand(ccall((:NewMagickWand, libwand), Ptr{Void}, ()))
     finalizer(wand, destroymagickwand)
     wand
