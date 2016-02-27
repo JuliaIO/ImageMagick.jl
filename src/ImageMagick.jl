@@ -64,7 +64,7 @@ load{T <: DataFormat}(image::File{T}, args...; key_args...) = load_(filename(ima
 save{T <: DataFormat}(image::File{T}, args...; key_args...) = save_(filename(image), args...; key_args...)
 
 load{T <: DataFormat}(image::Stream{T}, args...; key_args...) = load_(stream(image), args...; key_args...)
-save{T <: DataFormat}(image::Stream{T}, args...; key_args...) = save_(stream(image), args...; key_args...)
+save{T <: DataFormat}(image::Stream{T}, args...; key_args...) = save_(image, args...; key_args...)
 
 const ufixedtype = Dict(10=>UFixed10, 12=>UFixed12, 14=>UFixed14, 16=>UFixed16)
 
@@ -147,6 +147,12 @@ function save_(filename::AbstractString, img, permute_horizontal=true; mapi = ma
     writeimage(wand, filename)
 end
 
+function save_(s::Stream, img, permute_horizontal=true; mapi = Images.mapinfo_writemime(img), quality = nothing)
+    wand = image2wand(img, mapi, quality, permute_horizontal)
+    blob = getblob(wand, formatstring(s))
+    write(stream(s), blob)
+end
+
 function image2wand(img, mapi, quality, permute_horizontal=true)
     local imgw
     try
@@ -185,6 +191,8 @@ function image2wand(img, mapi, quality, permute_horizontal=true)
     resetiterator(wand)
     wand
 end
+
+formatstring{S}(s::Stream{DataFormat{S}}) = string(S)
 
 # ImageMagick mapinfo client. Converts to RGB and uses UFixed.
 mapinfo(img::AbstractArray{Bool}) = MapNone{UFixed8}()

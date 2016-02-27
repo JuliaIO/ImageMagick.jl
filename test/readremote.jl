@@ -76,9 +76,6 @@ facts("Read remote") do
         save(outname, img)
         imgc = load(outname)
         T = eltype(imgc)
-        lim = limits(imgc)
-        @fact typeof(lim[1]) --> typeof(lim[2])  # issue #62
-        @fact typeof(lim[2]) --> T  # issue #62
         # Why does this one fail on OSX??
         @osx? nothing : @fact img.data --> imgc.data
         @fact reinterpret(UInt32, data(map(mapinfo(RGB24, img), img))) -->
