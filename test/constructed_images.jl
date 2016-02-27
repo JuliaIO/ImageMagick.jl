@@ -127,22 +127,19 @@ facts("IO") do
 
     @unix_only context("Reading from a stream (issue #312)") do
         fn = joinpath(workdir, "2by2.png")
-        io = open(fn)
-        img = load(io)
+        img = open(fn) do io
+            load(io)
+        end
         @fact isa(img, Images.Image) --> true
-        close(io)
     end
 
     @unix_only context("Writing to a stream (PR #22)") do
-        wand = ImageMagick.MagickWand()
-        ImageMagick.readimage(wand, joinpath(workdir, "2by2.png"))
-        ImageMagick.setimageformat(wand, "png")
+        orig_img = load(joinpath(workdir, "2by2.png"))
         fn = joinpath(workdir, "2by2_fromstream.png")
         open(fn, "w") do f
-            ImageMagick.writeimage(wand, f)
+            save(Stream(format"PNG", f), orig_img)
         end
         img = load(fn)
-        orig_img = load(joinpath(workdir, "2by2.png"))
         @fact img --> orig_img
     end
 
