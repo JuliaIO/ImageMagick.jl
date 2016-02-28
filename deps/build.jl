@@ -14,19 +14,13 @@ extensions  = ["", ".so.2", ".so.4", ".so.5"]
 aliases     = vec(libnames.*transpose(suffixes).*reshape(options,(1,1,length(options))).*reshape(extensions,(1,1,1,length(extensions))))
 libwand     = library_dependency("libwand", aliases = aliases)
 
-initfun = """
-function init_deps()
-    ccall((:MagickWandGenesis,libwand), Void, ())
-end
-"""
 
 @linux_only begin
-    kwargs = Any[(:onload, initfun)]
-    provides(AptGet, "libmagickwand4", libwand; kwargs...)
-    provides(AptGet, "libmagickwand5", libwand; kwargs...)
-    provides(AptGet, "libmagickwand-6.q16-2", libwand; kwargs...)
-    provides(Pacman, "imagemagick", libwand; kwargs...)
-    provides(Yum, "ImageMagick", libwand; kwargs...)
+    provides(AptGet, "libmagickwand4", libwand)
+    provides(AptGet, "libmagickwand5", libwand)
+    provides(AptGet, "libmagickwand-6.q16-2", libwand)
+    provides(Pacman, "imagemagick", libwand)
+    provides(Yum, "ImageMagick", libwand)
 end
 
 # TODO: remove me when upstream is fixed
@@ -44,18 +38,10 @@ end
     m           = match(Regex(pattern), str)
     magick_exe  = convert(ASCIIString, m.match)
 
-    magick_tmpdir   = BinDeps.downloadsdir(libwand)
-    magick_url      = "$(magick_base)/$(magick_exe)"
-    magick_libdir   = joinpath(BinDeps.libdir(libwand), OS_ARCH)
-    innounp_url     = "https://bintray.com/artifact/download/julialang/generic/innounp.exe"
-    initfun         =
-"""
-function init_deps()
-    ENV["MAGICK_CONFIGURE_PATH"]    = \"$(escape_string(magick_libdir))\"
-    ENV["MAGICK_CODER_MODULE_PATH"] = \"$(escape_string(magick_libdir))\"
-end
-init_deps()
-"""
+    magick_tmpdir = BinDeps.downloadsdir(libwand)
+    magick_url    = "$(magick_base)/$(magick_exe)"
+    magick_libdir = joinpath(BinDeps.libdir(libwand), OS_ARCH)
+    innounp_url   = "https://bintray.com/artifact/download/julialang/generic/innounp.exe"
 
     provides(BuildProcess,
         (@build_steps begin
@@ -69,7 +55,7 @@ init_deps()
                 `innounp.exe -q -y -b -e -x -d$(magick_libdir) $(magick_exe)`
             end
         end),
-        libwand, os = :Windows, unpacked_dir = magick_libdir, preload = initfun)
+        libwand, os = :Windows, unpacked_dir = magick_libdir)
 end
 
 @osx_only begin
@@ -77,27 +63,10 @@ end
         error("Homebrew package not installed, please run Pkg.add(\"Homebrew\")")
     end
     using Homebrew
-    initfun =
-"""
-function init_deps()
-    ENV["MAGICK_CONFIGURE_PATH"] = joinpath("$(Homebrew.prefix("imagemagick"))","lib","ImageMagick","config-Q16")
-    ENV["MAGICK_CODER_MODULE_PATH"] = joinpath("$(Homebrew.prefix("imagemagick"))", "lib","ImageMagick","modules-Q16","coders")
-    ENV["PATH"] = joinpath("$(Homebrew.prefix("imagemagick"))", "bin") * ":" * ENV["PATH"]
-    ccall((:MagickWandGenesis,libwand), Void, ())
-end
-"""
-    provides( Homebrew.HB, "imagemagick", libwand, os = :Darwin, preload = initfun, onload="init_deps()")
+    provides( Homebrew.HB, "imagemagick", libwand, os = :Darwin)
 end
 
 @BinDeps.install Dict([(:libwand, :libwand)])
-
-# Hack-fix for issue #12
-# Check to see whether init_deps is present, and if not add it
-if isempty(search(readall(joinpath(dirname(@__FILE__),"deps.jl")), "init_deps"))
-    open("deps.jl", "a") do io
-        write(io, initfun)
-    end
-end
 
 # Save the library version; by checking this now, we avoid a runtime dependency on libwand
 # See https://github.com/timholy/Images.jl/issues/184#issuecomment-55643225
