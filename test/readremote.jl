@@ -1,15 +1,16 @@
-using FactCheck, Images, Colors, FixedPointNumbers
+using FactCheck, Images, Colors, FixedPointNumbers, ZipFile
+
+workdir = joinpath(tempdir(), "Images")
+writedir = joinpath(workdir, "write")
+if !isdir(workdir)
+    mkdir(workdir)
+end
+if !isdir(writedir)
+    mkdir(writedir)
+end
 
 facts("Read remote") do
     urlbase = "http://www.imagemagick.org/Usage/images/"
-    workdir = joinpath(tempdir(), "Images")
-    writedir = joinpath(workdir, "write")
-    if !isdir(workdir)
-        mkdir(workdir)
-    end
-    if !isdir(writedir)
-        mkdir(writedir)
-    end
 
     function getfile(name)
         file = joinpath(workdir, name)
@@ -199,4 +200,27 @@ facts("Read remote") do
             @fact props["Non existing property"] --> nothing
         end
     end
+end
+
+using ImageMagick
+
+facts("EXIF orientation") do
+    function test_orientation(r, odict)
+        for f in r.files
+            bn = basename(f.name)
+            if haskey(odict, bn)
+                so = odict[bn]
+                data = read(f, UInt8, f.uncompressedsize)
+                img = readblob(data)
+                @fact spatialorder(img) --> so
+            end
+        end
+    end
+
+    url = "http://www.galloway.me.uk/media/other/EXIF_Orientation_Samples.zip"
+    fn = joinpath(workdir, "EXIF_Orientation_Samples.zip")
+    download(url, fn)
+    r = ZipFile.Reader(fn)
+    test_orientation(r, Dict("up.jpg"=>["x", "y"],
+                             "left-mirrored.jpg"=>["y", "x"]))
 end

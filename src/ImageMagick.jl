@@ -127,7 +127,13 @@ function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Image, ex
     exportimagepixels!(buf, wand, cs, channelorder)
 
     prop = Dict{UTF8String, Any}()
-    prop["spatialorder"] = ["x", "y"]
+    orient = getimageproperty(wand, "exif:Orientation", false)
+    if haskey(orientation_dict, orient)
+        prop["spatialorder"] = orientation_dict[orient]
+    else
+        warn("orientation $orient not yet supported")
+        prop["spatialorder"] = ["x", "y"]
+    end
     n > 1 && (prop["timedim"] = ndims(buf))
     prop["colorspace"] = cs
 
