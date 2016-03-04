@@ -11,23 +11,23 @@ facts("IO") do
     context("Binary png") do
         a = rand(Bool,5,5)
         fn = joinpath(workdir, "5by5.png")
-        save(fn, a)
-        b = load(fn)
+        ImageMagick.save(fn, a)
+        b = ImageMagick.load(fn)
         a8 = convert(Array{Gray{UFixed8}}, a) # IM won't read back as Bool
         @fact convert(Array, b) --> a8
         aim = grayim(a)
-        save(fn, aim)
-        b = load(fn)
+        ImageMagick.save(fn, aim)
+        b = ImageMagick.load(fn)
         @fact b --> copyproperties(aim, a8)
         a = bitrand(5,5)
         fn = joinpath(workdir, "5by5.png")
-        save(fn, a)
-        b = load(fn)
+        ImageMagick.save(fn, a)
+        b = ImageMagick.load(fn)
         a8 = convert(Array{Gray{UFixed8}}, a)
         @fact convert(Array, b) --> a8
         aim = grayim(a)
-        save(fn, aim)
-        b = load(fn)
+        ImageMagick.save(fn, aim)
+        b = ImageMagick.load(fn)
         @fact b --> copyproperties(aim, a8)
     end
 
@@ -36,24 +36,24 @@ facts("IO") do
         a[1,1] = 1
         aa = convert(Array{UFixed8}, a)
         fn = joinpath(workdir, "2by2.png")
-        save(fn, a)
-        b = load(fn)
+        ImageMagick.save(fn, a)
+        b = ImageMagick.load(fn)
         @fact convert(Array, b) --> aa
-        save(fn, aa)
-        b = load(fn)
+        ImageMagick.save(fn, aa)
+        b = ImageMagick.load(fn)
         @fact convert(Array, b) --> aa
         open(fn, "w") do io
             writemime(io, MIME("image/png"), b; minpixels=0)
         end
-        bb = load(fn)
+        bb = ImageMagick.load(fn)
         @fact bb.data --> b.data
         aaimg = Images.grayim(aa)
-        save(fn, aaimg)
-        b = load(fn)
+        ImageMagick.save(fn, aaimg)
+        b = ImageMagick.load(fn)
         @fact b --> aaimg
         aa = convert(Array{UFixed16}, a)
-        save(fn, aa)
-        b = load(fn)
+        ImageMagick.save(fn, aa)
+        b = ImageMagick.load(fn)
         @fact convert(Array, b) --> aa
     end
 
@@ -63,15 +63,15 @@ facts("IO") do
         A[1] = 1
         img = Images.colorim(A)
         img24 = convert(Images.Image{RGB24}, img)
-        save(fn, img24)
-        b = load(fn)
+        ImageMagick.save(fn, img24)
+        b = ImageMagick.load(fn)
         imgrgb8 = convert(Images.Image{RGB{UFixed8}}, img)
         @fact Images.data(imgrgb8) --> Images.data(b)
 
         open(fn, "w") do io
             writemime(io, MIME("image/png"), imgrgb8; minpixels=0)
         end
-        bb = load(fn)
+        bb = ImageMagick.load(fn)
         @fact data(bb) --> data(imgrgb8)
     end
 
@@ -87,34 +87,34 @@ facts("IO") do
         cmaprgb[1:128] = [(1-x)*b + x*w for x in f]
         cmaprgb[129:end] = [(1-x)*w + x*r for x in f[2:end]]
         img = Images.ImageCmap(dataint, cmaprgb)
-        save(joinpath(workdir,"cmap.jpg"), img)
+        ImageMagick.save(joinpath(workdir,"cmap.jpg"), img)
         cmaprgb = Array(RGB, 255) # poorly-typed cmap, issue #336
         cmaprgb[1:128] = [(1-x)*b + x*w for x in f]
         cmaprgb[129:end] = [(1-x)*w + x*r for x in f[2:end]]
         img = Images.ImageCmap(dataint, cmaprgb)
-        save(joinpath(workdir, "cmap.png"), img)
+        ImageMagick.save(joinpath(workdir, "cmap.png"), img)
     end
 
     context("Alpha") do
         c = reinterpret(Images.BGRA{UFixed8}, [0xf0884422]'')
         fn = joinpath(workdir, "alpha.png")
-    	save(fn, c)
-        C = load(fn)
+    	ImageMagick.save(fn, c)
+        C = ImageMagick.load(fn)
         if !ontravis
             # disabled on Travis because it has a weird, old copy of
             # ImageMagick for which this fails (see Images#261)
             @fact C[1] --> c[1]
         end
-        save(fn, reinterpret(ARGB32, [0xf0884422]''))
-        D = load(fn)
+        ImageMagick.save(fn, reinterpret(ARGB32, [0xf0884422]''))
+        D = ImageMagick.load(fn)
         if !ontravis
             @fact D[1] --> c[1]
         end
 
         # Images#396
         c = colorim(rand(UInt8, 2, 2, 4), "RGBA")
-        save(fn, c)
-        D = load(fn)
+        ImageMagick.save(fn, c)
+        D = ImageMagick.load(fn)
         C = permutedims(convert(Image{eltype(D)}, c), spatialorder(D))
         if !ontravis
             for i = 1:length(D)
@@ -128,8 +128,8 @@ facts("IO") do
         Ar[1] = 0xff
         A = Image(map(x->Gray(UFixed8(x,0)), Ar); colorspace="Gray", spatialorder=["x", "y"], timedim=3) # grayim does not use timedim, but load does...
         fn = joinpath(workdir, "3d.tif")
-        save(fn, A)
-        B = load(fn)
+        ImageMagick.save(fn, A)
+        B = ImageMagick.load(fn)
 
         @fact A --> B
     end
@@ -141,9 +141,9 @@ facts("IO") do
         A[1,1] = -0.4
         fn = joinpath(workdir, "2by2.png")
         println("The following InexactError is a sign of normal operation:")
-        @fact_throws InexactError save(fn, A)
-        save(fn, A, mapi=mapinfo(Images.Clamp, A))
-        B = load(fn)
+        @fact_throws InexactError ImageMagick.save(fn, A)
+        ImageMagick.save(fn, A, mapi=mapinfo(Images.Clamp, A))
+        B = ImageMagick.load(fn)
         A[1,1] = 0
         @fact B --> map(Gray{UFixed8}, A)
     end
@@ -151,18 +151,18 @@ facts("IO") do
     @unix_only context("Reading from a stream (issue #312)") do
         fn = joinpath(workdir, "2by2.png")
         img = open(fn) do io
-            load(io)
+            ImageMagick.load(io)
         end
         @fact isa(img, Images.Image) --> true
     end
 
     @unix_only context("Writing to a stream (PR #22)") do
-        orig_img = load(joinpath(workdir, "2by2.png"))
+        orig_img = ImageMagick.load(joinpath(workdir, "2by2.png"))
         fn = joinpath(workdir, "2by2_fromstream.png")
         open(fn, "w") do f
-            save(Stream(format"PNG", f), orig_img)
+            ImageMagick.save(Stream(format"PNG", f), orig_img)
         end
-        img = load(fn)
+        img = ImageMagick.load(fn)
         @fact img --> orig_img
     end
 
@@ -183,7 +183,7 @@ facts("IO") do
         open(fn, "w") do file
             writemime(file, MIME("image/png"), a, minpixels=0)
         end
-        b = load(fn)
+        b = ImageMagick.load(fn)
         @fact data(b) --> data(a)
 
         Ar = rand(UInt8, 3, 1021, 1026)
@@ -193,7 +193,7 @@ facts("IO") do
         open(fn, "w") do file
             writemime(file, MIME("image/png"), abig, maxpixels=10^6)
         end
-        b = load(fn)
+        b = ImageMagick.load(fn)
         @fact data(b) --> convert(Array{RGB{UFixed8},2}, data(restrict(abig, (1,2))))
 
         # Issue #269
@@ -203,7 +203,7 @@ facts("IO") do
         open(fn, "w") do file
             writemime(file, MIME("image/png"), abig, maxpixels=10^6)
         end
-        b = load(fn)
+        b = ImageMagick.load(fn)
         @fact data(b) --> convert(Array{RGB{UFixed8},2}, data(restrict(abig, (1,2))))
     end
 
