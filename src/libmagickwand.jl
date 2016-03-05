@@ -99,6 +99,10 @@ for AC in vcat(subtypes(AlphaColor), subtypes(ColorAlpha))
     end
 end
 
+orientation_dict = Dict(nothing => ["x", "y"],
+                        "1" => ["x", "y"],
+                        "5" => ["y", "x"])
+
 function nchannels(imtype::AbstractString, cs::AbstractString, havealpha = false)
     n = 3
     if startswith(imtype, "Grayscale") || startswith(imtype, "Bilevel")
@@ -281,11 +285,13 @@ function getimageproperties(wand::MagickWand,patt::AbstractString)
     end
 end
 
-function getimageproperty(wand::MagickWand,prop::AbstractString)
+function getimageproperty(wand::MagickWand, prop::AbstractString, warnuser::Bool=true)
     p = ccall((:MagickGetImageProperty, libwand),Ptr{UInt8},(Ptr{Void},Ptr{UInt8}),wand.ptr,prop)
     if p == convert(Ptr{UInt8}, C_NULL)
-        possib = getimageproperties(wand,"*")
-        warn("Undefined property, possible names are \"$(join(possib,"\",\""))\"")
+        if warnuser
+            possib = getimageproperties(wand,"*")
+            warn("Undefined property, possible names are \"$(join(possib,"\",\""))\"")
+        end
         nothing
     else
         bytestring(p)

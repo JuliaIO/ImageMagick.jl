@@ -2,7 +2,7 @@ __precompile__(true)
 module ImageMagick
 
 using FixedPointNumbers, ColorTypes, Images, ColorVectorSpace
-import FileIO: DataFormat, @format_str, Stream, File, filename, stream
+using FileIO: DataFormat, @format_str, Stream, File, filename, stream
 
 export MagickWand
 export constituteimage
@@ -60,11 +60,14 @@ image_formats = [
     format"TGA"
 ]
 
-load{T <: DataFormat}(image::File{T}, args...; key_args...) = load_(filename(image), args...; key_args...)
-save{T <: DataFormat}(image::File{T}, args...; key_args...) = save_(filename(image), args...; key_args...)
+load{T <: DataFormat}(imagefile::File{T}, args...; key_args...) = load_(filename(imagefile), args...; key_args...)
+load(filename::AbstractString, args...; key_args...) = load_(filename, args...; key_args...)
+save{T <: DataFormat}(imagefile::File{T}, args...; key_args...) = save_(filename(imagefile), args...; key_args...)
+save(filename::AbstractString, args...; key_args...) = save_(filename, args...; key_args...)
 
-load{T <: DataFormat}(image::Stream{T}, args...; key_args...) = load_(stream(image), args...; key_args...)
-save{T <: DataFormat}(image::Stream{T}, args...; key_args...) = save_(image, args...; key_args...)
+load{T <: DataFormat}(imgstream::Stream{T}, args...; key_args...) = load_(stream(imgstream), args...; key_args...)
+load(imgstream::IO, args...; key_args...) = load_(imgstream, args...; key_args...)
+save{T <: DataFormat}(imgstream::Stream{T}, args...; key_args...) = save_(imgstream, args...; key_args...)
 
 const ufixedtype = Dict(10=>UFixed10, 12=>UFixed12, 14=>UFixed14, 16=>UFixed16)
 
@@ -127,7 +130,13 @@ function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Image, ex
     exportimagepixels!(buf, wand, cs, channelorder)
 
     prop = Dict{UTF8String, Any}()
-    prop["spatialorder"] = ["x", "y"]
+    orient = getimageproperty(wand, "exif:Orientation", false)
+    if haskey(orientation_dict, orient)
+        prop["spatialorder"] = orientation_dict[orient]
+    else
+        warn("orientation $orient not yet supported")
+        prop["spatialorder"] = ["x", "y"]
+    end
     n > 1 && (prop["timedim"] = ndims(buf))
     prop["colorspace"] = cs
 

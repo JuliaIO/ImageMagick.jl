@@ -1,15 +1,16 @@
-using FactCheck, Images, Colors, FixedPointNumbers
+using FactCheck, Images, Colors, FixedPointNumbers, ZipFile
+
+workdir = joinpath(tempdir(), "Images")
+writedir = joinpath(workdir, "write")
+if !isdir(workdir)
+    mkdir(workdir)
+end
+if !isdir(writedir)
+    mkdir(writedir)
+end
 
 facts("Read remote") do
     urlbase = "http://www.imagemagick.org/Usage/images/"
-    workdir = joinpath(tempdir(), "Images")
-    writedir = joinpath(workdir, "write")
-    if !isdir(workdir)
-        mkdir(workdir)
-    end
-    if !isdir(writedir)
-        mkdir(writedir)
-    end
 
     function getfile(name)
         file = joinpath(workdir, name)
@@ -21,14 +22,14 @@ facts("Read remote") do
 
     context("Gray") do
         file = getfile("jigsaw_tmpl.png")
-        img = load(file)
+        img = ImageMagick.load(file)
         @fact colorspace(img) --> "Gray"
         @fact ndims(img) --> 2
         @fact colordim(img) --> 0
         @fact eltype(img) --> Gray{UFixed8}
         outname = joinpath(writedir, "jigsaw_tmpl.png")
-        save(outname, img)
-        imgc = load(outname)
+        ImageMagick.save(outname, img)
+        imgc = ImageMagick.load(outname)
         @fact img.data --> imgc.data
         @fact reinterpret(UInt32, data(map(mapinfo(RGB24, img), img))) -->
             map(x->x&0x00ffffff, reinterpret(UInt32, data(map(mapinfo(ARGB32, img), img))))
@@ -44,16 +45,16 @@ facts("Read remote") do
 
     context("Gray with alpha channel") do
         file = getfile("wmark_image.png")
-        img = load(file)
+        img = ImageMagick.load(file)
         @fact colorspace(img) --> "GrayA"
         @fact ndims(img) --> 2
         @fact colordim(img) --> 0
         @fact eltype(img) --> Images.ColorTypes.GrayA{UFixed8}
         @linux_only begin
             outname = joinpath(writedir, "wmark_image.png")
-            save(outname, img)
+            ImageMagick.save(outname, img)
             sleep(0.2)
-            imgc = load(outname)
+            imgc = ImageMagick.load(outname)
             @fact img.data --> imgc.data
             open(outname, "w") do file
                 writemime(file, "image/png", img)
@@ -66,15 +67,15 @@ facts("Read remote") do
 
     context("RGB") do
         file = getfile("rose.png")
-        img = load(file)
+        img = ImageMagick.load(file)
         # Mac reader reports RGB4, imagemagick reports RGB
         @fact colorspace(img) --> "RGB"
         @fact ndims(img) --> 2
         @fact colordim(img) --> 0
         @fact eltype(img) --> RGB{UFixed8}
         outname = joinpath(writedir, "rose.tiff")
-        save(outname, img)
-        imgc = load(outname)
+        ImageMagick.save(outname, img)
+        imgc = ImageMagick.load(outname)
         T = eltype(imgc)
         # Why does this one fail on OSX??
         @osx? nothing : @fact img.data --> imgc.data
@@ -117,16 +118,16 @@ facts("Read remote") do
 
     context("RGBA with 16 bit depth") do
         file = getfile("autumn_leaves.png")
-        img = load(file)
+        img = ImageMagick.load(file)
         @fact colorspace(img) --> "BGRA"
         @fact ndims(img) --> 2
         @fact colordim(img) --> 0
         @fact eltype(img) --> Images.ColorTypes.BGRA{UFixed16}
         outname = joinpath(writedir, "autumn_leaves.png")
         @osx? nothing : begin
-            save(outname, img)
+            ImageMagick.save(outname, img)
             sleep(0.2)
-            imgc = load(outname)
+            imgc = ImageMagick.load(outname)
             @fact img.data --> imgc.data
             @fact reinterpret(UInt32, data(map(mapinfo(RGB24, img), img))) -->
                 map(x->x&0x00ffffff, reinterpret(UInt32, data(map(mapinfo(ARGB32, img), img))))
@@ -139,7 +140,7 @@ facts("Read remote") do
 
     context("Indexed") do
         file = getfile("present.gif")
-        img = load(file)
+        img = ImageMagick.load(file)
         @fact nimages(img) --> 1
         @fact reinterpret(UInt32, data(map(mapinfo(RGB24, img), img))) -->
             map(x->x&0x00ffffff, reinterpret(UInt32, data(map(mapinfo(ARGB32, img), img))))
@@ -154,12 +155,12 @@ facts("Read remote") do
         fname = "swirl_video.gif"
         #fname = "bunny_anim.gif"  # this one has transparency but LibMagick gets confused about its size
         file = getfile(fname)  # this also has transparency
-        img = load(file)
+        img = ImageMagick.load(file)
         @fact timedim(img) --> 3
         @fact nimages(img) --> 26
         outname = joinpath(writedir, fname)
-        save(outname, img)
-        imgc = load(outname)
+        ImageMagick.save(outname, img)
+        imgc = ImageMagick.load(outname)
         # Something weird happens after the 2nd image (compression?), and one starts getting subtle differences.
         # So don't compare the values.
         # Also take the opportunity to test some things with temporal images
@@ -179,24 +180,47 @@ facts("Read remote") do
         @osx? nothing : begin
             file = getfile("autumn_leaves.png")
             # List properties
-            extraProps = load(file, extrapropertynames=true)
+            extraProps = ImageMagick.load(file, extrapropertynames=true)
 
-            img = load(file,extraprop=extraProps)
+            img = ImageMagick.load(file,extraprop=extraProps)
             props = properties(img)
             for key in extraProps
                 @fact haskey(props, key) --> true
                 @fact props[key] --> not(nothing)
             end
-            img = load(file, extraprop=extraProps[1])
+            img = ImageMagick.load(file, extraprop=extraProps[1])
             props = properties(img)
             @fact haskey(props, extraProps[1]) --> true
             @fact props[extraProps[1]] --> not(nothing)
 
             println("The following \"Undefined property\" warning indicates normal operation")
-            img = load(file, extraprop="Non existing property")
+            img = ImageMagick.load(file, extraprop="Non existing property")
             props = properties(img)
             @fact haskey(props, "Non existing property") --> true
             @fact props["Non existing property"] --> nothing
         end
     end
+end
+
+using ImageMagick
+
+facts("EXIF orientation") do
+    function test_orientation(r, odict)
+        for f in r.files
+            bn = basename(f.name)
+            if haskey(odict, bn)
+                so = odict[bn]
+                data = read(f, UInt8, f.uncompressedsize)
+                img = readblob(data)
+                @fact spatialorder(img) --> so
+            end
+        end
+    end
+
+    url = "http://www.galloway.me.uk/media/other/EXIF_Orientation_Samples.zip"
+    fn = joinpath(workdir, "EXIF_Orientation_Samples.zip")
+    download(url, fn)
+    r = ZipFile.Reader(fn)
+    test_orientation(r, Dict("up.jpg"=>["x", "y"],
+                             "left-mirrored.jpg"=>["y", "x"]))
 end
