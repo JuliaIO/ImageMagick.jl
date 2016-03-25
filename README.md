@@ -65,3 +65,13 @@ file as (for example) `push!(Base.DL_LOAD_PATH,
 
 **When manual intervention is necessary, you need to restart Julia for the
 necessary changes to take effect.**
+
+## Linux
+
+ImageMagick.jl automatically searches for an installed version of
+libMagickWand.  Use the environment variable `MAGICK_HOME` to add to the search
+path.  Use `ImageMagick.libversion` to see what version it found.  Version 6.7+
+(up to but not including 7.0) are the most supported versions, in particular
+for multipage TIFFs.
+
+The environment variable `MAGICK_THREAD_LIMIT` can be used to throttle multithreading.
