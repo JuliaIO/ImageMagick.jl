@@ -1,4 +1,5 @@
 using BinDeps
+using Compat
 
 @BinDeps.setup
 
@@ -39,7 +40,7 @@ end
     # Extract the appropriate filename to download
     magick_base = "http://www.imagemagick.org/download/binaries"
     binariesfn  = download(magick_base)
-    str         = readall(binariesfn)
+    str         = readstring(binariesfn)
     pattern     = "ImageMagick-6.9.*?-Q16-$(OS_ARCH)-dll.exe"
     m           = match(Regex(pattern), str)
     magick_exe  = convert(ASCIIString, m.match)
@@ -93,7 +94,7 @@ end
 
 # Hack-fix for issue #12
 # Check to see whether init_deps is present, and if not add it
-if isempty(search(readall(joinpath(dirname(@__FILE__),"deps.jl")), "init_deps"))
+if isempty(search(readstring(joinpath(dirname(@__FILE__),"deps.jl")), "init_deps"))
     open("deps.jl", "a") do io
         write(io, initfun)
     end
