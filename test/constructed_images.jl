@@ -139,7 +139,7 @@ facts("IO") do
         A = grayim(Ar)
         A[1,1] = -0.4
         fn = joinpath(workdir, "2by2.png")
-        println("The following InexactError is a sign of normal operation:")
+        println("The following warning is a sign of normal operation:")
         @fact_throws InexactError ImageMagick.save(fn, A)
         ImageMagick.save(fn, A, mapi=mapinfo(Images.Clamp, A))
         B = ImageMagick.load(fn)
