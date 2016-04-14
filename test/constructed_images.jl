@@ -32,10 +32,9 @@ facts("IO") do
     end
 
     context("Gray png") do
-        a = rand(2,2)
-        a[1,1] = 1
+        a = [0 1/2^16 1/2^8; 1-1/2^8 1-1/2^16 1]
         aa = convert(Array{UFixed8}, a)
-        fn = joinpath(workdir, "2by2.png")
+        fn = joinpath(workdir, "2by3.png")
         ImageMagick.save(fn, a)
         b = ImageMagick.load(fn)
         @fact convert(Array, b) --> aa
