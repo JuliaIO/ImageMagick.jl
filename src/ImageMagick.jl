@@ -230,7 +230,8 @@ mapinfo(img::AbstractArray{ARGB32}) = MapNone{BGRA{UFixed8}}()
 
 # Make the data contiguous in memory, this is necessary for
 # imagemagick since it doesn't handle stride.
-to_contiguous(A::AbstractArray) = A
+to_contiguous(A::Array) = A
+to_contiguous(A::AbstractArray) = copy(A)
 to_contiguous(A::SubArray) = copy(A)
 
 to_explicit(A::AbstractArray) = A
