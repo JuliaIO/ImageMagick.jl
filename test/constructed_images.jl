@@ -32,10 +32,9 @@ facts("IO") do
     end
 
     context("Gray png") do
-        a = rand(2,2)
-        a[1,1] = 1
+        a = [0 1/2^16 1/2^8; 1-1/2^8 1-1/2^16 1]
         aa = convert(Array{UFixed8}, a)
-        fn = joinpath(workdir, "2by2.png")
+        fn = joinpath(workdir, "2by3.png")
         ImageMagick.save(fn, a)
         b = ImageMagick.load(fn)
         @fact convert(Array, b) --> aa
@@ -140,7 +139,7 @@ facts("IO") do
         A = grayim(Ar)
         A[1,1] = -0.4
         fn = joinpath(workdir, "2by2.png")
-        println("The following InexactError is a sign of normal operation:")
+        println("The following warning is a sign of normal operation:")
         @fact_throws InexactError ImageMagick.save(fn, A)
         ImageMagick.save(fn, A, mapi=mapinfo(Images.Clamp, A))
         B = ImageMagick.load(fn)
