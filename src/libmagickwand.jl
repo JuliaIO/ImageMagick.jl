@@ -251,6 +251,12 @@ function writeimage(wand::MagickWand, filename::AbstractString)
     nothing
 end
 
+function writeimage(wand::MagickWand, stream::IO)
+    status = ccall((:MagickWriteImagesFile, libwand), Cint, (Ptr{Void}, Ptr{Void}), wand.ptr, Libc.FILE(stream).ptr)
+    status == 0 && error(wand)
+    nothing
+end
+
 function size(wand::MagickWand)
     height = ccall((:MagickGetImageHeight, libwand), Csize_t, (Ptr{Void},), wand.ptr)
     width = ccall((:MagickGetImageWidth, libwand), Csize_t, (Ptr{Void},), wand.ptr)
