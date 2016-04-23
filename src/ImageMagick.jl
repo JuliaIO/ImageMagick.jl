@@ -207,6 +207,7 @@ formatstring{S}(s::Stream{DataFormat{S}}) = string(S)
 mapinfo(img::AbstractArray{Bool}) = MapNone{UFixed8}()
 mapinfo{T<:UFixed}(img::AbstractArray{T}) = MapNone{T}()
 mapinfo{T<:AbstractFloat}(img::AbstractArray{T}) = MapNone{UFixed8}()
+let handled = Set()
 for ACV in (Color, AbstractRGB)
     for CV in subtypes(ACV)
         (length(CV.parameters) == 1 && !(CV.abstract)) || continue
@@ -215,6 +216,10 @@ for ACV in (Color, AbstractRGB)
         @eval mapinfo{CV<:$CV}(img::AbstractArray{CV}) = MapNone{$CVnew{UFixed8}}()
         CVnew = CV<:AbstractGray ? Gray : BGR
         AC, CA       = alphacolor(CV), coloralpha(CV)
+        if AC in handled
+            continue
+        end
+        push!(handled, AC)
         ACnew, CAnew = alphacolor(CVnew), coloralpha(CVnew)
         @eval begin
             mapinfo{T<:UFixed}(img::AbstractArray{$AC{T}}) = MapNone{$ACnew{T}}()
@@ -223,6 +228,7 @@ for ACV in (Color, AbstractRGB)
             mapinfo{P<:$CA}(img::AbstractArray{P}) = MapNone{$CAnew{UFixed8}}()
         end
     end
+end
 end
 mapinfo(img::AbstractArray{RGB24}) = MapNone{RGB{UFixed8}}()
 mapinfo(img::AbstractArray{ARGB32}) = MapNone{BGRA{UFixed8}}()
