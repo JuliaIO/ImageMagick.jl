@@ -98,9 +98,19 @@ for AC in vcat(subtypes(AlphaColor), subtypes(ColorAlpha))
     end
 end
 
-orientation_dict = Dict(nothing => ["x", "y"],
-                        "1" => ["x", "y"],
-                        "5" => ["y", "x"])
+flip1(A) = sub(A, reverse(1:size(A, 1)), 1:size(A, 2))
+flip2(A) = sub(A, 1:size(A, 1), reverse(1:size(A, 2)))
+flip12(A) = sub(A, reverse(1:size(A, 1)), reverse(1:size(A, 2)))
+
+orientation_dict = Dict(nothing => identity,
+                        "1" => identity,
+                        "2" => flip1,
+                        "3" => flip2,
+                        "4" => flip12,
+                        "5" => A->PermutedDimsArray(A, [2,1]),
+                        "6" => A->PermutedDimsArray(flip1(A), [2,1]),
+                        "7" => A->PermutedDimsArray(flip2(A), [2,1]),
+                        "8" => PermutedDimsArray(flip12(A), [2,1]))
 
 function nchannels(imtype::AbstractString, cs::AbstractString, havealpha = false)
     n = 3
