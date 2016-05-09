@@ -1,4 +1,4 @@
-import Base: error, size
+import Base: error, size, PermutedDimsArrays
 
 export MagickWand,
     constituteimage,
@@ -98,9 +98,19 @@ for AC in vcat(subtypes(AlphaColor), subtypes(ColorAlpha))
     end
 end
 
-orientation_dict = Dict(nothing => ["x", "y"],
-                        "1" => ["x", "y"],
-                        "5" => ["y", "x"])
+flip1(A) = sub(A, reverse(1:size(A, 1)), 1:size(A, 2))
+flip2(A) = sub(A, 1:size(A, 1), reverse(1:size(A, 2)))
+flip12(A) = sub(A, reverse(1:size(A, 1)), reverse(1:size(A, 2)))
+
+orientation_dict = Dict(nothing => identity,
+                        "1" => identity,
+                        "2" => flip1,
+                        "3" => flip12, #flip2,
+                        "4" => flip2,
+                        "5" => A->PermutedDimsArrays.PermutedDimsArray(A, [2,1]),
+                        "6" => A->PermutedDimsArrays.PermutedDimsArray(flip2(A), [2,1]),
+                        "7" => A->PermutedDimsArrays.PermutedDimsArray(flip12(A), [2,1]),
+                        "8" => A->PermutedDimsArrays.PermutedDimsArray(flip1(A), [2,1]))
 
 function nchannels(imtype::AbstractString, cs::AbstractString, havealpha = false)
     n = 3
