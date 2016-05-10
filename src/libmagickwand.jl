@@ -1,4 +1,4 @@
-import Base: error, size
+import Base: error, size, PermutedDimsArrays
 
 export MagickWand,
     constituteimage,
@@ -107,10 +107,10 @@ orientation_dict = Dict(nothing => identity,
                         "2" => flip1,
                         "3" => flip2,
                         "4" => flip12,
-                        "5" => A->PermutedDimsArray(A, [2,1]),
-                        "6" => A->PermutedDimsArray(flip1(A), [2,1]),
-                        "7" => A->PermutedDimsArray(flip2(A), [2,1]),
-                        "8" => PermutedDimsArray(flip12(A), [2,1]))
+                        "5" => A->PermutedDimsArrays.PermutedDimsArray(A, [2,1]),
+                        "6" => A->PermutedDimsArrays.PermutedDimsArray(flip1(A), [2,1]),
+                        "7" => A->PermutedDimsArrays.PermutedDimsArray(flip2(A), [2,1]),
+                        "8" => A->PermutedDimsArrays.PermutedDimsArray(flip12(A), [2,1]))
 
 function nchannels(imtype::AbstractString, cs::AbstractString, havealpha = false)
     n = 3
