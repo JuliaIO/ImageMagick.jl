@@ -1,5 +1,6 @@
 using ImageMagick, Images, ColorTypes, FixedPointNumbers, FileIO
 using FactCheck
+using Compat
 
 ontravis = haskey(ENV, "TRAVIS")
 
@@ -168,7 +169,7 @@ facts("IO") do
     @unix_only context("Reading from a byte array (issue #279)") do
         fn = joinpath(workdir, "2by2.png")
         io = open(fn)
-        arr = readbytes(io)
+        arr = read(io)
         close(io)
         img = readblob(arr)
         @fact isa(img, Images.Image) --> true

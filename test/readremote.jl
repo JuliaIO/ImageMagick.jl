@@ -1,3 +1,4 @@
+using ImageMagick
 using FactCheck, Images, Colors, FixedPointNumbers, ZipFile
 
 workdir = joinpath(tempdir(), "Images")
@@ -201,8 +202,6 @@ facts("Read remote") do
         end
     end
 end
-
-using ImageMagick
 
 facts("EXIF orientation") do
     function test_orientation(r, odict)

@@ -1,6 +1,9 @@
 __precompile__(true)
 module ImageMagick
 
+using Compat
+import Compat.String
+
 using FixedPointNumbers, ColorTypes, Images, ColorVectorSpace
 using FileIO: DataFormat, @format_str, Stream, File, filename, stream
 
@@ -129,7 +132,7 @@ function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Image, ex
     buf = Array(T, sz...)
     exportimagepixels!(buf, wand, cs, channelorder)
 
-    prop = Dict{UTF8String, Any}()
+    prop = Dict{Compat.UTF8String, Any}()
     orient = getimageproperty(wand, "exif:Orientation", false)
     if haskey(orientation_dict, orient)
         prop["spatialorder"] = orientation_dict[orient]

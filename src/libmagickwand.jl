@@ -1,4 +1,3 @@
-
 import Base: error, size
 
 export MagickWand,
@@ -175,7 +174,7 @@ bitdepth{C<:Colorant}(buffer::AbstractArray{C}) = 8*eltype(C)
 bitdepth{T}(buffer::AbstractArray{T}) = 8*sizeof(T)
 
 # colorspace is included for consistency with constituteimage, but it is not used
-function exportimagepixels!{T}(buffer::AbstractArray{T}, wand::MagickWand,  colorspace::ASCIIString, channelorder::ASCIIString; x = 0, y = 0)
+function exportimagepixels!{T}(buffer::AbstractArray{T}, wand::MagickWand,  colorspace::String, channelorder::String; x = 0, y = 0)
     cols, rows, nimages = getsize(buffer, channelorder)
     ncolors = colorsize(buffer, channelorder)
     p = pointer(buffer)
@@ -188,14 +187,14 @@ function exportimagepixels!{T}(buffer::AbstractArray{T}, wand::MagickWand,  colo
     buffer
 end
 
-# function importimagepixels{T}(buffer::AbstractArray{T}, wand::MagickWand, colorspace::ASCIIString; x = 0, y = 0)
+# function importimagepixels{T}(buffer::AbstractArray{T}, wand::MagickWand, colorspace::String; x = 0, y = 0)
 #     cols, rows = getsize(buffer, colorspace)
 #     status = ccall((:MagickImportImagePixels, libwand), Cint, (Ptr{Void}, Cssize_t, Cssize_t, Csize_t, Csize_t, Ptr{UInt8}, Cint, Ptr{Void}), wand.ptr, x, y, cols, rows, channelorder[colorspace], storagetype(T), buffer)
 #     status == 0 && error(wand)
 #     nothing
 # end
 
-function constituteimage{T<:Unsigned}(buffer::AbstractArray{T}, wand::MagickWand, colorspace::ASCIIString, channelorder::ASCIIString; x = 0, y = 0)
+function constituteimage{T<:Unsigned}(buffer::AbstractArray{T}, wand::MagickWand, colorspace::String, channelorder::String; x = 0, y = 0)
     cols, rows, nimages = getsize(buffer, channelorder)
     ncolors = colorsize(buffer, channelorder)
     p = pointer(buffer)
@@ -282,12 +281,11 @@ function getimageproperties(wand::MagickWand,patt::AbstractString)
         error("Pattern not in property names")
     else
         nP = convert(Int, numbProp[1])
-        ret = Array(ASCIIString, nP)
+        ret = Array(Compat.ASCIIString, nP)
         for i = 1:nP
             ret[i] = bytestring(unsafe_load(p,i))
         end
         ret
-
     end
 end
 
@@ -323,7 +321,7 @@ function getimagecolorspace(wand::MagickWand)
     IMColorspace[cs]
 end
 
-function setimagecolorspace(wand::MagickWand, cs::ASCIIString)
+function setimagecolorspace(wand::MagickWand, cs::String)
     status = ccall((:MagickSetImageColorspace, libwand), Cint, (Ptr{Void},Cint), wand.ptr, IMColordict[cs])
     status == 0 && error(wand)
     nothing
@@ -332,7 +330,7 @@ end
 imtype(buffer, cs) = IMTypedict[CStoIMTypedict[cs]]
 imtype(buffer::AbstractArray{Bool}, cs) = IMTypedict["BilevelType"]
 
-function setimagetype(wand::MagickWand, buffer, cs::ASCIIString)
+function setimagetype(wand::MagickWand, buffer, cs::String)
     status = ccall((:MagickSetImageType, libwand), Cint, (Ptr{Void},Cint), wand.ptr, imtype(buffer, cs))
     status == 0 && error(wand)
     nothing
@@ -353,7 +351,7 @@ function setimagecompressionquality(wand::MagickWand, quality::Integer)
 end
 
 # set the image format
-function setimageformat(wand::MagickWand, format::ASCIIString)
+function setimageformat(wand::MagickWand, format::String)
     status = ccall((:MagickSetImageFormat, libwand), Cint, (Ptr{Void}, Ptr{UInt8}), wand.ptr, format)
     status == 0 && error(wand)
     nothing
@@ -365,7 +363,7 @@ getimagedepth(wand::MagickWand) = convert(Int, ccall((:MagickGetImageDepth, libw
 # pixel depth for given channel type
 getimagechanneldepth(wand::MagickWand, channelType::ChannelType) = convert(Int, ccall((:MagickGetImageChannelDepth, libwand), Csize_t, (Ptr{Void},UInt32), wand.ptr, channelType.value ))
 
-pixelsetcolor(wand::PixelWand, colorstr::ByteString) = ccall((:PixelSetColor, libwand), Csize_t, (Ptr{Void},Ptr{UInt8}), wand.ptr, colorstr) == 0 && error(wand)
+pixelsetcolor(wand::PixelWand, colorstr::String) = ccall((:PixelSetColor, libwand), Csize_t, (Ptr{Void},Ptr{UInt8}), wand.ptr, colorstr) == 0 && error(wand)
 
 relinquishmemory(p) = ccall((:MagickRelinquishMemory, libwand), Ptr{UInt8}, (Ptr{UInt8},), p)
 
@@ -374,7 +372,7 @@ relinquishmemory(p) = ccall((:MagickRelinquishMemory, libwand), Ptr{UInt8}, (Ptr
 function queryoptions(pattern::AbstractString)
     nops = Cint[0]
     pops = ccall((:MagickQueryConfigureOptions, libwand), Ptr{Ptr{UInt8}}, (Ptr{UInt8}, Ptr{Cint}), pattern, nops)
-    ret = Array(ASCIIString, nops[1])
+    ret = Array(Compat.ASCIIString, nops[1])
     for i = 1:nops[1]
         ret[i] = bytestring(unsafe_load(pops, i))
     end
