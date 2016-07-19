@@ -8,7 +8,10 @@ libnames    = ["libMagickWand", "CORE_RL_wand_"]
 suffixes    = ["", "-Q16", "-6.Q16", "-Q8"]
 options     = ["", "HDRI"]
 extensions  = ["", ".so.2", ".so.4", ".so.5"]
-aliases     = vec(libnames.*transpose(suffixes).*reshape(options,(1,1,length(options))).*reshape(extensions,(1,1,1,length(extensions))))
+aliases     = vec(libnames .*
+                  reshape(suffixes,(1,length(suffixes))) .*
+                  reshape(options,(1,1,length(options))) .*
+                  reshape(extensions,(1,1,1,length(extensions))))
 libwand     = library_dependency("libwand", aliases = aliases)
 
 initfun = """
@@ -23,7 +26,7 @@ if !isempty(mpath)
     provides(Binaries, joinpath(mpath,"lib"), libwand)
 end
 
-@linux_only begin
+if is_linux()
     kwargs = Any[(:onload, initfun)]
     provides(AptGet, "libmagickwand4", libwand; kwargs...)
     provides(AptGet, "libmagickwand5", libwand; kwargs...)
@@ -33,9 +36,9 @@ end
 end
 
 # TODO: remove me when upstream is fixed
-@windows_only push!(BinDeps.defaults, BuildProcess)
+is_windows() && push!(BinDeps.defaults, BuildProcess)
 
-@windows_only begin
+if is_windows()
     const OS_ARCH = (WORD_SIZE == 64) ? "x64" : "x86"
 
     # TODO: checksums: we have gpg
@@ -75,7 +78,7 @@ init_deps()
         libwand, os = :Windows, unpacked_dir = magick_libdir, preload = initfun)
 end
 
-@osx_only begin
+if is_apple()
     if Pkg.installed("Homebrew") === nothing
         error("Homebrew package not installed, please run Pkg.add(\"Homebrew\")")
     end
@@ -105,12 +108,13 @@ end
 # Save the library version; by checking this now, we avoid a runtime dependency on libwand
 # See https://github.com/timholy/Images.jl/issues/184#issuecomment-55643225
 module CheckVersion
+using Compat
 include("deps.jl")
 p = ccall((:MagickQueryConfigureOption, libwand), Ptr{UInt8}, (Ptr{UInt8},), "LIB_VERSION_NUMBER")
-vstr = string("v\"", join(split(bytestring(p), ',')[1:3], '.'), "\"")
+vstr = string("v\"", join(split(unsafe_string(p), ',')[1:3], '.'), "\"")
 open(joinpath(dirname(@__FILE__),"versioninfo.jl"), "w") do file
     write(file, "const libversion = $vstr\n")
 end
 end
 
-@windows_only pop!(BinDeps.defaults)
+is_windows() && pop!(BinDeps.defaults)

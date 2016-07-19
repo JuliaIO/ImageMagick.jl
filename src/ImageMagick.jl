@@ -25,7 +25,6 @@ export setimagecompressionquality
 export setimageformat
 export writeimage
 export image2wand
-export writemime_
 
 include("libmagickwand.jl")
 
@@ -243,20 +242,23 @@ to_contiguous(A::Array) = A
 to_contiguous(A::AbstractArray) = copy(A)
 to_contiguous(A::SubArray) = copy(A)
 
-to_explicit(A::AbstractArray) = A
-to_explicit{T<:UFixed}(A::AbstractArray{T}) = reinterpret(FixedPointNumbers.rawtype(T), A)
-to_explicit{T<:UFixed}(A::AbstractArray{RGB{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(3, size(A)...))
-to_explicit{T<:AbstractFloat}(A::AbstractArray{RGB{T}}) = to_explicit(map(ClampMinMax(RGB{UFixed8}, zero(RGB{T}), one(RGB{T})), A))
-to_explicit{T<:UFixed}(A::AbstractArray{Gray{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, size(A))
-to_explicit{T<:AbstractFloat}(A::AbstractArray{Gray{T}}) = to_explicit(map(ClampMinMax(Gray{UFixed8}, zero(Gray{T}), one(Gray{T})), A))
+to_explicit(A::Image) = to_explicit(data(A))
+to_explicit(A::AbstractArray) = to_explicit(copy(A))
 
-to_explicit{T<:UFixed}(A::AbstractArray{GrayA{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A)
-to_explicit{T<:AbstractFloat}(A::AbstractArray{GrayA{T}}) = to_explicit(map(ClampMinMax(GrayA{UFixed8}, zero(GrayA{T}), one(GrayA{T})), A))
+to_explicit{T<:UFixed}(A::Array{T}) = reinterpret(FixedPointNumbers.rawtype(T), A)
 
-to_explicit{T<:UFixed}(A::AbstractArray{BGRA{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(4, size(A)...))
-to_explicit{T<:AbstractFloat}(A::AbstractArray{BGRA{T}}) = to_explicit(map(ClampMinMax(BGRA{UFixed8}, zero(BGRA{T}), one(BGRA{T})), A))
-to_explicit{T<:UFixed}(A::AbstractArray{RGBA{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(4, size(A)...))
-to_explicit{T<:AbstractFloat}(A::AbstractArray{RGBA{T}}) = to_explicit(map(ClampMinMax(RGBA{UFixed8}, zero(RGBA{T}), one(RGBA{T})), A))
+to_explicit{T<:UFixed}(A::Array{RGB{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(3, size(A)...))
+to_explicit{T<:AbstractFloat}(A::Array{RGB{T}}) = to_explicit(map(ClampMinMax(RGB{UFixed8}, zero(RGB{T}), one(RGB{T})), A))
+to_explicit{T<:UFixed}(A::Array{Gray{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, size(A))
+to_explicit{T<:AbstractFloat}(A::Array{Gray{T}}) = to_explicit(map(ClampMinMax(Gray{UFixed8}, zero(Gray{T}), one(Gray{T})), A))
+
+to_explicit{T<:UFixed}(A::Array{GrayA{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A)
+to_explicit{T<:AbstractFloat}(A::Array{GrayA{T}}) = to_explicit(map(ClampMinMax(GrayA{UFixed8}, zero(GrayA{T}), one(GrayA{T})), A))
+
+to_explicit{T<:UFixed}(A::Array{BGRA{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(4, size(A)...))
+to_explicit{T<:AbstractFloat}(A::Array{BGRA{T}}) = to_explicit(map(ClampMinMax(BGRA{UFixed8}, zero(BGRA{T}), one(BGRA{T})), A))
+to_explicit{T<:UFixed}(A::Array{RGBA{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(4, size(A)...))
+to_explicit{T<:AbstractFloat}(A::Array{RGBA{T}}) = to_explicit(map(ClampMinMax(RGBA{UFixed8}, zero(RGBA{T}), one(RGBA{T})), A))
 
 
 
@@ -276,7 +278,5 @@ function permutation_horizontal(img)
 end
 
 permutedims_horizontal(img) = permutedims(img, permutation_horizontal(img))
-
-@deprecate writemime_(io::IO, ::MIME"image/png", img::AbstractImage) save(Stream(format"PNG", io), img)
 
 end # module

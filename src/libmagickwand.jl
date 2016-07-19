@@ -215,7 +215,7 @@ function getblob(wand::MagickWand, format::AbstractString)
     setimageformat(wand, format)
     len = Array(Csize_t, 1)
     ptr = ccall((:MagickGetImagesBlob, libwand), Ptr{UInt8}, (Ptr{Void}, Ptr{Csize_t}), wand.ptr, len)
-    blob = pointer_to_array(ptr, convert(Int, len[1]))
+    blob = unsafe_wrap(Array, ptr, convert(Int, len[1]))
     finalizer(blob, relinquishmemory)
     blob
 end
@@ -283,7 +283,7 @@ function getimageproperties(wand::MagickWand,patt::AbstractString)
         nP = convert(Int, numbProp[1])
         ret = Array(Compat.ASCIIString, nP)
         for i = 1:nP
-            ret[i] = bytestring(unsafe_load(p,i))
+            ret[i] = unsafe_string(unsafe_load(p,i))
         end
         ret
     end
@@ -298,7 +298,7 @@ function getimageproperty(wand::MagickWand, prop::AbstractString, warnuser::Bool
         end
         nothing
     else
-        bytestring(p)
+        unsafe_string(p)
     end
 end
 

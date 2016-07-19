@@ -40,7 +40,7 @@ facts("Read remote") do
         imgrgb8 = map(mapi, img)
         @fact imgrgb8[1,1].r --> img[1].val
         open(outname, "w") do file
-            writemime(file, "image/png", img)
+            show(file, MIME("image/png"), img)
         end
     end
 
@@ -51,14 +51,14 @@ facts("Read remote") do
         @fact ndims(img) --> 2
         @fact colordim(img) --> 0
         @fact eltype(img) --> Images.ColorTypes.GrayA{UFixed8}
-        @linux_only begin
+        if is_linux()
             outname = joinpath(writedir, "wmark_image.png")
             ImageMagick.save(outname, img)
             sleep(0.2)
             imgc = ImageMagick.load(outname)
             @fact img.data --> imgc.data
             open(outname, "w") do file
-                writemime(file, "image/png", img)
+                show(file, MIME("image/png"), img)
             end
         end
         @fact reinterpret(UInt32, data(map(mapinfo(RGB24, img), img))) -->
@@ -79,7 +79,7 @@ facts("Read remote") do
         imgc = ImageMagick.load(outname)
         T = eltype(imgc)
         # Why does this one fail on OSX??
-        @osx? nothing : @fact img.data --> imgc.data
+        is_apple() || @fact img.data --> imgc.data
         @fact reinterpret(UInt32, data(map(mapinfo(RGB24, img), img))) -->
             map(x->x&0x00ffffff, reinterpret(UInt32, data(map(mapinfo(ARGB32, img), img))))
         @fact mapinfo(UInt32, img) --> mapinfo(RGB24, img)
@@ -105,7 +105,7 @@ facts("Read remote") do
         imr = reinterpret(UFixed8, img)
         uint32color(imr)
         uint32color!(buf, imr)
-        @osx? nothing : begin
+        is_apple() || begin
             imhsv = convert(Image{HSV}, float32(img))
             uint32color(imhsv)
             uint32color!(buf, imhsv)
@@ -113,7 +113,7 @@ facts("Read remote") do
         end
         outname = joinpath(writedir, "rose.png")
         open(outname, "w") do file
-            writemime(file, "image/png", img)
+            show(file, MIME("image/png"), img)
         end
     end
 
@@ -125,7 +125,7 @@ facts("Read remote") do
         @fact colordim(img) --> 0
         @fact eltype(img) --> Images.ColorTypes.BGRA{UFixed16}
         outname = joinpath(writedir, "autumn_leaves.png")
-        @osx? nothing : begin
+        is_apple() || begin
             ImageMagick.save(outname, img)
             sleep(0.2)
             imgc = ImageMagick.load(outname)
@@ -135,7 +135,7 @@ facts("Read remote") do
             @fact mapinfo(UInt32, img) --> mapinfo(ARGB32, img)
         end
         open(outname, "w") do file
-            writemime(file, "image/png", img)
+            show(file, MIME("image/png"), img)
         end
     end
 
@@ -148,7 +148,7 @@ facts("Read remote") do
         @fact mapinfo(UInt32, img) --> mapinfo(RGB24, img)
         outname = joinpath(writedir, "present.png")
         open(outname, "w") do file
-            writemime(file, "image/png", img)
+            show(file, MIME("image/png"), img)
         end
     end
 
@@ -178,7 +178,7 @@ facts("Read remote") do
     end
 
     context("Extra properties") do
-        @osx? nothing : begin
+        is_apple() || begin
             file = getfile("autumn_leaves.png")
             # List properties
             extraProps = ImageMagick.load(file, extrapropertynames=true)

@@ -43,7 +43,7 @@ facts("IO") do
         b = ImageMagick.load(fn)
         @fact convert(Array, b) --> aa
         open(fn, "w") do io
-            writemime(io, MIME("image/png"), b; minpixels=0)
+            show(io, MIME("image/png"), b; minpixels=0)
         end
         bb = ImageMagick.load(fn)
         @fact bb.data --> b.data
@@ -69,7 +69,7 @@ facts("IO") do
         @fact Images.data(imgrgb8) --> Images.data(b)
 
         open(fn, "w") do io
-            writemime(io, MIME("image/png"), imgrgb8; minpixels=0)
+            show(io, MIME("image/png"), imgrgb8; minpixels=0)
         end
         bb = ImageMagick.load(fn)
         @fact data(bb) --> data(imgrgb8)
@@ -148,7 +148,7 @@ facts("IO") do
         @fact B --> map(Gray{UFixed8}, A)
     end
 
-    @unix_only context("Reading from a stream (issue #312)") do
+    is_unix() && context("Reading from a stream (issue #312)") do
         fn = joinpath(workdir, "2by2.png")
         img = open(fn) do io
             ImageMagick.load(io)
@@ -156,7 +156,7 @@ facts("IO") do
         @fact isa(img, Images.Image) --> true
     end
 
-    @unix_only context("Writing to a stream (PR #22)") do
+    is_unix() && context("Writing to a stream (PR #22)") do
         orig_img = ImageMagick.load(joinpath(workdir, "2by2.png"))
         fn = joinpath(workdir, "2by2_fromstream.png")
         open(fn, "w") do f
@@ -166,7 +166,7 @@ facts("IO") do
         @fact img --> orig_img
     end
 
-    @unix_only context("Reading from a byte array (issue #279)") do
+    is_unix() && context("Reading from a byte array (issue #279)") do
         fn = joinpath(workdir, "2by2.png")
         io = open(fn)
         arr = read(io)
@@ -175,13 +175,13 @@ facts("IO") do
         @fact isa(img, Images.Image) --> true
     end
 
-    context("writemime") do
+    context("show(MIME)") do
         Ar = rand(UInt8, 3, 2, 2)
         Ar[1] = typemax(eltype(Ar))
         a = colorim(Ar)
         fn = joinpath(workdir, "2by2.png")
         open(fn, "w") do file
-            writemime(file, MIME("image/png"), a, minpixels=0)
+            show(file, MIME("image/png"), a, minpixels=0)
         end
         b = ImageMagick.load(fn)
         @fact data(b) --> data(a)
@@ -191,7 +191,7 @@ facts("IO") do
         abig = colorim(Ar)
         fn = joinpath(workdir, "big.png")
         open(fn, "w") do file
-            writemime(file, MIME("image/png"), abig, maxpixels=10^6)
+            show(file, MIME("image/png"), abig, maxpixels=10^6)
         end
         b = ImageMagick.load(fn)
         @fact data(b) --> convert(Array{RGB{UFixed8},2}, data(restrict(abig, (1,2))))
@@ -201,7 +201,7 @@ facts("IO") do
         Ar[1] = typemax(eltype(Ar))
         abig = colorim(Ar)
         open(fn, "w") do file
-            writemime(file, MIME("image/png"), abig, maxpixels=10^6)
+            show(file, MIME("image/png"), abig, maxpixels=10^6)
         end
         b = ImageMagick.load(fn)
         @fact data(b) --> convert(Array{RGB{UFixed8},2}, data(restrict(abig, (1,2))))
