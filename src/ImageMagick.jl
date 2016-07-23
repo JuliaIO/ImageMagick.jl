@@ -158,6 +158,8 @@ function save_(filename::AbstractString, img, permute_horizontal=true; mapi = ma
     writeimage(wand, filename)
 end
 
+# This differs from `save_` for files because this is primarily used
+# by IJulia, and we want to restrict large images to make display faster.
 function save_(s::Stream, img, permute_horizontal=true; mapi = Images.mapinfo_writemime(img), quality = nothing)
     wand = image2wand(img, mapi, quality, permute_horizontal)
     blob = getblob(wand, formatstring(s))

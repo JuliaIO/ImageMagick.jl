@@ -40,7 +40,7 @@ facts("Read remote") do
         imgrgb8 = map(mapi, img)
         @fact imgrgb8[1,1].r --> img[1].val
         open(outname, "w") do file
-            show(file, MIME("image/png"), img)
+            @compat show(file, MIME("image/png"), img)
         end
     end
 
@@ -58,7 +58,7 @@ facts("Read remote") do
             imgc = ImageMagick.load(outname)
             @fact img.data --> imgc.data
             open(outname, "w") do file
-                show(file, MIME("image/png"), img)
+                @compat show(file, MIME("image/png"), img)
             end
         end
         @fact reinterpret(UInt32, data(map(mapinfo(RGB24, img), img))) -->
@@ -113,7 +113,7 @@ facts("Read remote") do
         end
         outname = joinpath(writedir, "rose.png")
         open(outname, "w") do file
-            show(file, MIME("image/png"), img)
+            @compat show(file, MIME("image/png"), img)
         end
     end
 
@@ -135,7 +135,7 @@ facts("Read remote") do
             @fact mapinfo(UInt32, img) --> mapinfo(ARGB32, img)
         end
         open(outname, "w") do file
-            show(file, MIME("image/png"), img)
+            @compat show(file, MIME("image/png"), img)
         end
     end
 
@@ -148,7 +148,7 @@ facts("Read remote") do
         @fact mapinfo(UInt32, img) --> mapinfo(RGB24, img)
         outname = joinpath(writedir, "present.png")
         open(outname, "w") do file
-            show(file, MIME("image/png"), img)
+            @compat show(file, MIME("image/png"), img)
         end
     end
 
