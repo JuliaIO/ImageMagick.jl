@@ -43,7 +43,7 @@ facts("IO") do
         b = ImageMagick.load(fn)
         @fact convert(Array, b) --> aa
         open(fn, "w") do io
-            show(io, MIME("image/png"), b; minpixels=0)
+            @compat show(io, MIME("image/png"), b; minpixels=0)
         end
         bb = ImageMagick.load(fn)
         @fact bb.data --> b.data
@@ -54,6 +54,7 @@ facts("IO") do
         aa = convert(Array{UFixed16}, a)
         ImageMagick.save(fn, aa)
         b = ImageMagick.load(fn)
+        @fact eltype(eltype(b)) --> UFixed16
         @fact convert(Array, b) --> aa
     end
 
@@ -69,7 +70,7 @@ facts("IO") do
         @fact Images.data(imgrgb8) --> Images.data(b)
 
         open(fn, "w") do io
-            show(io, MIME("image/png"), imgrgb8; minpixels=0)
+            @compat show(io, MIME("image/png"), imgrgb8; minpixels=0)
         end
         bb = ImageMagick.load(fn)
         @fact data(bb) --> data(imgrgb8)
@@ -96,7 +97,7 @@ facts("IO") do
     end
 
     context("Alpha") do
-        c = reinterpret(Images.BGRA{UFixed8}, [0xf0884422]'')
+        c = reinterpret(BGRA{UFixed8}, [0xf0884422]'')
         fn = joinpath(workdir, "alpha.png")
     	ImageMagick.save(fn, c)
         C = ImageMagick.load(fn)
@@ -112,13 +113,14 @@ facts("IO") do
         end
 
         # Images#396
-        c = colorim(rand(UInt8, 2, 2, 4), "RGBA")
+        c = colorim(reshape(collect(0x00:0x11:0xff), 2, 2, 4), "RGBA")
         ImageMagick.save(fn, c)
         D = ImageMagick.load(fn)
-        C = permutedims(convert(Image{eltype(D)}, c), spatialorder(D))
+        D8 = convert(Image{base_colorant_type(eltype(D)){UFixed8}}, D)
+        C = permutedims(convert(Image{eltype(D8)}, c), spatialorder(D8))
         if !ontravis
-            for i = 1:length(D)
-                @fact D[i] --> C[i]
+            for i = 1:length(D8)
+                @fact D8[i] --> C[i]
             end
         end
     end
@@ -181,7 +183,7 @@ facts("IO") do
         a = colorim(Ar)
         fn = joinpath(workdir, "2by2.png")
         open(fn, "w") do file
-            show(file, MIME("image/png"), a, minpixels=0)
+            @compat show(file, MIME("image/png"), a, minpixels=0)
         end
         b = ImageMagick.load(fn)
         @fact data(b) --> data(a)
@@ -191,7 +193,7 @@ facts("IO") do
         abig = colorim(Ar)
         fn = joinpath(workdir, "big.png")
         open(fn, "w") do file
-            show(file, MIME("image/png"), abig, maxpixels=10^6)
+            @compat show(file, MIME("image/png"), abig, maxpixels=10^6)
         end
         b = ImageMagick.load(fn)
         @fact data(b) --> convert(Array{RGB{UFixed8},2}, data(restrict(abig, (1,2))))
@@ -201,7 +203,7 @@ facts("IO") do
         Ar[1] = typemax(eltype(Ar))
         abig = colorim(Ar)
         open(fn, "w") do file
-            show(file, MIME("image/png"), abig, maxpixels=10^6)
+            @compat show(file, MIME("image/png"), abig, maxpixels=10^6)
         end
         b = ImageMagick.load(fn)
         @fact data(b) --> convert(Array{RGB{UFixed8},2}, data(restrict(abig, (1,2))))

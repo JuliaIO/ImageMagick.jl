@@ -170,7 +170,7 @@ getsize{C<:Colorant}(buffer::AbstractArray{C}, channelorder) = size(buffer, 1), 
 colorsize(buffer, channelorder) = channelorder == "I" ? 1 : size(buffer, 1)
 colorsize{C<:Colorant}(buffer::AbstractArray{C}, channelorder) = 1
 
-bitdepth{C<:Colorant}(buffer::AbstractArray{C}) = 8*eltype(C)
+bitdepth{C<:Colorant}(buffer::AbstractArray{C}) = 8*sizeof(eltype(C))
 bitdepth{T}(buffer::AbstractArray{T}) = 8*sizeof(T)
 
 # colorspace is included for consistency with constituteimage, but it is not used
