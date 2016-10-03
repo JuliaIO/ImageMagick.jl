@@ -15,7 +15,8 @@ export MagickWand,
     setimagecompression,
     setimagecompressionquality,
     setimageformat,
-    writeimage
+    writeimage,
+    setimageindex
 
     # Find the library
 depsfile = joinpath(dirname(@__FILE__),"..","deps","deps.jl")
@@ -267,6 +268,9 @@ getnumberimages(wand::MagickWand) = convert(Int, ccall((:MagickGetNumberImages, 
 nextimage(wand::MagickWand) = ccall((:MagickNextImage, libwand), Cint, (Ptr{Void},), wand.ptr) == 1
 
 resetiterator(wand::MagickWand) = ccall((:MagickResetIterator, libwand), Void, (Ptr{Void},), wand.ptr)
+
+## Seeking a position in the wand 
+setimageindex(wand::MagickWand,imindex::Integer) = ccall((:MagickSetIteratorIndex, libwand),Ptr{Void},(Ptr{Void},Csize_t),wand.ptr,imindex)
 
 newimage(wand::MagickWand, cols::Integer, rows::Integer, pw::PixelWand) = ccall((:MagickNewImage, libwand), Cint, (Ptr{Void}, Csize_t, Csize_t, Ptr{Void}), wand.ptr, cols, rows, pw.ptr) == 0 && error(wand)
 

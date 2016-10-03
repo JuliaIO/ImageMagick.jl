@@ -201,6 +201,16 @@ facts("Read remote") do
             @fact props["Non existing property"] --> nothing
         end
     end
+
+    context("Seeking frames") do
+        fname = "plane.avi"
+        file = getfile(fname)  
+        img = ImageMagick.load(file)
+        subIm = ImageMagick.load(file,seekFrame=50,nframes=5)
+        @fact nimages(subIm) --> 5
+        @fact img[:,:,50] --> subIm[:,:,1]
+    end
+
 end
 
 facts("EXIF orientation") do

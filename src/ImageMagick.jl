@@ -5,7 +5,7 @@ using Compat
 import Compat.String
 
 using FixedPointNumbers, ColorTypes, Images, ColorVectorSpace
-using FileIO: DataFormat, @format_str, Stream, File, filename, stream
+using FileIO: DataFormat, @format_str, Stream, File, filename, stream, query, skipmagic
 
 export MagickWand
 export constituteimage
@@ -75,22 +75,38 @@ const ufixedtype = Dict(10=>UFixed10, 12=>UFixed12, 14=>UFixed14, 16=>UFixed16)
 
 readblob(data::Vector{UInt8}) = load_(data)
 
-function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Image, extraprop="", extrapropertynames=false)
+function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Image, extraprop="", extrapropertynames=false, seekFrame=1, nframes=0)
     wand = MagickWand()
     readimage(wand, file)
     resetiterator(wand)
-
+    
     if extrapropertynames
         return(getimageproperties(wand, "*"))
     end
 
     # Determine what we need to know about the image format
-    sz = size(wand)
+    szIm = size(wand)
     n = getnumberimages(wand)
+
+    if seekFrame > 2
+        seekFrame > n ? error("Can't seek frame $(seekFrame), only $(n) frames in the movie."):
+        setimageindex(wand,seekFrame-2)   ## Because Libmagickwand uses 0 indexing, and setting the iterator sets it at the end of the image
+    end
+    
+    if nframes > 0
+        n = minimum([n-seekFrame+2,nframes])
+    end
+    
+        
     if n > 1
-        sz = tuple(sz..., n)
+        sz = tuple(szIm..., n)
+    else
+        sz= szIm
     end
 
+    
+
+    
     imtype      = getimagetype(wand)
     havealpha   = getimagealphachannel(wand)
     cs          = getimagecolorspace(wand)
@@ -129,6 +145,7 @@ function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Image, ex
     end
     # Allocate the buffer and get the pixel data
     buf = Array(T, sz...)
+    
     exportimagepixels!(buf, wand, cs, channelorder)
 
     prop = Dict{Compat.UTF8String, Any}()
