@@ -5,7 +5,7 @@ using Compat
 import Compat.String
 
 using FixedPointNumbers, ColorTypes, Images, ColorVectorSpace
-using FileIO: DataFormat, @format_str, Stream, File, filename, stream, query, skipmagic
+using FileIO: DataFormat, @format_str, Stream, File, filename, stream
 
 export MagickWand
 export constituteimage
