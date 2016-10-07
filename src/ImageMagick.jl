@@ -1,11 +1,13 @@
 __precompile__(true)
 module ImageMagick
 
-using Compat
-import Compat.String
-
-using FixedPointNumbers, ColorTypes, Images, ColorVectorSpace
+using FixedPointNumbers, ColorTypes, ColorVectorSpace, ImageCore
 using FileIO: DataFormat, @format_str, Stream, File, filename, stream
+
+typealias Color1{T}            Color{T,1}
+typealias Color2{T,C<:Color1}  TransparentColor{C,T,2}
+typealias Color3{T}            Color{T,3}
+typealias Color4{T,C<:Color3}  TransparentColor{C,T,4}
 
 export MagickWand
 export constituteimage
@@ -25,6 +27,7 @@ export setimagecompressionquality
 export setimageformat
 export writeimage
 export image2wand
+export magickinfo
 
 include("libmagickwand.jl")
 
@@ -75,8 +78,13 @@ const ufixedtype = Dict(10=>UFixed10, 12=>UFixed12, 14=>UFixed14, 16=>UFixed16)
 
 readblob(data::Vector{UInt8}) = load_(data)
 
-function load_(file::Union{AbstractString,IO,Vector{UInt8}})
-    # TODO: deprecate ImageType kw, extraprop, extrapropertynames
+function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Array, extraprop="", extrapropertynames=nothing)
+    if ImageType != Array
+        error("this function now returns an Array, do not use ImageType keyword.")
+    end
+    if extraprop != "" || extrapropertynames != nothing
+        error("keywords \"extraprop\" and \"extrapropertynames\" no longer work, use magickinfo instead")
+    end
     wand = MagickWand()
     readimage(wand, file)
     resetiterator(wand)
@@ -105,11 +113,7 @@ function load_(file::Union{AbstractString,IO,Vector{UInt8}})
     channelorder = cs
     if havealpha
         if channelorder == "sRGB" || channelorder == "RGB"
-            if is_little_endian
-                T, channelorder = BGRA{T}, "BGRA"
-            else
-                T, channelorder = ARGB{T}, "ARGB"
-            end
+            T, channelorder = RGBA{T}, "RGBA"
         elseif channelorder == "Gray"
             T, channelorder = GrayA{T}, "IA"
         else
@@ -125,26 +129,22 @@ function load_(file::Union{AbstractString,IO,Vector{UInt8}})
         end
     end
     # Allocate the buffer and get the pixel data
-    buf = Array(T, sz...)
+    buf = Array{T}(sz)
     exportimagepixels!(buf, wand, cs, channelorder)
 
-    prop = Dict{Compat.UTF8String, Any}()
     orient = getimageproperty(wand, "exif:Orientation", false)
-    img = orientation_dict[orient](buf)
-
-    img
+    orientation_dict[orient](buf)
 end
 
 
-
-function save_(filename::AbstractString, img, permute_horizontal=true; mapi = mapinfo(img), quality = nothing)
+function save_(filename::AbstractString, img, permute_horizontal=true; mapi = identity, quality = nothing)
     wand = image2wand(img, mapi, quality, permute_horizontal)
     writeimage(wand, filename)
 end
 
 # This differs from `save_` for files because this is primarily used
 # by IJulia, and we want to restrict large images to make display faster.
-function save_(s::Stream, img, permute_horizontal=true; mapi = Images.mapinfo_writemime(img), quality = nothing)
+function save_(s::Stream, img, permute_horizontal=true; mapi = clamp01nan, quality = nothing)
     wand = image2wand(img, mapi, quality, permute_horizontal)
     blob = getblob(wand, formatstring(s))
     write(stream(s), blob)
@@ -153,26 +153,23 @@ end
 function image2wand(img, mapi, quality, permute_horizontal=true)
     local imgw
     try
-        imgw = map(mapi, img)
+        imgw = map(x->mapIM(mapi(x)), img)
     catch
-        warn("Mapping to the storage type failed; perhaps your data had out-of-range values?\nTry `map(Images.Clamp01NaN(img), img)` to clamp values to a valid range.")
+        warn("Mapping to the storage type failed; perhaps your data had out-of-range values?\nTry `map(clamp01nan, img)` to clamp values to a valid range.")
         rethrow()
     end
     permute_horizontal && (imgw = permutedims_horizontal(imgw))
-    have_color = colordim(imgw)!=0
-    if ndims(imgw) > 3+have_color
+    if ndims(imgw) > 3
         error("At most 3 dimensions are supported")
     end
     wand = MagickWand()
-    if haskey(img, "colorspace")
-        cs = img["colorspace"]
-    else
-        cs = colorspace(imgw)
-    end
-    if in(cs, ("RGB", "RGBA", "ARGB", "BGRA", "ABGR"))
+    T = eltype(imgw)
+    channelorder = T<:Real ? "Gray" : ColorTypes.colorant_string(T)
+    if T <: Union{RGB,RGBA,ARGB,BGRA,ABGR}
         cs = libversion > v"6.7.5" ? "sRGB" : "RGB"
+    else
+        cs = channelorder
     end
-    channelorder = colorspace(imgw)
     if channelorder == "Gray"
         channelorder = "I"
     elseif channelorder == "GrayA"
@@ -180,7 +177,7 @@ function image2wand(img, mapi, quality, permute_horizontal=true)
     elseif channelorder == "AGray"
         channelorder = "AI"
     end
-    tmp = to_explicit(to_contiguous(data(imgw)))
+    tmp = to_explicit(to_contiguous(imgw))
     constituteimage(tmp, wand, cs, channelorder)
     if quality != nothing
         setimagecompressionquality(wand, quality)
@@ -191,78 +188,68 @@ end
 
 formatstring{S}(s::Stream{DataFormat{S}}) = string(S)
 
-# ImageMagick mapinfo client. Converts to RGB and uses UFixed.
-mapinfo(img::AbstractArray{Bool}) = MapNone{UFixed8}()
-mapinfo{T<:UFixed}(img::AbstractArray{T}) = MapNone{T}()
-mapinfo{T<:AbstractFloat}(img::AbstractArray{T}) = MapNone{UFixed8}()
-let handled = Set()
-for ACV in (Color, AbstractRGB)
-    for CV in subtypes(ACV)
-        (length(CV.parameters) == 1 && !(CV.abstract)) || continue
-        CVnew = CV<:AbstractGray ? Gray : RGB
-        @eval mapinfo{T<:UFixed}(img::AbstractArray{$CV{T}}) = MapNone{$CVnew{T}}()
-        @eval mapinfo{CV<:$CV}(img::AbstractArray{CV}) = MapNone{$CVnew{UFixed8}}()
-        CVnew = CV<:AbstractGray ? Gray : BGR
-        AC, CA       = alphacolor(CV), coloralpha(CV)
-        if AC in handled
-            continue
-        end
-        push!(handled, AC)
-        ACnew, CAnew = alphacolor(CVnew), coloralpha(CVnew)
-        @eval begin
-            mapinfo{T<:UFixed}(img::AbstractArray{$AC{T}}) = MapNone{$ACnew{T}}()
-            mapinfo{P<:$AC}(img::AbstractArray{P}) = MapNone{$ACnew{UFixed8}}()
-            mapinfo{T<:UFixed}(img::AbstractArray{$CA{T}}) = MapNone{$CAnew{T}}()
-            mapinfo{P<:$CA}(img::AbstractArray{P}) = MapNone{$CAnew{UFixed8}}()
-        end
-    end
+function magickinfo(file::Union{AbstractString,IO})
+    wand = MagickWand()
+    readimage(wand, file)
+    resetiterator(wand)
+    getimageproperties(wand, "*")
 end
-end
-mapinfo(img::AbstractArray{RGB24}) = MapNone{RGB{UFixed8}}()
-mapinfo(img::AbstractArray{ARGB32}) = MapNone{BGRA{UFixed8}}()
 
+function magickinfo(file::Union{AbstractString,IO}, properties::Union{Tuple,AbstractVector})
+    wand = MagickWand()
+    readimage(wand, file)
+    resetiterator(wand)
+
+    props = Dict{String,Any}()
+    for p in properties
+        props[p] = getimageproperty(wand, p)
+    end
+    props
+end
+magickinfo(file::Union{AbstractString,IO}, properties...) = magickinfo(file, properties)
+
+
+# ImageMagick element-mapping function. Converts to RGB/RGBA and uses
+# U8 "inner" element type.
+mapIM(c::Color1) = mapIM(convert(Gray, c))
+mapIM{T}(c::Gray{T}) = convert(Gray{U8}, c)
+mapIM{T<:UFixed}(c::Gray{T}) = c
+
+mapIM(c::Color2) = mapIM(convert(GrayA, c))
+mapIM{T}(c::GrayA{T}) = convert(GrayA{U8}, c)
+mapIM{T<:UFixed}(c::GrayA{T}) = c
+
+mapIM(c::Color3) = mapIM(convert(RGB, c))
+mapIM{T}(c::RGB{T}) = convert(RGB{U8}, c)
+mapIM{T<:UFixed}(c::RGB{T}) = c
+
+mapIM(c::Color4) = mapIM(convert(RGBA, c))
+mapIM{T}(c::RGBA{T}) = convert(RGBA{U8}, c)
+mapIM{T<:UFixed}(c::RGBA{T}) = c
+
+mapIM(x::UInt8) = reinterpret(UFixed8, x)
+mapIM(x::Bool) = convert(U8, x)
+mapIM(x::AbstractFloat) = convert(U8, x)
+mapIM(x::UFixed) = x
 
 # Make the data contiguous in memory, this is necessary for
 # imagemagick since it doesn't handle stride.
 to_contiguous(A::Array) = A
 to_contiguous(A::AbstractArray) = copy(A)
 to_contiguous(A::SubArray) = copy(A)
+to_contiguous(A::BitArray) = convert(Array{U8}, A)
+to_contiguous(A::ColorView) = to_contiguous(channelview(A))
 
-to_explicit(A::Image) = to_explicit(data(A))
-to_explicit(A::AbstractArray) = to_explicit(copy(A))
+to_explicit{C<:Colorant}(A::Array{C}) = to_explicit(channelview(A))
+to_explicit{T}(A::ChannelView{T}) = to_explicit(copy!(Array{T}(size(A)), A))
+to_explicit{T<:UFixed}(A::Array{T}) = rawview(A)
+to_explicit{T<:AbstractFloat}(A::Array{T}) = to_explicit(convert(Array{U8}, A))
 
-to_explicit{T<:UFixed}(A::Array{T}) = reinterpret(FixedPointNumbers.rawtype(T), A)
-
-to_explicit{T<:UFixed}(A::Array{RGB{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(3, size(A)...))
-to_explicit{T<:AbstractFloat}(A::Array{RGB{T}}) = to_explicit(map(ClampMinMax(RGB{UFixed8}, zero(RGB{T}), one(RGB{T})), A))
-to_explicit{T<:UFixed}(A::Array{Gray{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, size(A))
-to_explicit{T<:AbstractFloat}(A::Array{Gray{T}}) = to_explicit(map(ClampMinMax(Gray{UFixed8}, zero(Gray{T}), one(Gray{T})), A))
-
-to_explicit{T<:UFixed}(A::Array{GrayA{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A)
-to_explicit{T<:AbstractFloat}(A::Array{GrayA{T}}) = to_explicit(map(ClampMinMax(GrayA{UFixed8}, zero(GrayA{T}), one(GrayA{T})), A))
-
-to_explicit{T<:UFixed}(A::Array{BGRA{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(4, size(A)...))
-to_explicit{T<:AbstractFloat}(A::Array{BGRA{T}}) = to_explicit(map(ClampMinMax(BGRA{UFixed8}, zero(BGRA{T}), one(BGRA{T})), A))
-to_explicit{T<:UFixed}(A::Array{RGBA{T}}) = reinterpret(FixedPointNumbers.rawtype(T), A, tuple(4, size(A)...))
-to_explicit{T<:AbstractFloat}(A::Array{RGBA{T}}) = to_explicit(map(ClampMinMax(RGBA{UFixed8}, zero(RGBA{T}), one(RGBA{T})), A))
-
-
-
-# Permute to a color, horizontal, vertical, ... storage order (with time always last)
-function permutation_horizontal(img)
-    cd = colordim(img)
-    td = timedim(img)
-    p = spatialpermutation(["x", "y"], img)
-    if cd != 0
-        p[p .>= cd] += 1
-        insert!(p, 1, cd)
-    end
-    if td != 0
-        push!(p, td)
-    end
-    p
+permutedims_horizontal(img::AbstractVector) = img
+function permutedims_horizontal(img)
+    # Vertical-major is hard-coded here
+    p = [2;1;3:ndims(img)]
+    permutedims(img, p)
 end
-
-permutedims_horizontal(img) = permutedims(img, permutation_horizontal(img))
 
 end # module
