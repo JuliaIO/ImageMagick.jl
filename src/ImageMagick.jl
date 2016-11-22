@@ -81,10 +81,15 @@ function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Image, ex
     end
 
     depth = getimagedepth(wand)
+    # use an even # of fractional bits for depth>8 (see issue 242#issuecomment-68845157)
+    evendepth = ((depth+1)>>1)<<1
     if depth <= 8
-        T = UFixed8     # always use 8-bit for 8-bit and less
+        T = UFixed{UInt8,8}     # otherwise use 8 fractional bits
+    elseif depth <= 16
+        T = UFixed{UInt16,evendepth}
     else
-        T = UFixed{UInt16,((depth+1)>>1)<<1}  # always use an even # of bits (see issue 242#issuecomment-68845157)
+        warn("some versions of ImageMagick give spurious low-order bits for 32-bit TIFFs")
+        T = UFixed{UInt32,evendepth}
     end
 
     channelorder = cs
