@@ -7,23 +7,7 @@ import Compat.String
 using FixedPointNumbers, ColorTypes, Images, ColorVectorSpace
 using FileIO: DataFormat, @format_str, Stream, File, filename, stream
 
-export MagickWand
-export constituteimage
-export exportimagepixels!
-export getblob
-export getimagealphachannel
-export getimagecolorspace
-export getimagedepth
-export getnumberimages
-export importimagepixels
 export readblob
-export readimage
-export resetiterator
-export setimagecolorspace
-export setimagecompression
-export setimagecompressionquality
-export setimageformat
-export writeimage
 export image2wand
 
 include("libmagickwand.jl")
