@@ -55,8 +55,6 @@ load{T <: DataFormat}(imgstream::Stream{T}, args...; key_args...) = load_(stream
 load(imgstream::IO, args...; key_args...) = load_(imgstream, args...; key_args...)
 save{T <: DataFormat}(imgstream::Stream{T}, args...; key_args...) = save_(imgstream, args...; key_args...)
 
-const ufixedtype = Dict(10=>UFixed10, 12=>UFixed12, 14=>UFixed14, 16=>UFixed16)
-
 readblob(data::Vector{UInt8}) = load_(data)
 
 function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Image, extraprop="", extrapropertynames=false)
@@ -82,11 +80,11 @@ function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Image, ex
         cs = "Gray"
     end
 
-    depth = getimagechanneldepth(wand, DefaultChannels)
+    depth = getimagedepth(wand)
     if depth <= 8
         T = UFixed8     # always use 8-bit for 8-bit and less
     else
-        T = ufixedtype[2*((depth+1)>>1)]  # always use an even # of bits (see issue 242#issuecomment-68845157)
+        T = UFixed{UInt16,((depth+1)>>1)<<1}  # always use an even # of bits (see issue 242#issuecomment-68845157)
     end
 
     channelorder = cs
