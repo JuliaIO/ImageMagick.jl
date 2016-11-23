@@ -8,7 +8,7 @@ export MagickWand,
     getimagecolorspace,
     getimagedepth,
     getnumberimages,
-    importimagepixels,
+    #importimagepixels,
     readimage,
     resetiterator,
     setimagecolorspace,
@@ -147,13 +147,13 @@ destroypixelwand(wand::PixelWand) = ccall((:DestroyPixelWand, libwand), Ptr{Void
 const IMExceptionType = Array(Cint, 1)
 function error(wand::MagickWand)
     pMsg = ccall((:MagickGetException, libwand), Ptr{UInt8}, (Ptr{Void}, Ptr{Cint}), wand.ptr, IMExceptionType)
-    msg = bytestring(pMsg)
+    msg = unsafe_string(pMsg)
     relinquishmemory(pMsg)
     error(msg)
 end
 function error(wand::PixelWand)
     pMsg = ccall((:PixelGetException, libwand), Ptr{UInt8}, (Ptr{Void}, Ptr{Cint}), wand.ptr, IMExceptionType)
-    msg = bytestring(pMsg)
+    msg = unsafe_string(pMsg)
     relinquishmemory(pMsg)
     error(msg)
 end
@@ -374,7 +374,7 @@ function queryoptions(pattern::AbstractString)
     pops = ccall((:MagickQueryConfigureOptions, libwand), Ptr{Ptr{UInt8}}, (Ptr{UInt8}, Ptr{Cint}), pattern, nops)
     ret = Array(Compat.ASCIIString, nops[1])
     for i = 1:nops[1]
-        ret[i] = bytestring(unsafe_load(pops, i))
+        ret[i] = unsafe_string(unsafe_load(pops, i))
     end
     ret
 end
@@ -382,5 +382,5 @@ end
 # queries the value of a particular option
 function queryoption(option::AbstractString)
     p = ccall((:MagickQueryConfigureOption, libwand), Ptr{UInt8}, (Ptr{UInt8},), option)
-    bytestring(p)
+    unsafe_string(p)
 end

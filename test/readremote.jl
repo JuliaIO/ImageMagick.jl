@@ -1,4 +1,3 @@
-using ImageMagick
 using FactCheck, Images, Colors, FixedPointNumbers, ZipFile
 
 workdir = joinpath(tempdir(), "Images")

@@ -1,4 +1,4 @@
-using ImageMagick, Images, ColorTypes, FixedPointNumbers, FileIO
+using Images, ColorTypes, FixedPointNumbers, FileIO
 using FactCheck
 using Compat
 
@@ -135,6 +135,30 @@ facts("IO") do
 
         @fact A --> B
     end
+
+    context("16-bit TIFF (issue #49)") do
+        Ar = rand(0x0000:0xffff, 2, 2, 4)
+        Ar[1] = 0xffff
+        A = Image(map(x->Gray(UFixed16(x,0)), Ar); colorspace="Gray", spatialorder=["x", "y"], timedim=3) # grayim does not use timedim, but load does...
+        fn = joinpath(workdir, "3d16.tif")
+        ImageMagick.save(fn, A)
+        B = ImageMagick.load(fn)
+
+        @fact A --> B
+    end
+
+#= FAILS ON SCIENTIFIC LINUX 7.2 WITH IMAGEMAGICK 6.9.5, works for other combos
+    context("32-bit TIFF (issue #49)") do
+        Ar = rand(0x00000000:0xffffffff, 2, 2, 4)
+        Ar[1] = 0xffffffff
+        A = Image(map(x->Gray(UFixed{UInt32,32}(x,0)), Ar); colorspace="Gray", spatialorder=["x", "y"], timedim=3) # grayim does not use timedim, but load does...
+        fn = joinpath(workdir, "3d32.tif")
+        ImageMagick.save(fn, A)
+        B = ImageMagick.load(fn)
+
+        @fact A --> B
+    end
+=#
 
     context("Clamping (issue #256)") do
         Ar = rand(2,2)

@@ -7,23 +7,7 @@ import Compat.String
 using FixedPointNumbers, ColorTypes, Images, ColorVectorSpace
 using FileIO: DataFormat, @format_str, Stream, File, filename, stream
 
-export MagickWand
-export constituteimage
-export exportimagepixels!
-export getblob
-export getimagealphachannel
-export getimagecolorspace
-export getimagedepth
-export getnumberimages
-export importimagepixels
 export readblob
-export readimage
-export resetiterator
-export setimagecolorspace
-export setimagecompression
-export setimagecompressionquality
-export setimageformat
-export writeimage
 export image2wand
 
 include("libmagickwand.jl")
@@ -71,8 +55,6 @@ load{T <: DataFormat}(imgstream::Stream{T}, args...; key_args...) = load_(stream
 load(imgstream::IO, args...; key_args...) = load_(imgstream, args...; key_args...)
 save{T <: DataFormat}(imgstream::Stream{T}, args...; key_args...) = save_(imgstream, args...; key_args...)
 
-const ufixedtype = Dict(10=>UFixed10, 12=>UFixed12, 14=>UFixed14, 16=>UFixed16)
-
 readblob(data::Vector{UInt8}) = load_(data)
 
 function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Image, extraprop="", extrapropertynames=false)
@@ -98,11 +80,16 @@ function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Image, ex
         cs = "Gray"
     end
 
-    depth = getimagechanneldepth(wand, DefaultChannels)
+    depth = getimagedepth(wand)
+    # use an even # of fractional bits for depth>8 (see issue 242#issuecomment-68845157)
+    evendepth = ((depth+1)>>1)<<1
     if depth <= 8
-        T = UFixed8     # always use 8-bit for 8-bit and less
+        T = UFixed{UInt8,8}     # otherwise use 8 fractional bits
+    elseif depth <= 16
+        T = UFixed{UInt16,evendepth}
     else
-        T = ufixedtype[2*((depth+1)>>1)]  # always use an even # of bits (see issue 242#issuecomment-68845157)
+        warn("some versions of ImageMagick give spurious low-order bits for 32-bit TIFFs")
+        T = UFixed{UInt32,evendepth}
     end
 
     channelorder = cs
