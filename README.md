@@ -33,24 +33,17 @@ It's worth pointing out that packages such as Images load FileIO.
 
 ## OSX
 
-ImageMagick seems to experience trouble frequently on OSX. If
-[QuartzImageIO](https://github.com/JuliaIO/QuartzImageIO.jl) works for
-you, it may be an easier solution.
+ImageMagick.jl will by default not use the system installed ImageMagic in
+`/usr/local`, but rather install it's own copy via Homebrew.jl, because the
+former results in problems like `ERROR: no encode delegate for this image format
+'MIFF'`.
 
-If you do want to fix your ImageMagick installation, before asking for
-help please try the following sequence:
+An alternative to ImageMagick on OS X is
+[QuartzImageIO](https://github.com/JuliaIO/QuartzImageIO.jl).
 
-```{.julia execute="false"}
-using Homebrew
-Homebrew.rm("imagemagick")
-Homebrew.update()
-Homebrew.add("imagemagick")
-Pkg.build("ImageMagick")
-```
-
-In particular this may fix the error `ERROR: no encode delegate for this image format 'MIFF'`.
-
-You may also find [debugging Homebrew](https://github.com/JuliaLang/Homebrew.jl/wiki/Debugging-Homebrew.jl) useful.
+You may also find [debugging
+Homebrew](https://github.com/JuliaLang/Homebrew.jl/wiki/Debugging-Homebrew.jl)
+useful.
 
 ## Manual installation on Windows
 
