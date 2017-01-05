@@ -79,10 +79,9 @@ init_deps()
 end
 
 if is_apple()
-    if Pkg.installed("Homebrew") === nothing
-        error("Homebrew package not installed, please run Pkg.add(\"Homebrew\")")
-    end
     using Homebrew
+    Homebrew.update()
+    Homebrew.add("imagemagick")
     initfun =
 """
 function init_deps()
