@@ -80,9 +80,7 @@ end
 
 if is_apple()
     using Homebrew
-    Homebrew.update()
-    Homebrew.add("imagemagick")
-    initfun =
+    initfun_homebrew =
 """
 function init_deps()
     ENV["MAGICK_CONFIGURE_PATH"] = joinpath("$(Homebrew.prefix("imagemagick"))","lib","ImageMagick","config-Q16")
@@ -91,7 +89,25 @@ function init_deps()
     ccall((:MagickWandGenesis,libwand), Void, ())
 end
 """
-    provides( Homebrew.HB, "imagemagick", libwand, os = :Darwin, preload = initfun, onload="init_deps()")
+    provides( Homebrew.HB, "imagemagick", libwand, os = :Darwin, preload = initfun_homebrew, onload="init_deps()")
+
+    if success(`brew list imagemagick`) 
+        brew_config = readlines(`brew config`);
+        idx = findfirst(x->startswith(x,"HOMEBREW_PREFIX"), brew_config)
+        brew_config[idx][18:end-1]
+        homebrew_prefix = brew_config[idx][18:end-1]
+
+        initfun_system_homebrew =
+"""
+function init_deps()
+    ENV["MAGICK_CONFIGURE_PATH"] = joinpath($(homebrew_prefix),"lib","ImageMagick","config-Q16")
+    ENV["MAGICK_CODER_MODULE_PATH"] = joinpath($(homebrew_prefix), "lib","ImageMagick","modules-Q16","coders")
+    ENV["PATH"] = joinpath($(homebrew_prefix), "bin") * ":" * ENV["PATH"]
+    ccall((:MagickWandGenesis,libwand), Void, ())
+end
+"""
+        provides(Binaries, homebrew_prefix, libwand, os = :Darwin, preload = initfun_system_homebrew, onload="init_deps()")
+    end
 end
 
 @BinDeps.install Dict([(:libwand, :libwand)])
