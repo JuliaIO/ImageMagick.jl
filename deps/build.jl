@@ -80,7 +80,7 @@ end
 
 if is_apple()
     using Homebrew
-    imagemagick_prefix = Homebrew.prefix("imagemagick@6")
+    imagemagick_prefix = Homebrew.prefix("homebrew/core/imagemagick@6")
     initfun_homebrew =
 """
 function init_deps()
@@ -90,7 +90,7 @@ function init_deps()
     ccall((:MagickWandGenesis,libwand), Void, ())
 end
 """
-    provides( Homebrew.HB, "staticfloat/juliadeps/imagemagick@6", libwand, os = :Darwin, preload = initfun_homebrew, onload="init_deps()")
+    provides( Homebrew.HB, "homebrew/core/imagemagick@6", libwand, os = :Darwin, preload = initfun_homebrew, onload="init_deps()")
 
     if success(`brew list imagemagick@6`) 
         homebrew_prefix = readchomp(`brew --prefix`)
