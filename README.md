@@ -5,7 +5,10 @@
 [![Coverage Status](https://coveralls.io/repos/JuliaIO/ImageMagick.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/JuliaIO/ImageMagick.jl?branch=master)
 [![codecov.io](http://codecov.io/github/JuliaIO/ImageMagick.jl/coverage.svg?branch=master)](http://codecov.io/github/JuliaIO/ImageMagick.jl?branch=master)
 
-This package was split off from [Images.jl](https://github.com/timholy/Images.jl) to make image I/O more modular.
+This package provides a wrapper around
+[ImageMagick](http://www.imagemagick.org/) version 6.  It was split off from
+[Images.jl](https://github.com/timholy/Images.jl) to make image I/O more
+modular.
 
 # Installation
 
@@ -33,10 +36,9 @@ It's worth pointing out that packages such as Images load FileIO.
 
 ## OSX
 
-ImageMagick.jl will by default not use the system installed ImageMagic in
-`/usr/local`, but rather install it's own copy via Homebrew.jl, because the
-former results in problems like `ERROR: no encode delegate for this image format
-'MIFF'`.
+ImageMagick.jl will use the system-wide libMagicWand in `/usr/local/lib` if
+present (e.g. via a manual installation with homebrew).  If not it will install
+its own copy via Homebrew.jl.
 
 An alternative to ImageMagick on OS X is
 [QuartzImageIO](https://github.com/JuliaIO/QuartzImageIO.jl).
