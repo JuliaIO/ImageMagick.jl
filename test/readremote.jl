@@ -203,22 +203,20 @@ facts("Read remote") do
 end
 
 facts("EXIF orientation") do
-    function test_orientation(r, odict)
-        for f in r.files
-            bn = basename(f.name)
-            if haskey(odict, bn)
-                so = odict[bn]
-                data = read(f, UInt8, f.uncompressedsize)
-                img = readblob(data)
-                @fact spatialorder(img) --> so
-            end
+    url = "http://magnushoff.com/assets/test-exiforientation.zip"
+    fn = joinpath(workdir, "test-exiforientation.zip")
+    download(url, fn)
+    first_img = true
+    r = ZipFile.Reader(fn)
+    for f in r.files
+        data = read(f, UInt8, f.uncompressedsize)
+        if first_img
+            img0 = readblob(data)
+            first_img = false
+        else
+            img = readblob(data)
+            @fact all(img0.==img) --> true
         end
     end
-
-    url = "http://www.galloway.me.uk/media/other/EXIF_Orientation_Samples.zip"
-    fn = joinpath(workdir, "EXIF_Orientation_Samples.zip")
-    download(url, fn)
-    r = ZipFile.Reader(fn)
-    test_orientation(r, Dict("up.jpg"=>["x", "y"],
-                             "left-mirrored.jpg"=>["y", "x"]))
+    ZipFile.close(r)
 end

@@ -57,14 +57,11 @@ save{T <: DataFormat}(imgstream::Stream{T}, args...; key_args...) = save_(imgstr
 
 readblob(data::Vector{UInt8}) = load_(data)
 
-function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Image, extraprop="", extrapropertynames=false)
+function load_(file::Union{AbstractString,IO,Vector{UInt8}})
+    # TODO: deprecate ImageType kw, extraprop, extrapropertynames
     wand = MagickWand()
     readimage(wand, file)
     resetiterator(wand)
-
-    if extrapropertynames
-        return(getimageproperties(wand, "*"))
-    end
 
     # Determine what we need to know about the image format
     sz = size(wand)
@@ -120,22 +117,9 @@ function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Image, ex
 
     prop = Dict{Compat.UTF8String, Any}()
     orient = getimageproperty(wand, "exif:Orientation", false)
-    if haskey(orientation_dict, orient)
-        prop["spatialorder"] = orientation_dict[orient]
-    else
-        warn("orientation $orient not yet supported")
-        prop["spatialorder"] = ["x", "y"]
-    end
-    n > 1 && (prop["timedim"] = ndims(buf))
-    prop["colorspace"] = cs
+    img = orientation_dict[orient](buf)
 
-    if extraprop != ""
-        for extra in [extraprop;]
-            prop[extra] = getimageproperty(wand,extra)
-        end
-    end
-
-    ImageType(buf, prop)
+    img
 end
 
 
