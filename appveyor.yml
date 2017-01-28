@@ -26,6 +26,7 @@ build_script:
 # Need to convert from shallow to complete for Pkg.clone to work
   - IF EXIST .git\shallow (git fetch --unshallow)
   - C:\projects\julia\bin\julia-debug -e "versioninfo(); Pkg.init();"
+  - C:\projects\julia\bin\julia-debug -e "Pkg.add(\"Images\"); Pkg.checkout(\"Images\",\"fixed-renaming\");"
   - C:\projects\julia\bin\julia-debug -e "Pkg.clone(pwd(), \"ImageMagick\");"
   - C:\projects\julia\bin\julia-debug -e "Pkg.build(\"ImageMagick\")"
 
