@@ -53,7 +53,7 @@ storagetype(::Type{UInt16}) = SHORTPIXEL
 storagetype(::Type{UInt32}) = INTEGERPIXEL
 storagetype(::Type{Float32}) = FLOATPIXEL
 storagetype(::Type{Float64}) = DOUBLEPIXEL
-storagetype{T<:UFixed}(::Type{T}) = storagetype(FixedPointNumbers.rawtype(T))
+storagetype{T<:Normed}(::Type{T}) = storagetype(FixedPointNumbers.rawtype(T))
 storagetype{CV<:Colorant}(::Type{CV}) = storagetype(eltype(CV))
 
 # Channel types
@@ -98,19 +98,25 @@ for AC in vcat(subtypes(AlphaColor), subtypes(ColorAlpha))
     end
 end
 
-flip1(A) = sub(A, reverse(1:size(A, 1)), 1:size(A, 2))
-flip2(A) = sub(A, 1:size(A, 1), reverse(1:size(A, 2)))
-flip12(A) = sub(A, reverse(1:size(A, 1)), reverse(1:size(A, 2)))
+flip1(A)  = flipdim(A, 1)
+flip2(A)  = flipdim(A, 2)
+function flip12(A)
+    inds = Any[indices(A)...]
+    inds[1] = reverse(inds[1])
+    inds[2] = reverse(inds[2])
+    A[inds...]
+end
+pd(A) = permutedims(A, [2;1;3:ndims(A)])
 
-orientation_dict = Dict(nothing => identity,
-                        "1" => identity,
-                        "2" => flip1,
-                        "3" => flip12, #flip2,
-                        "4" => flip2,
-                        "5" => A->PermutedDimsArrays.PermutedDimsArray(A, [2,1]),
-                        "6" => A->PermutedDimsArrays.PermutedDimsArray(flip2(A), [2,1]),
-                        "7" => A->PermutedDimsArrays.PermutedDimsArray(flip12(A), [2,1]),
-                        "8" => A->PermutedDimsArrays.PermutedDimsArray(flip1(A), [2,1]))
+orientation_dict = Dict(nothing => pd,
+                        "1" => pd,
+                        "2" => A->pd(flip1(A)),
+                        "3" => A->pd(flip12(A)),
+                        "4" => A->pd(flip2(A)),
+                        "5" => identity,
+                        "6" => flip2,
+                        "7" => flip12,
+                        "8" => flip1)
 
 function nchannels(imtype::AbstractString, cs::AbstractString, havealpha = false)
     n = 3
@@ -291,7 +297,7 @@ function getimageproperties(wand::MagickWand,patt::AbstractString)
         error("Pattern not in property names")
     else
         nP = convert(Int, numbProp[1])
-        ret = Array(Compat.ASCIIString, nP)
+        ret = Array{String}(nP)
         for i = 1:nP
             ret[i] = unsafe_string(unsafe_load(p,i))
         end
@@ -382,7 +388,7 @@ relinquishmemory(p) = ccall((:MagickRelinquishMemory, libwand), Ptr{UInt8}, (Ptr
 function queryoptions(pattern::AbstractString)
     nops = Cint[0]
     pops = ccall((:MagickQueryConfigureOptions, libwand), Ptr{Ptr{UInt8}}, (Ptr{UInt8}, Ptr{Cint}), pattern, nops)
-    ret = Array(Compat.ASCIIString, nops[1])
+    ret = Array{String}(nops[1])
     for i = 1:nops[1]
         ret[i] = unsafe_string(unsafe_load(pops, i))
     end
