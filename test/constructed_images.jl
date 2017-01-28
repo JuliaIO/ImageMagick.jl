@@ -114,7 +114,7 @@ ontravis = haskey(ENV, "TRAVIS")
         end
 
         # Images#396
-        c = colorview(RGBA, ufixedview(permuteddimsview(reshape(0x00:0x11:0xff, 2, 2, 4), (3,1,2))))
+        c = colorview(RGBA, normedview(permuteddimsview(reshape(0x00:0x11:0xff, 2, 2, 4), (3,1,2))))
         ImageMagick.save(fn, c)
         D = ImageMagick.load(fn)
         @test map(RGBA{N0f8}, D) == c  # for some reason some ImageMagicks convert to 16-bit!
@@ -203,7 +203,7 @@ ontravis = haskey(ENV, "TRAVIS")
     @testset "show(MIME)" begin
         Ar = rand(UInt8, 3, 2, 2)
         Ar[1] = typemax(eltype(Ar))
-        a = colorview(RGB, ufixedview(Ar))
+        a = colorview(RGB, normedview(Ar))
         fn = joinpath(workdir, "2by2.png")
         open(fn, "w") do file
             show(file, MIME("image/png"), a, minpixels=0)
@@ -213,7 +213,7 @@ ontravis = haskey(ENV, "TRAVIS")
 
         Ar = rand(UInt8, 3, 1021, 1026)
         Ar[1] = typemax(eltype(Ar))
-        abig = colorview(RGB, ufixedview(Ar))
+        abig = colorview(RGB, normedview(Ar))
         fn = joinpath(workdir, "big.png")
         open(fn, "w") do file
             show(file, MIME("image/png"), abig, maxpixels=10^6)
@@ -224,7 +224,7 @@ ontravis = haskey(ENV, "TRAVIS")
         # Issue #269
         Ar = rand(UInt16, 3, 1024, 1023)
         Ar[1] = typemax(eltype(Ar))
-        abig = colorview(RGB, ufixedview(N0f16, Ar))
+        abig = colorview(RGB, normedview(N0f16, Ar))
         open(fn, "w") do file
             show(file, MIME("image/png"), abig, maxpixels=10^6)
         end

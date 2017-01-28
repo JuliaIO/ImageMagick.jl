@@ -297,7 +297,7 @@ function getimageproperties(wand::MagickWand,patt::AbstractString)
         error("Pattern not in property names")
     else
         nP = convert(Int, numbProp[1])
-        ret = Array{String}(nP)
+        ret = Vector{String}(nP)
         for i = 1:nP
             ret[i] = unsafe_string(unsafe_load(p,i))
         end
@@ -388,7 +388,7 @@ relinquishmemory(p) = ccall((:MagickRelinquishMemory, libwand), Ptr{UInt8}, (Ptr
 function queryoptions(pattern::AbstractString)
     nops = Cint[0]
     pops = ccall((:MagickQueryConfigureOptions, libwand), Ptr{Ptr{UInt8}}, (Ptr{UInt8}, Ptr{Cint}), pattern, nops)
-    ret = Array{String}(nops[1])
+    ret = Vector{String}(nops[1])
     for i = 1:nops[1]
         ret[i] = unsafe_string(unsafe_load(pops, i))
     end

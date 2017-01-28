@@ -1,5 +1,5 @@
 using ImageMagick
-using Images, Colors, FixedPointNumbers, ZipFile
+using FileIO, Colors, FixedPointNumbers, ZipFile
 using Base.Test
 
 workdir = joinpath(tempdir(), "Images")
