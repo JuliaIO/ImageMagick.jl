@@ -1,6 +1,4 @@
 using BinDeps
-using Compat
-import Compat.String
 
 @BinDeps.setup
 
@@ -120,7 +118,6 @@ end
 # Save the library version; by checking this now, we avoid a runtime dependency on libwand
 # See https://github.com/timholy/Images.jl/issues/184#issuecomment-55643225
 module CheckVersion
-using Compat
 include("deps.jl")
 p = ccall((:MagickQueryConfigureOption, libwand), Ptr{UInt8}, (Ptr{UInt8},), "LIB_VERSION_NUMBER")
 vstr = string("v\"", join(split(unsafe_string(p), ',')[1:3], '.'), "\"")
