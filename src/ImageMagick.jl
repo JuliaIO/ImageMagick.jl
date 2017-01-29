@@ -119,7 +119,7 @@ function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Array, ex
     end
     # Allocate the buffer and get the pixel data
     buf = Array{T}(sz)
-    exportimagepixels!(buf, wand, cs, channelorder)
+    exportimagepixels!(rawview(channelview(buf)), wand, cs, channelorder)
 
     orient = getimageproperty(wand, "exif:Orientation", false)
     orientation_dict[orient](buf)

@@ -102,14 +102,14 @@ ontravis = haskey(ENV, "TRAVIS")
         fn = joinpath(workdir, "alpha.png")
     	ImageMagick.save(fn, c)
         C = ImageMagick.load(fn)
-        if !ontravis
-            # disabled on Travis because it has a weird, old copy of
+        if !ontravis || !Base.is_linux()
+            # disabled on Linux Travis because it has a weird copy of
             # ImageMagick for which this fails (see Images#261)
             @test C[1] == c[1]
         end
         ImageMagick.save(fn, reinterpret(ARGB32, [0xf0884422]''))
         D = ImageMagick.load(fn)
-        if !ontravis
+        if !ontravis || !Base.is_linux()
             @test D[1] == c[1]
         end
 
@@ -117,7 +117,9 @@ ontravis = haskey(ENV, "TRAVIS")
         c = colorview(RGBA, normedview(permuteddimsview(reshape(0x00:0x11:0xff, 2, 2, 4), (3,1,2))))
         ImageMagick.save(fn, c)
         D = ImageMagick.load(fn)
-        @test map(RGBA{N0f8}, D) == c  # for some reason some ImageMagicks convert to 16-bit!
+        if !ontravis || !Base.is_linux()
+            @test D == c
+        end
     end
 
     @testset "3D TIFF (issue #307)" begin
