@@ -1,2 +1,7 @@
-FactCheck
+ColorTypes
+FixedPointNumbers 0.3.0
+IndirectArrays
+FileIO
+Images
 ZipFile
+Compat

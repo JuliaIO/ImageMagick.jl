@@ -3,7 +3,6 @@ os:
   - linux
   - osx
 julia:
-  - 0.4
   - 0.5
   - nightly
 notifications:
@@ -11,7 +10,7 @@ notifications:
 # uncomment the following lines to override the default test script
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-  - julia -e 'Pkg.clone("Images");'
+  - julia -e 'Pkg.add("Images"); Pkg.checkout("Images", "fixed-renaming")'
   - julia -e 'Pkg.clone(pwd()); Pkg.build("ImageMagick")'
   - julia --check-bounds=yes -e 'Pkg.test("ImageMagick"; coverage=true)'
 after_success:
