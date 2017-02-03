@@ -37,7 +37,7 @@ end
 is_windows() && push!(BinDeps.defaults, BuildProcess)
 
 if is_windows()
-    const OS_ARCH = (Sys.WORD_SIZE == 64) ? "x64" : "x86"
+    const OS_ARCH = Sys.WORD_SIZE == 64 ? "x64" : "x86"
 
     # TODO: checksums: we have gpg
     # Extract the appropriate filename to download
