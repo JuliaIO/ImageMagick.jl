@@ -17,9 +17,9 @@ export MagickWand,
     setimageformat,
     writeimage
 
-    # Find the library
-depsfile = joinpath(dirname(@__FILE__),"..","deps","deps.jl")
-versionfile = joinpath(dirname(@__FILE__),"..","deps","versioninfo.jl")
+# Find the library
+depsfile = joinpath(dirname(@__FILE__), "..", "deps", "deps.jl")
+versionfile = joinpath(dirname(@__FILE__), "..", "deps", "versioninfo.jl")
 
 if isfile(depsfile)
     include(depsfile)
@@ -138,37 +138,65 @@ const NoCompression = 1
 
 type MagickWand
     ptr::Ptr{Void}
+
+    function MagickWand()
+        ptr = ccall((:NewMagickWand, libwand), Ptr{Void}, ())
+        obj = new(ptr)
+        finalizer(obj, free)
+        obj
+    end
 end
 
-function MagickWand()
-    wand = MagickWand(ccall((:NewMagickWand, libwand), Ptr{Void}, ()))
-    finalizer(wand, destroymagickwand)
-    wand
+function Base.unsafe_convert(::Type{Ptr{Void}}, wand::MagickWand)
+    ptr = wand.ptr
+    ptr == C_NULL && throw(UndefRefError())
+    ptr
 end
 
-destroymagickwand(wand::MagickWand) = ccall((:DestroyMagickWand, libwand), Ptr{Void}, (Ptr{Void},), wand.ptr)
+function free(wand::MagickWand)
+    ptr = wand.ptr
+    if ptr != C_NULL
+        ccall((:DestroyMagickWand, libwand), Ptr{Void}, (Ptr{Void},), ptr)
+    end
+    wand.ptr = C_NULL
+    nothing
+end
 
 type PixelWand
     ptr::Ptr{Void}
+
+    function PixelWand()
+        ptr = ccall((:NewPixelWand, libwand), Ptr{Void}, ())
+        obj = new(ptr)
+        finalizer(obj, free)
+        obj
+    end
 end
 
-function PixelWand()
-    wand = PixelWand(ccall((:NewPixelWand, libwand), Ptr{Void}, ()))
-    finalizer(wand, destroypixelwand)
-    wand
+function Base.unsafe_convert(::Type{Ptr{Void}}, wand::PixelWand)
+    ptr = wand.ptr
+    ptr == C_NULL && throw(UndefRefError())
+    ptr
 end
 
-destroypixelwand(wand::PixelWand) = ccall((:DestroyPixelWand, libwand), Ptr{Void}, (Ptr{Void},), wand.ptr)
+function free(wand::PixelWand)
+    ptr = wand.ptr
+    if ptr != C_NULL
+        ccall((:DestroyPixelWand, libwand), Ptr{Void}, (Ptr{Void},), ptr)
+    end
+    wand.ptr = C_NULL
+    nothing
+end
 
 const IMExceptionType = Array(Cint, 1)
 function error(wand::MagickWand)
-    pMsg = ccall((:MagickGetException, libwand), Ptr{UInt8}, (Ptr{Void}, Ptr{Cint}), wand.ptr, IMExceptionType)
+    pMsg = ccall((:MagickGetException, libwand), Ptr{UInt8}, (Ptr{Void}, Ptr{Cint}), wand, IMExceptionType)
     msg = unsafe_string(pMsg)
     relinquishmemory(pMsg)
     error(msg)
 end
 function error(wand::PixelWand)
-    pMsg = ccall((:PixelGetException, libwand), Ptr{UInt8}, (Ptr{Void}, Ptr{Cint}), wand.ptr, IMExceptionType)
+    pMsg = ccall((:PixelGetException, libwand), Ptr{UInt8}, (Ptr{Void}, Ptr{Cint}), wand, IMExceptionType)
     msg = unsafe_string(pMsg)
     relinquishmemory(pMsg)
     error(msg)
@@ -196,7 +224,7 @@ function exportimagepixels!{T<:Unsigned}(buffer::AbstractArray{T}, wand::MagickW
     p = pointer(buffer)
     for i = 1:nimages
         nextimage(wand)
-        status = ccall((:MagickExportImagePixels, libwand), Cint, (Ptr{Void}, Cssize_t, Cssize_t, Csize_t, Csize_t, Ptr{UInt8}, Cint, Ptr{Void}), wand.ptr, x, y, cols, rows, channelorder, storagetype(T), p)
+        status = ccall((:MagickExportImagePixels, libwand), Cint, (Ptr{Void}, Cssize_t, Cssize_t, Csize_t, Csize_t, Ptr{UInt8}, Cint, Ptr{Void}), wand, x, y, cols, rows, channelorder, storagetype(T), p)
         status == 0 && error(wand)
         p += sizeof(T)*cols*rows*ncolors
     end
@@ -205,7 +233,7 @@ end
 
 # function importimagepixels{T}(buffer::AbstractArray{T}, wand::MagickWand, colorspace::String; x = 0, y = 0)
 #     cols, rows = getsize(buffer, colorspace)
-#     status = ccall((:MagickImportImagePixels, libwand), Cint, (Ptr{Void}, Cssize_t, Cssize_t, Csize_t, Csize_t, Ptr{UInt8}, Cint, Ptr{Void}), wand.ptr, x, y, cols, rows, channelorder[colorspace], storagetype(T), buffer)
+#     status = ccall((:MagickImportImagePixels, libwand), Cint, (Ptr{Void}, Cssize_t, Cssize_t, Csize_t, Csize_t, Ptr{UInt8}, Cint, Ptr{Void}), wand, x, y, cols, rows, channelorder[colorspace], storagetype(T), buffer)
 #     status == 0 && error(wand)
 #     nothing
 # end
@@ -216,11 +244,11 @@ function constituteimage{T<:Unsigned}(buffer::AbstractArray{T}, wand::MagickWand
     p = pointer(buffer)
     depth = bitdepth(buffer)
     for i = 1:nimages
-        status = ccall((:MagickConstituteImage, libwand), Cint, (Ptr{Void}, Cssize_t, Cssize_t, Ptr{UInt8}, Cint, Ptr{Void}), wand.ptr, cols, rows, channelorder, storagetype(T), p)
+        status = ccall((:MagickConstituteImage, libwand), Cint, (Ptr{Void}, Cssize_t, Cssize_t, Ptr{UInt8}, Cint, Ptr{Void}), wand, cols, rows, channelorder, storagetype(T), p)
         status == 0 && error(wand)
         setimagecolorspace(wand, colorspace)
         setimagetype(wand, buffer, channelorder)
-        status = ccall((:MagickSetImageDepth, libwand), Cint, (Ptr{Void}, Csize_t), wand.ptr, depth)
+        status = ccall((:MagickSetImageDepth, libwand), Cint, (Ptr{Void}, Csize_t), wand, depth)
         status == 0 && error(wand)
         p += sizeof(T)*cols*rows*ncolors
     end
@@ -230,69 +258,69 @@ end
 function getblob(wand::MagickWand, format::AbstractString)
     setimageformat(wand, format)
     len = Array(Csize_t, 1)
-    ptr = ccall((:MagickGetImagesBlob, libwand), Ptr{UInt8}, (Ptr{Void}, Ptr{Csize_t}), wand.ptr, len)
+    ptr = ccall((:MagickGetImagesBlob, libwand), Ptr{UInt8}, (Ptr{Void}, Ptr{Csize_t}), wand, len)
     blob = unsafe_wrap(Array, ptr, convert(Int, len[1]))
     finalizer(blob, relinquishmemory)
     blob
 end
 
 function pingimage(wand::MagickWand, filename::AbstractString)
-    status = ccall((:MagickPingImage, libwand), Cint, (Ptr{Void}, Ptr{UInt8}), wand.ptr, filename)
+    status = ccall((:MagickPingImage, libwand), Cint, (Ptr{Void}, Ptr{UInt8}), wand, filename)
     status == 0 && error(wand)
     nothing
 end
 
 function readimage(wand::MagickWand, filename::AbstractString)
-    status = ccall((:MagickReadImage, libwand), Cint, (Ptr{Void}, Ptr{UInt8}), wand.ptr, filename)
+    status = ccall((:MagickReadImage, libwand), Cint, (Ptr{Void}, Ptr{UInt8}), wand, filename)
     status == 0 && error(wand)
     nothing
 end
 
 function readimage(wand::MagickWand, stream::IO)
-    status = ccall((:MagickReadImageFile, libwand), Cint, (Ptr{Void}, Ptr{Void}), wand.ptr, Libc.FILE(stream).ptr)
+    status = ccall((:MagickReadImageFile, libwand), Cint, (Ptr{Void}, Ptr{Void}), wand, Libc.FILE(stream).ptr)
     status == 0 && error(wand)
     nothing
 end
 
 function readimage(wand::MagickWand, stream::Vector{UInt8})
-    status = ccall((:MagickReadImageBlob, libwand), Cint, (Ptr{Void}, Ptr{Void}, Cint), wand.ptr, stream, length(stream)*sizeof(eltype(stream)))
+    status = ccall((:MagickReadImageBlob, libwand), Cint, (Ptr{Void}, Ptr{Void}, Cint), wand, stream, length(stream)*sizeof(eltype(stream)))
     status == 0 && error(wand)
     nothing
 end
 
 function writeimage(wand::MagickWand, filename::AbstractString)
-    status = ccall((:MagickWriteImages, libwand), Cint, (Ptr{Void}, Ptr{UInt8}, Cint), wand.ptr, filename, true)
+    status = ccall((:MagickWriteImages, libwand), Cint, (Ptr{Void}, Ptr{UInt8}, Cint), wand, filename, true)
     status == 0 && error(wand)
     nothing
 end
 
 function writeimage(wand::MagickWand, stream::IO)
-    status = ccall((:MagickWriteImagesFile, libwand), Cint, (Ptr{Void}, Ptr{Void}), wand.ptr, Libc.FILE(stream).ptr)
+    status = ccall((:MagickWriteImagesFile, libwand), Cint, (Ptr{Void}, Ptr{Void}), wand, Libc.FILE(stream).ptr)
     status == 0 && error(wand)
     nothing
 end
 
 function size(wand::MagickWand)
-    height = ccall((:MagickGetImageHeight, libwand), Csize_t, (Ptr{Void},), wand.ptr)
-    width = ccall((:MagickGetImageWidth, libwand), Csize_t, (Ptr{Void},), wand.ptr)
+    height = ccall((:MagickGetImageHeight, libwand), Csize_t, (Ptr{Void},), wand)
+    width = ccall((:MagickGetImageWidth, libwand), Csize_t, (Ptr{Void},), wand)
     return convert(Int, width), convert(Int, height)
 end
 
-getnumberimages(wand::MagickWand) = convert(Int, ccall((:MagickGetNumberImages, libwand), Csize_t, (Ptr{Void},), wand.ptr))
+getnumberimages(wand::MagickWand) = convert(Int, ccall((:MagickGetNumberImages, libwand), Csize_t, (Ptr{Void},), wand))
 
-nextimage(wand::MagickWand) = ccall((:MagickNextImage, libwand), Cint, (Ptr{Void},), wand.ptr) == 1
+nextimage(wand::MagickWand) = ccall((:MagickNextImage, libwand), Cint, (Ptr{Void},), wand) == 1
 
-resetiterator(wand::MagickWand) = ccall((:MagickResetIterator, libwand), Void, (Ptr{Void},), wand.ptr)
+resetiterator(wand::MagickWand) = ccall((:MagickResetIterator, libwand), Void, (Ptr{Void},), wand)
 
-newimage(wand::MagickWand, cols::Integer, rows::Integer, pw::PixelWand) = ccall((:MagickNewImage, libwand), Cint, (Ptr{Void}, Csize_t, Csize_t, Ptr{Void}), wand.ptr, cols, rows, pw.ptr) == 0 && error(wand)
+newimage(wand::MagickWand, cols::Integer, rows::Integer, pw::PixelWand) = ccall((:MagickNewImage, libwand), Cint, (Ptr{Void}, Csize_t, Csize_t, Ptr{Void}), wand, cols, rows, pw.ptr) == 0 && error(wand)
 
 # test whether image has an alpha channel
-getimagealphachannel(wand::MagickWand) = ccall((:MagickGetImageAlphaChannel, libwand), Cint, (Ptr{Void},), wand.ptr) == 1
+getimagealphachannel(wand::MagickWand) = ccall((:MagickGetImageAlphaChannel, libwand), Cint, (Ptr{Void},), wand) == 1
 
 
 function getimageproperties(wand::MagickWand,patt::AbstractString)
     numbProp = Csize_t[0]
-    p = ccall((:MagickGetImageProperties, libwand),Ptr{Ptr{UInt8}},(Ptr{Void},Ptr{UInt8},Ptr{Csize_t}),wand.ptr,patt,numbProp)
+    p = ccall((:MagickGetImageProperties, libwand),Ptr{Ptr{UInt8}},(Ptr{Void},Ptr{UInt8},Ptr{Csize_t}),wand,patt,numbProp)
     if p == C_NULL
         error("Pattern not in property names")
     else
@@ -306,7 +334,7 @@ function getimageproperties(wand::MagickWand,patt::AbstractString)
 end
 
 function getimageproperty(wand::MagickWand, prop::AbstractString, warnuser::Bool=true)
-    p = ccall((:MagickGetImageProperty, libwand),Ptr{UInt8},(Ptr{Void},Ptr{UInt8}),wand.ptr,prop)
+    p = ccall((:MagickGetImageProperty, libwand),Ptr{UInt8},(Ptr{Void},Ptr{UInt8}),wand,prop)
     if p == convert(Ptr{UInt8}, C_NULL)
         if warnuser
             possib = getimageproperties(wand,"*")
@@ -319,26 +347,26 @@ function getimageproperty(wand::MagickWand, prop::AbstractString, warnuser::Bool
 end
 
 # # get number of colors in the image
-# magickgetimagecolors(wand::MagickWand) = ccall((:MagickGetImageColors, libwand), Csize_t, (Ptr{Void},), wand.ptr)
+# magickgetimagecolors(wand::MagickWand) = ccall((:MagickGetImageColors, libwand), Csize_t, (Ptr{Void},), wand)
 
 # get the type
 function getimagetype(wand::MagickWand)
-    t = ccall((:MagickGetImageType, libwand), Cint, (Ptr{Void},), wand.ptr)
+    t = ccall((:MagickGetImageType, libwand), Cint, (Ptr{Void},), wand)
     # Apparently the following is necessary, because the type is "potential"
-    ccall((:MagickSetImageType, libwand), Void, (Ptr{Void}, Cint), wand.ptr, t)
+    ccall((:MagickSetImageType, libwand), Void, (Ptr{Void}, Cint), wand, t)
     1 <= t <= length(IMType) || error("Image type ", t, " not recognized")
     IMType[t]
 end
 
 # get the colorspace
 function getimagecolorspace(wand::MagickWand)
-    cs = ccall((:MagickGetImageColorspace, libwand), Cint, (Ptr{Void},), wand.ptr)
+    cs = ccall((:MagickGetImageColorspace, libwand), Cint, (Ptr{Void},), wand)
     1 <= cs <= length(IMColorspace) || error("Colorspace ", cs, " not recognized")
     IMColorspace[cs]
 end
 
 function setimagecolorspace(wand::MagickWand, cs::String)
-    status = ccall((:MagickSetImageColorspace, libwand), Cint, (Ptr{Void},Cint), wand.ptr, IMColordict[cs])
+    status = ccall((:MagickSetImageColorspace, libwand), Cint, (Ptr{Void},Cint), wand, IMColordict[cs])
     status == 0 && error(wand)
     nothing
 end
@@ -347,39 +375,39 @@ imtype(buffer, cs) = IMTypedict[CStoIMTypedict[cs]]
 imtype(buffer::AbstractArray{Bool}, cs) = IMTypedict["BilevelType"]
 
 function setimagetype(wand::MagickWand, buffer, cs::String)
-    status = ccall((:MagickSetImageType, libwand), Cint, (Ptr{Void},Cint), wand.ptr, imtype(buffer, cs))
+    status = ccall((:MagickSetImageType, libwand), Cint, (Ptr{Void},Cint), wand, imtype(buffer, cs))
     status == 0 && error(wand)
     nothing
 end
 
 # set the compression
 function setimagecompression(wand::MagickWand, compression::Integer)
-    status = ccall((:MagickSetImageCompression, libwand), Cint, (Ptr{Void},Cint), wand.ptr, int32(compression))
+    status = ccall((:MagickSetImageCompression, libwand), Cint, (Ptr{Void},Cint), wand, int32(compression))
     status == 0 && error(wand)
     nothing
 end
 
 function setimagecompressionquality(wand::MagickWand, quality::Integer)
     0 < quality <= 100 || error("quality setting must be in the (inclusive) range 1-100.\nSee http://www.imagemagick.org/script/command-line-options.php#quality for details")
-    status = ccall((:MagickSetImageCompressionQuality, libwand), Cint, (Ptr{Void}, Cint), wand.ptr, quality)
+    status = ccall((:MagickSetImageCompressionQuality, libwand), Cint, (Ptr{Void}, Cint), wand, quality)
     status == 0 && error(wand)
     nothing
 end
 
 # set the image format
 function setimageformat(wand::MagickWand, format::String)
-    status = ccall((:MagickSetImageFormat, libwand), Cint, (Ptr{Void}, Ptr{UInt8}), wand.ptr, format)
+    status = ccall((:MagickSetImageFormat, libwand), Cint, (Ptr{Void}, Ptr{UInt8}), wand, format)
     status == 0 && error(wand)
     nothing
 end
 
 # get the pixel depth
-getimagedepth(wand::MagickWand) = convert(Int, ccall((:MagickGetImageDepth, libwand), Csize_t, (Ptr{Void},), wand.ptr))
+getimagedepth(wand::MagickWand) = convert(Int, ccall((:MagickGetImageDepth, libwand), Csize_t, (Ptr{Void},), wand))
 
 # pixel depth for given channel type
-getimagechanneldepth(wand::MagickWand, channelType::ChannelType) = convert(Int, ccall((:MagickGetImageChannelDepth, libwand), Csize_t, (Ptr{Void},UInt32), wand.ptr, channelType.value ))
+getimagechanneldepth(wand::MagickWand, channelType::ChannelType) = convert(Int, ccall((:MagickGetImageChannelDepth, libwand), Csize_t, (Ptr{Void},UInt32), wand, channelType.value ))
 
-pixelsetcolor(wand::PixelWand, colorstr::String) = ccall((:PixelSetColor, libwand), Csize_t, (Ptr{Void},Ptr{UInt8}), wand.ptr, colorstr) == 0 && error(wand)
+pixelsetcolor(wand::PixelWand, colorstr::String) = ccall((:PixelSetColor, libwand), Csize_t, (Ptr{Void},Ptr{UInt8}), wand, colorstr) == 0 && error(wand)
 
 relinquishmemory(p) = ccall((:MagickRelinquishMemory, libwand), Ptr{UInt8}, (Ptr{UInt8},), p)
 

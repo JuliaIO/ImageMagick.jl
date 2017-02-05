@@ -1,4 +1,5 @@
-__precompile__(true)
+__precompile__()
+
 module ImageMagick
 
 using FixedPointNumbers, ColorTypes, ColorVectorSpace, ImageCore
