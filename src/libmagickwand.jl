@@ -141,6 +141,7 @@ type MagickWand
 
     function MagickWand()
         ptr = ccall((:NewMagickWand, libwand), Ptr{Void}, ())
+        ptr == C_NULL && throw(OutOfMemoryError())
         obj = new(ptr)
         finalizer(obj, free)
         obj
@@ -167,6 +168,7 @@ type PixelWand
 
     function PixelWand()
         ptr = ccall((:NewPixelWand, libwand), Ptr{Void}, ())
+        ptr == C_NULL && throw(OutOfMemoryError())
         obj = new(ptr)
         finalizer(obj, free)
         obj
