@@ -368,7 +368,7 @@ function getimagecolorspace(wand::MagickWand)
 end
 
 function setimagecolorspace(wand::MagickWand, cs::String)
-    status = ccall((:MagickSetImageColorspace, libwand), Cint, (Ptr{Void},Cint), wand, IMColordict[cs])
+    status = ccall((:MagickSetImageColorspace, libwand), Cint, (Ptr{Void}, Cint), wand, IMColordict[cs])
     status == 0 && error(wand)
     nothing
 end
@@ -377,14 +377,14 @@ imtype(buffer, cs) = IMTypedict[CStoIMTypedict[cs]]
 imtype(buffer::AbstractArray{Bool}, cs) = IMTypedict["BilevelType"]
 
 function setimagetype(wand::MagickWand, buffer, cs::String)
-    status = ccall((:MagickSetImageType, libwand), Cint, (Ptr{Void},Cint), wand, imtype(buffer, cs))
+    status = ccall((:MagickSetImageType, libwand), Cint, (Ptr{Void}, Cint), wand, imtype(buffer, cs))
     status == 0 && error(wand)
     nothing
 end
 
 # set the compression
 function setimagecompression(wand::MagickWand, compression::Integer)
-    status = ccall((:MagickSetImageCompression, libwand), Cint, (Ptr{Void},Cint), wand, int32(compression))
+    status = ccall((:MagickSetImageCompression, libwand), Cint, (Ptr{Void}, Cint), wand, Int32(compression))
     status == 0 && error(wand)
     nothing
 end
@@ -407,9 +407,9 @@ end
 getimagedepth(wand::MagickWand) = convert(Int, ccall((:MagickGetImageDepth, libwand), Csize_t, (Ptr{Void},), wand))
 
 # pixel depth for given channel type
-getimagechanneldepth(wand::MagickWand, channelType::ChannelType) = convert(Int, ccall((:MagickGetImageChannelDepth, libwand), Csize_t, (Ptr{Void},UInt32), wand, channelType.value ))
+getimagechanneldepth(wand::MagickWand, channelType::ChannelType) = convert(Int, ccall((:MagickGetImageChannelDepth, libwand), Csize_t, (Ptr{Void}, UInt32), wand, channelType.value ))
 
-pixelsetcolor(wand::PixelWand, colorstr::String) = ccall((:PixelSetColor, libwand), Csize_t, (Ptr{Void},Ptr{UInt8}), wand, colorstr) == 0 && error(wand)
+pixelsetcolor(wand::PixelWand, colorstr::String) = ccall((:PixelSetColor, libwand), Csize_t, (Ptr{Void}, Ptr{UInt8}), wand, colorstr) == 0 && error(wand)
 
 relinquishmemory(p) = ccall((:MagickRelinquishMemory, libwand), Ptr{UInt8}, (Ptr{UInt8},), p)
 
