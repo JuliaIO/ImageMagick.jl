@@ -2,7 +2,7 @@ __precompile__()
 
 module ImageMagick
 
-using FixedPointNumbers, ColorTypes, ColorVectorSpace, ImageCore
+using FixedPointNumbers, ColorTypes, ImageCore
 using FileIO: DataFormat, @format_str, Stream, File, filename, stream
 
 typealias Color1{T}            Color{T,1}
@@ -10,16 +10,13 @@ typealias Color2{T,C<:Color1}  TransparentColor{C,T,2}
 typealias Color3{T}            Color{T,3}
 typealias Color4{T,C<:Color3}  TransparentColor{C,T,4}
 
+typealias AbstractGray{T}      Color{T,1}
+
 export readblob
 export image2wand
 export magickinfo
 
 include("libmagickwand.jl")
-
-
-typealias AbstractGray{T} Color{T, 1}
-
-const is_little_endian = ENDIAN_BOM == 0x04030201
 
 # Image / Video formats
 
