@@ -124,8 +124,8 @@ function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Array, ex
 end
 
 
-function save_(filename::AbstractString, img, permute_horizontal=true; mapi = identity, quality = nothing)
-    wand = image2wand(img, mapi, quality, permute_horizontal)
+function save_(filename::AbstractString, img, permute_horizontal=true; mapi = identity, quality = nothing, kwargs...)
+    wand = image2wand(img, mapi, quality, permute_horizontal; kwargs...)
     writeimage(wand, filename)
 end
 
@@ -137,7 +137,7 @@ function save_(s::Stream, img, permute_horizontal=true; mapi = clamp01nan, quali
     write(stream(s), blob)
 end
 
-function image2wand(img, mapi, quality, permute_horizontal=true)
+function image2wand(img, mapi=identity, quality=nothing, permute_horizontal=true; kwargs...)
     local imgw
     try
         imgw = map(x->mapIM(mapi(x)), img)
@@ -170,6 +170,7 @@ function image2wand(img, mapi, quality, permute_horizontal=true)
         setimagecompressionquality(wand, quality)
     end
     resetiterator(wand)
+    setproperties!(wand; kwargs...)
     wand
 end
 
@@ -195,6 +196,12 @@ function magickinfo(file::Union{AbstractString,IO}, properties::Union{Tuple,Abst
 end
 magickinfo(file::Union{AbstractString,IO}, properties...) = magickinfo(file, properties)
 
+function setproperties!(wand; fps=nothing)
+    if fps != nothing
+        setimagedelay(wand, fps)
+    end
+    wand
+end
 
 # ImageMagick element-mapping function. Converts to RGB/RGBA and uses
 # N0f8 "inner" element type.

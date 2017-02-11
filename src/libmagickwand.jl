@@ -14,6 +14,7 @@ export MagickWand,
     setimagecolorspace,
     setimagecompression,
     setimagecompressionquality,
+    setimagedelay,
     setimageformat,
     writeimage
 
@@ -393,6 +394,27 @@ function setimagecompressionquality(wand::MagickWand, quality::Integer)
     0 < quality <= 100 || error("quality setting must be in the (inclusive) range 1-100.\nSee http://www.imagemagick.org/script/command-line-options.php#quality for details")
     status = ccall((:MagickSetImageCompressionQuality, libwand), Cint, (Ptr{Void}, Cint), wand, quality)
     status == 0 && error(wand)
+    nothing
+end
+
+# set fps (for GIF-type images)
+function getimagetickspersecond(wand::MagickWand)
+    ccall((:MagickGetImageTicksPerSecond, libwand), Cint, (Ptr{Void},), wand)
+end
+
+function getimagedelay(wand::MagickWand)
+    ccall((:MagickGetImageDelay, libwand), Cint, (Ptr{Void},), wand)
+end
+
+function setimagedelay(wand::MagickWand, fps)
+    tps = getimagetickspersecond(wand)
+    delay = round(Int, tps/fps)
+    for i = 1:getnumberimages(wand)+1  # not clear why +1
+        status = ccall((:MagickSetImageDelay, libwand), Cint, (Ptr{Void}, Csize_t), wand, delay)
+        status == 0 && error(wand)
+        nextimage(wand)
+    end
+    resetiterator(wand)
     nothing
 end
 
