@@ -190,7 +190,7 @@ function free(wand::PixelWand)
     nothing
 end
 
-const IMExceptionType = Array(Cint, 1)
+const IMExceptionType = Ref{Cint}()
 function error(wand::MagickWand)
     pMsg = ccall((:MagickGetException, libwand), Ptr{UInt8}, (Ptr{Void}, Ptr{Cint}), wand, IMExceptionType)
     msg = unsafe_string(pMsg)
@@ -259,9 +259,9 @@ end
 
 function getblob(wand::MagickWand, format::AbstractString)
     setimageformat(wand, format)
-    len = Array(Csize_t, 1)
+    len = Ref{Csize_t}(1)
     ptr = ccall((:MagickGetImagesBlob, libwand), Ptr{UInt8}, (Ptr{Void}, Ptr{Csize_t}), wand, len)
-    blob = unsafe_wrap(Array, ptr, convert(Int, len[1]))
+    blob = unsafe_wrap(Array, ptr, convert(Int, len[]))
     finalizer(blob, relinquishmemory)
     blob
 end
@@ -321,12 +321,12 @@ getimagealphachannel(wand::MagickWand) = ccall((:MagickGetImageAlphaChannel, lib
 
 
 function getimageproperties(wand::MagickWand,patt::AbstractString)
-    numbProp = Csize_t[0]
-    p = ccall((:MagickGetImageProperties, libwand),Ptr{Ptr{UInt8}},(Ptr{Void},Ptr{UInt8},Ptr{Csize_t}),wand,patt,numbProp)
+    numbProp = Ref{Csize_t}(0)
+    p = ccall((:MagickGetImageProperties, libwand), Ptr{Ptr{UInt8}}, (Ptr{Void}, Ptr{UInt8}, Ptr{Csize_t}), wand, patt, numbProp)
     if p == C_NULL
         error("Pattern not in property names")
     else
-        nP = convert(Int, numbProp[1])
+        nP = convert(Int, numbProp[])
         ret = Vector{String}(nP)
         for i = 1:nP
             ret[i] = unsafe_string(unsafe_load(p,i))
@@ -336,7 +336,7 @@ function getimageproperties(wand::MagickWand,patt::AbstractString)
 end
 
 function getimageproperty(wand::MagickWand, prop::AbstractString, warnuser::Bool=true)
-    p = ccall((:MagickGetImageProperty, libwand),Ptr{UInt8},(Ptr{Void},Ptr{UInt8}),wand,prop)
+    p = ccall((:MagickGetImageProperty, libwand), Ptr{UInt8}, (Ptr{Void}, Ptr{UInt8}), wand, prop)
     if p == convert(Ptr{UInt8}, C_NULL)
         if warnuser
             possib = getimageproperties(wand,"*")
@@ -407,7 +407,7 @@ end
 getimagedepth(wand::MagickWand) = convert(Int, ccall((:MagickGetImageDepth, libwand), Csize_t, (Ptr{Void},), wand))
 
 # pixel depth for given channel type
-getimagechanneldepth(wand::MagickWand, channelType::ChannelType) = convert(Int, ccall((:MagickGetImageChannelDepth, libwand), Csize_t, (Ptr{Void}, UInt32), wand, channelType.value ))
+getimagechanneldepth(wand::MagickWand, channelType::ChannelType) = convert(Int, ccall((:MagickGetImageChannelDepth, libwand), Csize_t, (Ptr{Void}, UInt32), wand, channelType.value))
 
 pixelsetcolor(wand::PixelWand, colorstr::String) = ccall((:PixelSetColor, libwand), Csize_t, (Ptr{Void}, Ptr{UInt8}), wand, colorstr) == 0 && error(wand)
 
@@ -416,10 +416,10 @@ relinquishmemory(p) = ccall((:MagickRelinquishMemory, libwand), Ptr{UInt8}, (Ptr
 # get library information
 # If you pass in "*", you get the full list of options
 function queryoptions(pattern::AbstractString)
-    nops = Cint[0]
+    nops = Ref{Cint}(0)
     pops = ccall((:MagickQueryConfigureOptions, libwand), Ptr{Ptr{UInt8}}, (Ptr{UInt8}, Ptr{Cint}), pattern, nops)
-    ret = Vector{String}(nops[1])
-    for i = 1:nops[1]
+    ret = Vector{String}(nops[])
+    for i = 1:nops[]
         ret[i] = unsafe_string(unsafe_load(pops, i))
     end
     ret
