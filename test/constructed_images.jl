@@ -5,7 +5,7 @@ using Base.Test
 
 ontravis = haskey(ENV, "TRAVIS")
 
-type TypeTest end
+type TestType end
 
 @testset "IO" begin
     workdir = joinpath(tempdir(), "Images")
@@ -16,7 +16,7 @@ type TypeTest end
     fn = joinpath(workdir, "5by5.png")
     @test_throws ErrorException ImageMagick.save(fn, a)
 
-    a = [TypeTest() TypeTest()]
+    a = [TestType() TestType()]
     fn = joinpath(workdir, "5by5.png")
     @test_throws MethodError ImageMagick.save(fn, a)
 
