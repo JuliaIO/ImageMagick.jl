@@ -4,6 +4,7 @@ module ImageMagick
 
 using FixedPointNumbers, ColorTypes, ImageCore
 using FileIO: DataFormat, @format_str, Stream, File, filename, stream
+using Compat
 
 @compat Color1{T}           = Color{T,1}
 @compat Color2{T,C<:Color1} = TransparentColor{C,T,2}
