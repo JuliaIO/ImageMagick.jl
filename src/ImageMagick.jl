@@ -4,13 +4,14 @@ module ImageMagick
 
 using FixedPointNumbers, ColorTypes, ImageCore
 using FileIO: DataFormat, @format_str, Stream, File, filename, stream
+using Compat
 
-typealias Color1{T}            Color{T,1}
-typealias Color2{T,C<:Color1}  TransparentColor{C,T,2}
-typealias Color3{T}            Color{T,3}
-typealias Color4{T,C<:Color3}  TransparentColor{C,T,4}
+@compat Color1{T}           = Color{T,1}
+@compat Color2{T,C<:Color1} = TransparentColor{C,T,2}
+@compat Color3{T}           = Color{T,3}
+@compat Color4{T,C<:Color3} = TransparentColor{C,T,4}
 
-typealias AbstractGray{T}      Color{T,1}
+@compat AbstractGray{T}     = Color{T,1}
 
 export readblob
 export image2wand
