@@ -5,10 +5,20 @@ using Base.Test
 
 ontravis = haskey(ENV, "TRAVIS")
 
+type TestType end
+
 @testset "IO" begin
     workdir = joinpath(tempdir(), "Images")
     isdir(workdir) && rm(workdir, recursive=true)
     mkdir(workdir)
+
+    a = rand(Bool,5,5,5,5)
+    fn = joinpath(workdir, "5by5.png")
+    @test_throws ErrorException ImageMagick.save(fn, a)
+
+    a = [TestType() TestType()]
+    fn = joinpath(workdir, "5by5.png")
+    @test_throws MethodError ImageMagick.save(fn, a)
 
     @testset "Binary png" begin
         a = rand(Bool,5,5)
