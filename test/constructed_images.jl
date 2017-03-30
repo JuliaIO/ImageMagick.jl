@@ -1,5 +1,5 @@
 using ImageMagick, ColorTypes, FixedPointNumbers, IndirectArrays, FileIO
-using Images       # for show(io, ::MIME, img)
+using Images       # for show(io, ::MIME, img) & ImageMeta
 using Compat       # for I/O redirection
 using Base.Test
 
@@ -252,6 +252,15 @@ type TestType end
         readimage(wand, fn)
         resetiterator(wand)
         @test ImageMagick.getimagedelay(wand) == 50
+    end
+
+    @testset "ImageMeta" begin
+        # https://github.com/sisl/PGFPlots.jl/issues/5
+        img = ImageMeta(rand(RGB{N0f8},3,5))
+        fn = joinpath(workdir, "imagemeta.png")
+        ImageMagick.save(fn, img)
+        imgr = ImageMagick.load(fn)
+        @test imgr == img
     end
 end
 
