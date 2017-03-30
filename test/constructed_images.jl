@@ -244,6 +244,15 @@ type TestType end
         @test b == convert(Array{RGB{N0f8},2}, restrict(abig, (1,2)))
     end
 
+    @testset "fps" begin
+        A = rand(RGB{N0f8}, 100, 100, 5)
+        fn = joinpath(workdir, "animated.gif")
+        ImageMagick.save(fn, A, fps=2)
+        wand = MagickWand()
+        readimage(wand, fn)
+        resetiterator(wand)
+        @test ImageMagick.getimagedelay(wand) == 50
+    end
 end
 
 nothing
