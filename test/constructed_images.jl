@@ -1,5 +1,5 @@
 using ImageMagick, ColorTypes, FixedPointNumbers, IndirectArrays, FileIO
-using Images       # for show(io, ::MIME, img)
+using Images       # for show(io, ::MIME, img) & ImageMeta
 using Compat       # for I/O redirection
 using Base.Test
 
@@ -18,7 +18,12 @@ type TestType end
 
     a = [TestType() TestType()]
     fn = joinpath(workdir, "5by5.png")
-    @test_throws MethodError ImageMagick.save(fn, a)
+    errfile, io = mktemp()  # suppress warning message
+    redirect_stderr(io) do
+        @test_throws MethodError ImageMagick.save(fn, a)
+    end
+    close(io)
+    rm(errfile)
 
     @testset "Binary png" begin
         a = rand(Bool,5,5)
@@ -179,6 +184,7 @@ type TestType end
         end
         close(io)
         @test contains(readlines(errfile)[1], "out-of-range")
+        rm(errfile)
         ImageMagick.save(fn, A, mapi=clamp01nan)
         B = ImageMagick.load(fn)
         A[1,1] = 0
@@ -252,6 +258,15 @@ type TestType end
         readimage(wand, fn)
         resetiterator(wand)
         @test ImageMagick.getimagedelay(wand) == 50
+    end
+
+    @testset "ImageMeta" begin
+        # https://github.com/sisl/PGFPlots.jl/issues/5
+        img = ImageMeta(rand(RGB{N0f8},3,5))
+        fn = joinpath(workdir, "imagemeta.png")
+        ImageMagick.save(fn, img)
+        imgr = ImageMagick.load(fn)
+        @test imgr == img
     end
 end
 
