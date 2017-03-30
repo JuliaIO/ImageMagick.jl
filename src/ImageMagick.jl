@@ -13,9 +13,7 @@ using Compat
 
 @compat AbstractGray{T}     = Color{T,1}
 
-export readblob
-export image2wand
-export magickinfo
+export readblob, image2wand, magickinfo
 
 include("libmagickwand.jl")
 
