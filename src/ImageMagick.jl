@@ -2,7 +2,7 @@ __precompile__()
 
 module ImageMagick
 
-using FixedPointNumbers, ColorTypes, ImageCore
+using FixedPointNumbers, ColorTypes, Images
 using FileIO: DataFormat, @format_str, Stream, File, filename, stream
 using Compat
 
