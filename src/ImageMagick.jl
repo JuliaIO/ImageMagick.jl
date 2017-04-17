@@ -228,8 +228,7 @@ mapIM(x::Normed) = x
 # Make the data contiguous in memory, this is necessary for
 # imagemagick since it doesn't handle stride.
 to_contiguous(A::Array) = A
-to_contiguous(A::AbstractArray) = convert(Array, A)
-to_contiguous(A::SubArray) = copy(A)
+to_contiguous(A::AbstractArray) = Compat.collect(A)
 to_contiguous(A::BitArray) = convert(Array{N0f8}, A)
 to_contiguous(A::ColorView) = to_contiguous(channelview(A))
 

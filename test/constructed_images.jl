@@ -1,4 +1,4 @@
-using ImageMagick, ColorTypes, FixedPointNumbers, IndirectArrays, FileIO
+using ImageMagick, ColorTypes, FixedPointNumbers, IndirectArrays, FileIO, OffsetArrays
 using Images       # for show(io, ::MIME, img) & ImageMeta
 using Compat       # for I/O redirection
 using Base.Test
@@ -267,6 +267,14 @@ type TestType end
         ImageMagick.save(fn, img)
         imgr = ImageMagick.load(fn)
         @test imgr == img
+    end
+
+    @testset "OffsetArrays" begin
+        img = OffsetArray([true false; false true], 0:1, 3:4)
+        fn = joinpath(workdir, "indices.png")
+        ImageMagick.save(fn, img)
+        imgr = ImageMagick.load(fn)
+        @test imgr == parent(img)
     end
 end
 
