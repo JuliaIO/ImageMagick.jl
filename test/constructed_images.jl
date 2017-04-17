@@ -99,13 +99,13 @@ type TestType end
         b = RGB(0,0,1)
         w = RGB(1,1,1)
         r = RGB(1,0,0)
-        cmaprgb = Array(RGB{Float64}, 255)
+        cmaprgb = Array{RGB{Float64}}(255)
         f = linspace(0,1,128)
         cmaprgb[1:128] = [(1-x)*b + x*w for x in f]
         cmaprgb[129:end] = [(1-x)*w + x*r for x in f[2:end]]
         img = IndirectArray(dataint, cmaprgb)
         ImageMagick.save(joinpath(workdir,"cmap.jpg"), img)
-        cmaprgb = Array(RGB, 255) # poorly-typed cmap, issue #336
+        cmaprgb = Array{RGB}(255) # poorly-typed cmap, Images issue #336
         cmaprgb[1:128] = [(1-x)*b + x*w for x in f]
         cmaprgb[129:end] = [(1-x)*w + x*r for x in f[2:end]]
         img = IndirectArray(dataint, cmaprgb)
