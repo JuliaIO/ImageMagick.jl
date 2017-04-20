@@ -5,3 +5,4 @@ FileIO
 Images
 ZipFile
 Compat
+OffsetArrays
