@@ -47,13 +47,13 @@ if is_windows()
     pattern     = "ImageMagick-6.9.*?-Q16-$(OS_ARCH)-dll.exe"
     magick_name = String(match(Regex(pattern), str).match)
 
-    magick_tmpdir   = BinDeps.downloadsdir(libwand)
-    magick_url      = "$(magick_base)/$(magick_name)"
-    magick_libdir   = joinpath(BinDeps.libdir(libwand), OS_ARCH)
-    innounp_url     = "https://bintray.com/artifact/download/julialang/generic/innounp.exe"
-    innounp_exe     = joinpath(magick_tmpdir, "innounp.exe")
-    magick_exe      = joinpath(magick_tmpdir, magick_name)
-    initfun         =
+    magick_tmpdir  = BinDeps.downloadsdir(libwand)
+    magick_url     = "$(magick_base)/$(magick_name)"
+    magick_libdir  = joinpath(BinDeps.libdir(libwand), OS_ARCH)
+    innounp_url    = "https://bintray.com/artifact/download/julialang/generic/innounp.exe"
+    innounp_exe    = joinpath(magick_tmpdir, "innounp.exe")
+    magick_exe     = joinpath(magick_tmpdir, magick_name)
+    initfun        =
 """
 function init_deps()
     ENV["MAGICK_CONFIGURE_PATH"]    = "$(escape_string(magick_libdir))"
