@@ -45,18 +45,19 @@ if is_windows()
     binariesfn  = download(magick_base)
     str         = readstring(binariesfn)
     pattern     = "ImageMagick-6.9.*?-Q16-$(OS_ARCH)-dll.exe"
-    m           = match(Regex(pattern), str)
-    magick_exe  = convert(String, m.match)
+    magick_name = String(match(Regex(pattern), str).match)
 
-    magick_tmpdir   = BinDeps.downloadsdir(libwand)
-    magick_url      = "$(magick_base)/$(magick_exe)"
-    magick_libdir   = joinpath(BinDeps.libdir(libwand), OS_ARCH)
-    innounp_url     = "https://bintray.com/artifact/download/julialang/generic/innounp.exe"
-    initfun         =
+    magick_tmpdir  = BinDeps.downloadsdir(libwand)
+    magick_url     = "$(magick_base)/$(magick_name)"
+    magick_libdir  = joinpath(BinDeps.libdir(libwand), OS_ARCH)
+    innounp_url    = "https://bintray.com/artifact/download/julialang/generic/innounp.exe"
+    innounp_exe    = joinpath(magick_tmpdir, "innounp.exe")
+    magick_exe     = joinpath(magick_tmpdir, magick_name)
+    initfun        =
 """
 function init_deps()
-    ENV["MAGICK_CONFIGURE_PATH"]    = \"$(escape_string(magick_libdir))\"
-    ENV["MAGICK_CODER_MODULE_PATH"] = \"$(escape_string(magick_libdir))\"
+    ENV["MAGICK_CONFIGURE_PATH"]    = "$(escape_string(magick_libdir))"
+    ENV["MAGICK_CODER_MODULE_PATH"] = "$(escape_string(magick_libdir))"
 end
 init_deps()
 """
@@ -66,12 +67,9 @@ init_deps()
             CreateDirectory(magick_tmpdir)
             CreateDirectory(magick_libdir)
             FileDownloader(magick_url, joinpath(magick_tmpdir, magick_exe))
-            FileDownloader(innounp_url, joinpath(magick_tmpdir, "innounp.exe"))
-            @build_steps begin
-                ChangeDirectory(magick_tmpdir)
-                info("Installing ImageMagick library")
-                `innounp.exe -q -y -b -e -x -d$(magick_libdir) $(magick_exe)`
-            end
+            FileDownloader(innounp_url, innounp_exe)
+            info("Installing ImageMagick library")
+            `$(innounp_exe) -q -y -b -e -x -d$(magick_libdir) $(magick_exe)`
         end),
         libwand, os = :Windows, unpacked_dir = magick_libdir, preload = initfun)
 end
@@ -105,7 +103,7 @@ end
     end
 end
 
-@BinDeps.install Dict([(:libwand, :libwand)])
+@BinDeps.install Dict(:libwand => :libwand)
 
 # Hack-fix for issue #12
 # Check to see whether init_deps is present, and if not add it
