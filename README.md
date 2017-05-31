@@ -36,9 +36,12 @@ It's worth pointing out that packages such as Images load FileIO.
 
 ## OSX
 
-ImageMagick.jl will use the system-wide libMagicWand in `/usr/local/lib` if
-present (e.g. via a manual installation with homebrew).  If not it will install
-its own copy via Homebrew.jl.
+ImageMagick.jl will use the system-wide libMagicWand in `/usr/local/lib` if it is
+present.  Use the environment variable `MAGICK_HOME` to add other paths to the search
+path. Note that version 6.7+ (up to but not including 7.0) are the most supported versions, in
+particular for multipage TIFFs.  Use `ImageMagick.libversion` to see what version the installer
+found.  If ImageMagick.jl doesn't find a previous installation, it will install its own copy of the
+ImageMagick library with Homebrew.jl.
 
 An alternative to ImageMagick on OS X is
 [QuartzImageIO](https://github.com/JuliaIO/QuartzImageIO.jl).
