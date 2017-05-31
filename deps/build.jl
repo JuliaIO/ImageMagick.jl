@@ -35,9 +35,9 @@ if is_linux()
         end
         """
 
-    provides(AptGet, "libmagickwand4", preload = init_fun, onload = "init_deps()")
-    provides(AptGet, "libmagickwand5", preload = init_fun, onload = "init_deps()")
-    provides(AptGet, "libmagickwand-6.q16-2", preload = init_fun, onload = "init_deps()")
+    provides(AptGet, "libmagickwand4", libwand, preload = init_fun, onload = "init_deps()")
+    provides(AptGet, "libmagickwand5", libwand, preload = init_fun, onload = "init_deps()")
+    provides(AptGet, "libmagickwand-6.q16-2", libwand, preload = init_fun, onload = "init_deps()")
     provides(Pacman, "imagemagick", libwand, preload = init_fun, onload = "init_deps()")
     provides(Yum, "ImageMagick", libwand, preload = init_fun, onload = "init_deps()")
 end
@@ -88,7 +88,7 @@ end
 
 if is_apple()
     using Homebrew
-    imagemagick_prefix = Homebrew.prefix("homebrew/core/imagemagick@6")
+    imagemagick_prefix = Homebrew.prefix("staticfloat/juliadeps/imagemagick@6")
     init_fun =
         """
         function init_deps()
@@ -101,7 +101,7 @@ if is_apple()
             ccall((:MagickWandGenesis,libwand), Void, ())
         end
         """
-    provides(Homebrew.HB, "homebrew/core/imagemagick@6", libwand, os = :Darwin,
+    provides(Homebrew.HB, "staticfloat/juliadeps/imagemagick@6", libwand, os = :Darwin,
              preload = init_fun, onload = "init_deps()")
 end
 
