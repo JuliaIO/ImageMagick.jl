@@ -14,7 +14,7 @@ modular.
 
 Add the package with
 
-```jl
+```julia
 Pkg.add("ImageMagick")
 ```
 
@@ -22,7 +22,7 @@ Pkg.add("ImageMagick")
 
 ImageMagick will be used as needed if you've said
 
-```
+```julia
 using FileIO
 ```
 
@@ -30,7 +30,7 @@ in your session or module. You should **not** generally say `using
 ImageMagick`.  See [FileIO](https://github.com/JuliaIO/FileIO.jl) for
 further details.
 
-It's worth pointing out that packages such as Images load FileIO.
+It's worth pointing out that packages such as [Images.jl](https://github.com/JuliaImages/Images.jl) load FileIO for you.
 
 # Troubleshooting
 
@@ -43,12 +43,24 @@ particular for multipage TIFFs.  Use `ImageMagick.libversion` to see what versio
 found.  If ImageMagick.jl doesn't find a previous installation, it will install its own copy of the
 ImageMagick library with Homebrew.jl.
 
-An alternative to ImageMagick on OS X is
-[QuartzImageIO](https://github.com/JuliaIO/QuartzImageIO.jl).
+ImageMagick.jl 0.3.0 introduced significant improvements in the installation procedure for OSX users.
+If you've had trouble with previous versions of ImageMagick.jl and attempted to resolve problems manually,
+some of your workarounds might interfere with the new approach. You can reset your build with
+
+```julia
+using Homebrew
+run(`$brew remove imagemagick@6`)
+run(`$brew prune`)
+Pkg.build("ImageMagick")
+```
 
 You may also find [debugging
 Homebrew](https://github.com/JuliaLang/Homebrew.jl/wiki/Debugging-Homebrew.jl)
-useful.
+useful. 
+
+Finally, an alternative to ImageMagick on OS X is
+[QuartzImageIO](https://github.com/JuliaIO/QuartzImageIO.jl).
+
 
 ## Manual installation on Windows
 
