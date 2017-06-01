@@ -49,8 +49,8 @@ some of your workarounds might interfere with the new approach. You can reset yo
 
 ```julia
 using Homebrew
-run(`$brew remove imagemagick@6`)
-run(`$brew prune`)
+run(`brew remove imagemagick@6`)
+run(`brew prune`)
 Pkg.build("ImageMagick")
 ```
 
