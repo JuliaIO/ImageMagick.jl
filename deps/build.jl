@@ -108,6 +108,13 @@ end
 
 @BinDeps.install Dict([(:libwand, :libwand)])
 
+# Hack-fix for issue #12
+# Check to see whether init_deps is present, and if not add it
+if isempty(search(readstring(joinpath(dirname(@__FILE__),"deps.jl")), "init_deps"))
+    open("deps.jl", "a") do io
+        write(io, init_fun)
+    end
+end
 
 module CheckVersion
     include("deps.jl")
