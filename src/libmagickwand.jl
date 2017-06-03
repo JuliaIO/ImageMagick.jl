@@ -30,6 +30,9 @@ end
 
 const have_imagemagick = isdefined(:libwand)
 
+const _libversion = Ref{VersionNumber}()
+libversion() = _libversion[]
+
 # Initialize the library
 function __init__()
     for (key, value) in init_envs
@@ -39,9 +42,8 @@ function __init__()
     ccall((:MagickWandGenesis, libwand), Void, ())
     p = ccall((:MagickQueryConfigureOption, libwand), Ptr{UInt8}, (Ptr{UInt8}, ),
               "LIB_VERSION_NUMBER")
-    global const libversion = VersionNumber(join(split(unsafe_string(p), ',')[1:3], '.'))
+    _libversion[] = VersionNumber(join(split(unsafe_string(p), ',')[1:3], '.'))
 end
-
 
 # Constants
 # Storage types
