@@ -20,25 +20,27 @@ export MagickWand,
 
 # Find the library
 depsfile = joinpath(dirname(@__FILE__), "..", "deps", "deps.jl")
-versionfile = joinpath(dirname(@__FILE__), "..", "deps", "versioninfo.jl")
 
+init_envs = Dict{String,String}()
 if isfile(depsfile)
     include(depsfile)
 else
     error("ImageMagick not properly installed. Please run Pkg.build(\"ImageMagick\") then restart Julia.") # now that this is decoupled from images, should this be an error?
-end
-if isfile(versionfile)
-    include(versionfile)
 end
 
 const have_imagemagick = isdefined(:libwand)
 
 # Initialize the library
 function __init__()
+    for (key, value) in init_envs
+        ENV[key] = value
+    end
     !have_imagemagick && warn("ImageMagick utilities not found. Install for more file format support.")
     ccall((:MagickWandGenesis, libwand), Void, ())
+    p = ccall((:MagickQueryConfigureOption, libwand), Ptr{UInt8}, (Ptr{UInt8}, ),
+              "LIB_VERSION_NUMBER")
+    global const libversion = VersionNumber(join(split(unsafe_string(p), ',')[1:3], '.'))
 end
-
 
 
 # Constants
