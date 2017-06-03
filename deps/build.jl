@@ -15,31 +15,17 @@ libwand     = library_dependency("libwand", aliases = aliases)
 
 mpath = get(ENV, "MAGICK_HOME", "") # If MAGICK_HOME is defined, add to library search path
 if !isempty(mpath)
-    init_fun =
-        """
-        function init_deps()
-            ccall((:MagickWandGenesis, libwand), Void, ())
-        end
-        """
-
-    provides(Binaries, mpath, libwand, preload = init_fun, onload = "init_deps()")
-    provides(Binaries, joinpath(mpath, "lib"), libwand, preload = init_fun, onload = "init_deps()")
+    provides(Binaries, mpath, libwand)
+    provides(Binaries, joinpath(mpath, "lib"), libwand)
 end
 
 
 if is_linux()
-    init_fun =
-        """
-        function init_deps()
-            ccall((:MagickWandGenesis, libwand), Void, ())
-        end
-        """
-
-    provides(AptGet, "libmagickwand4", libwand, preload = init_fun, onload = "init_deps()")
-    provides(AptGet, "libmagickwand5", libwand, preload = init_fun, onload = "init_deps()")
-    provides(AptGet, "libmagickwand-6.q16-2", libwand, preload = init_fun, onload = "init_deps()")
-    provides(Pacman, "imagemagick", libwand, preload = init_fun, onload = "init_deps()")
-    provides(Yum, "ImageMagick", libwand, preload = init_fun, onload = "init_deps()")
+    provides(AptGet, "libmagickwand4", libwand)
+    provides(AptGet, "libmagickwand5", libwand)
+    provides(AptGet, "libmagickwand-6.q16-2", libwand)
+    provides(Pacman, "imagemagick", libwand)
+    provides(Yum, "ImageMagick", libwand)
 end
 
 
@@ -61,12 +47,10 @@ if is_windows()
     magick_url      = "$(magick_base)/$(magick_exe)"
     magick_libdir   = joinpath(BinDeps.libdir(libwand), OS_ARCH)
     innounp_url     = "https://bintray.com/artifact/download/julialang/generic/innounp.exe"
-    init_fun         =
+    init_env         =
         """
-        function init_deps()
-            ENV["MAGICK_CONFIGURE_PATH"]    = \"$(escape_string(magick_libdir))\"
-            ENV["MAGICK_CODER_MODULE_PATH"] = \"$(escape_string(magick_libdir))\"
-        end
+        ENV["MAGICK_CONFIGURE_PATH"]    = \"$(escape_string(magick_libdir))\"
+        ENV["MAGICK_CODER_MODULE_PATH"] = \"$(escape_string(magick_libdir))\"
         """
 
     provides(BuildProcess,
@@ -81,40 +65,27 @@ if is_windows()
                 `innounp.exe -q -y -b -e -x -d$(magick_libdir) $(magick_exe)`
             end
         end),
-        libwand, os = :Windows, unpacked_dir = magick_libdir, preload = init_fun,
-        onload = "init_deps()")
+        libwand, os = :Windows, unpacked_dir = magick_libdir, preload = init_env)
 end
 
 
 if is_apple()
     using Homebrew
     homebrew_prefix = Homebrew.prefix()
-    init_fun =
+    init_env =
         """
-        function init_deps()
-            ENV["MAGICK_CONFIGURE_PATH"] = joinpath("$(homebrew_prefix)",
-                                                    "lib", "ImageMagick", "config-Q16")
-            ENV["MAGICK_CODER_MODULE_PATH"] = joinpath("$(homebrew_prefix)",
-                                                       "lib", "ImageMagick", "modules-Q16", "coders")
-            ENV["PATH"] = joinpath("$(homebrew_prefix)", "bin") * ":" * ENV["PATH"]
-
-            ccall((:MagickWandGenesis, libwand), Void, ())
-        end
+        ENV["MAGICK_CONFIGURE_PATH"] = joinpath("$(homebrew_prefix)",
+                                                "lib", "ImageMagick", "config-Q16")
+        ENV["MAGICK_CODER_MODULE_PATH"] = joinpath("$(homebrew_prefix)",
+                                                   "lib", "ImageMagick", "modules-Q16", "coders")
+        ENV["PATH"] = joinpath("$(homebrew_prefix)", "bin") * ":" * ENV["PATH"]
         """
-    provides(Homebrew.HB, "homebrew/core/imagemagick@6", libwand, os = :Darwin,
-             preload = init_fun, onload = "init_deps()")
+    provides(Homebrew.HB, "homebrew/core/imagemagick@6", libwand, os = :Darwin, preload = init_env)
 end
 
 
 @BinDeps.install Dict([(:libwand, :libwand)])
 
-# Hack-fix for issue #12
-# Check to see whether init_deps is present, and if not add it
-if isempty(search(readstring(joinpath(dirname(@__FILE__),"deps.jl")), "init_deps"))
-    open("deps.jl", "a") do io
-        write(io, init_fun)
-    end
-end
 
 module CheckVersion
     include("deps.jl")

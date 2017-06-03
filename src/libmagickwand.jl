@@ -35,8 +35,8 @@ const have_imagemagick = isdefined(:libwand)
 
 # Initialize the library
 function __init__()
-    init_deps()
     !have_imagemagick && warn("ImageMagick utilities not found. Install for more file format support.")
+    ccall((:MagickWandGenesis, libwand), Void, ())
 end
 
 
