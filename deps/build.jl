@@ -88,20 +88,20 @@ end
 
 if is_apple()
     using Homebrew
-    imagemagick_prefix = Homebrew.prefix("staticfloat/juliadeps/imagemagick@6")
+    homebrew_prefix = Homebrew.prefix()
     init_fun =
         """
         function init_deps()
-            ENV["MAGICK_CONFIGURE_PATH"] = joinpath("$(imagemagick_prefix)",
+            ENV["MAGICK_CONFIGURE_PATH"] = joinpath("$(homebrew_prefix)",
                                                     "lib", "ImageMagick", "config-Q16")
-            ENV["MAGICK_CODER_MODULE_PATH"] = joinpath("$(imagemagick_prefix)",
+            ENV["MAGICK_CODER_MODULE_PATH"] = joinpath("$(homebrew_prefix)",
                                                        "lib", "ImageMagick", "modules-Q16", "coders")
-            ENV["PATH"] = joinpath("$(imagemagick_prefix)", "bin") * ":" * ENV["PATH"]
+            ENV["PATH"] = joinpath("$(homebrew_prefix)", "bin") * ":" * ENV["PATH"]
 
-            ccall((:MagickWandGenesis,libwand), Void, ())
+            ccall((:MagickWandGenesis, libwand), Void, ())
         end
         """
-    provides(Homebrew.HB, "staticfloat/juliadeps/imagemagick@6", libwand, os = :Darwin,
+    provides(Homebrew.HB, "homebrew/core/imagemagick@6", libwand, os = :Darwin,
              preload = init_fun, onload = "init_deps()")
 end
 
