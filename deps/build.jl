@@ -2,7 +2,7 @@ using BinDeps
 
 @BinDeps.setup
 
-libnames    = ["libMagickWand", "CORE_RL_wand_"]
+libnames    = ["libMagickWand", "CORE_RL_wand_", "CORE_RL_MagickWand_"]
 suffixes    = ["", "-Q16", "-6.Q16", "-Q8"]
 options     = ["", "HDRI"]
 extensions  = ["", ".so.2", ".so.4", ".so.5"]
@@ -39,33 +39,25 @@ if is_windows()
     magick_base = "http://www.imagemagick.org/download/binaries"
     binariesfn  = download(magick_base)
     str         = readstring(binariesfn)
-    pattern     = "ImageMagick-6.9.*?-Q16-$(OS_ARCH)-dll.exe"
-    m           = match(Regex(pattern), str)
-    magick_exe  = convert(String, m.match)
+    pattern     = "ImageMagick-7.0.*?-Q16-$(OS_ARCH)-dll.exe"
+    magick_exe  = String(match(Regex(pattern), str).match)
 
-    magick_tmpdir   = BinDeps.downloadsdir(libwand)
-    magick_url      = "$(magick_base)/$(magick_exe)"
-    magick_libdir   = joinpath(BinDeps.libdir(libwand), OS_ARCH)
-    innounp_url     = "https://bintray.com/artifact/download/julialang/generic/innounp.exe"
-    preloads         =
-        """
-        init_envs["MAGICK_CONFIGURE_PATH"]    = \"$(escape_string(magick_libdir))\"
-        init_envs["MAGICK_CODER_MODULE_PATH"] = \"$(escape_string(magick_libdir))\"
-        """
+    magick_tmpdir = BinDeps.downloadsdir(libwand)
+    magick_url    = "$(magick_base)/$(magick_exe)"
+    libdir = BinDeps.libdir(libwand)
+    innounp_url   = "https://bintray.com/artifact/download/julialang/generic/innounp.exe"
 
     provides(BuildProcess,
         (@build_steps begin
-            CreateDirectory(magick_tmpdir)
-            CreateDirectory(magick_libdir)
             FileDownloader(magick_url, joinpath(magick_tmpdir, magick_exe))
             FileDownloader(innounp_url, joinpath(magick_tmpdir, "innounp.exe"))
             @build_steps begin
                 ChangeDirectory(magick_tmpdir)
                 info("Installing ImageMagick library")
-                `innounp.exe -q -y -b -e -x -d$(magick_libdir) $(magick_exe)`
+                `innounp.exe -q -y -b -e -x -d$(libdir) $(magick_exe)`
             end
         end),
-        libwand, os = :Windows, unpacked_dir = magick_libdir, preload = preloads)
+        libwand, os = :Windows, unpacked_dir = libdir)
 end
 
 

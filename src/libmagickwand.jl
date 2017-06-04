@@ -21,7 +21,6 @@ export MagickWand,
 # Find the library
 depsfile = joinpath(dirname(@__DIR__), "deps", "deps.jl")
 
-init_envs = Dict{String,String}()
 if isfile(depsfile)
     include(depsfile)
 else
@@ -70,7 +69,7 @@ const MagickGetImageDelay              = Ref{Ptr{Void}}()
 const MagickSetImageDelay              = Ref{Ptr{Void}}()
 const MagickSetImageFormat             = Ref{Ptr{Void}}()
 const MagickGetImageDepth              = Ref{Ptr{Void}}()
-const MagickGetImageChannelDepth       = Ref{Ptr{Void}}()
+# const MagickGetImageChannelDepth       = Ref{Ptr{Void}}()
 const PixelSetColor                    = Ref{Ptr{Void}}()
 const MagickRelinquishMemory           = Ref{Ptr{Void}}()
 const MagickQueryConfigureOption       = Ref{Ptr{Void}}()
@@ -78,11 +77,11 @@ const MagickQueryConfigureOptions      = Ref{Ptr{Void}}()
 
 
 function __init__()
-    for (key, value) in init_envs
-        ENV[key] = value
-    end
+    ENV["MAGICK_CONFIGURE_PATH"] = dirname(libwand)
+    ENV["MAGICK_CODER_MODULE_PATH"] = joinpath(dirname(libwand), "modules", "coders")
+    ENV["MAGICK_CODER_FILTERS_PATH"] = joinpath(dirname(libwand), "modules", "filters")
 
-    libmagic[]  = Libdl.dlopen(libwand, Libdl.RTLD_GLOBAL)
+    libmagic[] = Libdl.dlopen(libwand, Libdl.RTLD_GLOBAL)
 
     MagickWandGenesis[]                = func(:MagickWandGenesis)
     NewMagickWand[]                    = func(:NewMagickWand)
@@ -123,7 +122,7 @@ function __init__()
     MagickSetImageDelay[]              = func(:MagickSetImageDelay)
     MagickSetImageFormat[]             = func(:MagickSetImageFormat)
     MagickGetImageDepth[]              = func(:MagickGetImageDepth)
-    MagickGetImageChannelDepth[]       = func(:MagickGetImageChannelDepth)
+    # MagickGetImageChannelDepth[]       = func(:MagickGetImageChannelDepth)
     PixelSetColor[]                    = func(:PixelSetColor)
     MagickRelinquishMemory[]           = func(:MagickRelinquishMemory)
     MagickQueryConfigureOptions[]      = func(:MagickQueryConfigureOptions)
@@ -523,7 +522,7 @@ end
 getimagedepth(wand::MagickWand) = convert(Int, ccall(MagickGetImageDepth[], Csize_t, (Ptr{Void},), wand))
 
 # pixel depth for given channel type
-getimagechanneldepth(wand::MagickWand, channelType::ChannelType) = convert(Int, ccall(MagickGetImageChannelDepth[], Csize_t, (Ptr{Void}, UInt32), wand, channelType.value))
+# getimagechanneldepth(wand::MagickWand, channelType::ChannelType) = convert(Int, ccall(MagickGetImageChannelDepth[], Csize_t, (Ptr{Void}, UInt32), wand, channelType.value))
 
 pixelsetcolor(wand::PixelWand, colorstr::String) = ccall(PixelSetColor[], Csize_t, (Ptr{Void}, Ptr{UInt8}), wand, colorstr) == 0 && error(wand)
 
