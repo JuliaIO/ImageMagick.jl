@@ -32,7 +32,7 @@ end
 if is_windows()
     push!(BinDeps.defaults, BuildProcess) # TODO: remove me when upstream is fixed
 
-    const OS_ARCH = Sys.WORD_SIZE == 64 ? "x64" : "x86"
+    OS_ARCH = Sys.WORD_SIZE == 64 ? "x64" : "x86"
 
     # TODO: checksums: we have gpg
     # Extract the appropriate filename to download
@@ -40,28 +40,24 @@ if is_windows()
     binariesfn  = download(magick_base)
     str         = readstring(binariesfn)
     pattern     = "ImageMagick-6.9.*?-Q16-$(OS_ARCH)-dll.exe"
-    m           = match(Regex(pattern), str)
-    magick_exe  = convert(String, m.match)
+    magick_exe  = String(match(Regex(pattern), str).match)
 
-    magick_tmpdir   = BinDeps.downloadsdir(libwand)
-    magick_url      = "$(magick_base)/$(magick_exe)"
-    magick_libdir   = joinpath(BinDeps.libdir(libwand), OS_ARCH)
-    innounp_url     = "https://bintray.com/artifact/download/julialang/generic/innounp.exe"
-    preloads         =
+    magick_tmpdir = BinDeps.downloadsdir(libwand)
+    magick_url    = "$(magick_base)/$(magick_exe)"
+    magick_libdir = joinpath(BinDeps.libdir(libwand), OS_ARCH)
+    innounp_url   = "https://bintray.com/artifact/download/julialang/generic/innounp.exe"
+    preloads      =
         """
         init_envs["MAGICK_CONFIGURE_PATH"]    = \"$(escape_string(magick_libdir))\"
-        init_envs["MAGICK_CODER_MODULE_PATH"] = \"$(escape_string(magick_libdir))\"
+        init_envs["MAGICK_CODER_MODULE_PATH"] = \"$(escape_string(joinpath(magick_libdir)))\"
         """
 
     provides(BuildProcess,
         (@build_steps begin
-            CreateDirectory(magick_tmpdir)
-            CreateDirectory(magick_libdir)
             FileDownloader(magick_url, joinpath(magick_tmpdir, magick_exe))
             FileDownloader(innounp_url, joinpath(magick_tmpdir, "innounp.exe"))
             @build_steps begin
                 ChangeDirectory(magick_tmpdir)
-                info("Installing ImageMagick library")
                 `innounp.exe -q -y -b -e -x -d$(magick_libdir) $(magick_exe)`
             end
         end),
@@ -74,11 +70,8 @@ if is_apple()
     homebrew_prefix = Homebrew.prefix()
     preloads =
         """
-        init_envs["MAGICK_CONFIGURE_PATH"] = joinpath("$(homebrew_prefix)",
-                                                      "lib", "ImageMagick", "config-Q16")
-        init_envs["MAGICK_CODER_MODULE_PATH"] = joinpath("$(homebrew_prefix)",
-                                                         "lib", "ImageMagick", "modules-Q16", "coders")
-        init_envs["PATH"] = joinpath("$(homebrew_prefix)", "bin") * ":" * ENV["PATH"]
+        init_envs["MAGICK_CONFIGURE_PATH"] = \"$(escape_string(joinpath(homebrew_prefix, "lib", "ImageMagick", "config-Q16")))\"
+        init_envs["MAGICK_CODER_MODULE_PATH"] = \"$(escape_string(joinpath(homebrew_prefix, "lib", "ImageMagick", "modules-Q16", "coders")))\"
         """
     provides(Homebrew.HB, "homebrew/core/imagemagick@6", libwand, os = :Darwin, preload = preloads)
 end
