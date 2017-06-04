@@ -19,7 +19,7 @@ export MagickWand,
     writeimage
 
 # Find the library
-depsfile = joinpath(dirname(@__FILE__), "..", "deps", "deps.jl")
+depsfile = joinpath(dirname(@__DIR__), "deps", "deps.jl")
 
 init_envs = Dict{String,String}()
 if isfile(depsfile)
@@ -27,11 +27,9 @@ if isfile(depsfile)
 else
     error("ImageMagick not properly installed. Please run Pkg.build(\"ImageMagick\") then restart Julia.") # now that this is decoupled from images, should this be an error?
 end
-const have_imagemagick = isdefined(:libwand)
 
-
-const libmagic  = Ref{Ptr{Void}}()
-func(fun::Symbol)  = Libdl.dlsym(libmagic[], fun)
+const libmagic = Ref{Ptr{Void}}()
+func(fun::Symbol) = Libdl.dlsym(libmagic[], fun)
 
 const MagickWandGenesis                = Ref{Ptr{Void}}()
 const NewMagickWand                    = Ref{Ptr{Void}}()
@@ -83,7 +81,6 @@ function __init__()
     for (key, value) in init_envs
         ENV[key] = value
     end
-    !have_imagemagick && warn("ImageMagick utilities not found. Install for more file format support.")
 
     libmagic[]  = Libdl.dlopen(libwand, Libdl.RTLD_GLOBAL)
 
@@ -133,24 +130,22 @@ function __init__()
     MagickQueryConfigureOption[]       = func(:MagickQueryConfigureOption)
 
     ccall(MagickWandGenesis[], Void, ())
-end
 
-function libversion()
     p = ccall(MagickQueryConfigureOption[], Ptr{UInt8}, (Ptr{UInt8}, ), "LIB_VERSION_NUMBER")
-    VersionNumber(join(split(unsafe_string(p), ',')[1:3], '.'))
+    global libversion = VersionNumber(join(split(unsafe_string(p), ',')[1:3], '.'))
 end
 
 # Constants
 # Storage types
-const CHARPIXEL = 1
-const DOUBLEPIXEL = 2
-const FLOATPIXEL = 3
+const CHARPIXEL    = 1
+const DOUBLEPIXEL  = 2
+const FLOATPIXEL   = 3
 const INTEGERPIXEL = 4
-const SHORTPIXEL = 7
-IMStorageTypes = Union{UInt8, UInt16, UInt32, Float32, Float64}
-storagetype(::Type{UInt8}) = CHARPIXEL
-storagetype(::Type{UInt16}) = SHORTPIXEL
-storagetype(::Type{UInt32}) = INTEGERPIXEL
+const SHORTPIXEL   = 7
+const IMStorageTypes = Union{UInt8,UInt16,UInt32,Float32,Float64}
+storagetype(::Type{UInt8})   = CHARPIXEL
+storagetype(::Type{UInt16})  = SHORTPIXEL
+storagetype(::Type{UInt32})  = INTEGERPIXEL
 storagetype(::Type{Float32}) = FLOATPIXEL
 storagetype(::Type{Float64}) = DOUBLEPIXEL
 storagetype{T<:Normed}(::Type{T}) = storagetype(FixedPointNumbers.rawtype(T))
@@ -160,26 +155,26 @@ storagetype{CV<:Colorant}(::Type{CV}) = storagetype(eltype(CV))
 type ChannelType
     value::UInt32
 end
-const UndefinedChannel = ChannelType(0x00000000)
-const RedChannel = ChannelType(0x00000001)
-const GrayChannel = ChannelType(0x00000001)
-const CyanChannel = ChannelType(0x00000001)
-const GreenChannel = ChannelType(0x00000002)
-const MagentaChannel = ChannelType(0x00000002)
-const BlueChannel = ChannelType(0x00000004)
-const YellowChannel = ChannelType(0x00000004)
-const AlphaChannel = ChannelType(0x00000008)
-const MatteChannel = ChannelType(0x00000008)
-const OpacityChannel = ChannelType(0x00000008)
-const BlackChannel = ChannelType(0x00000020)
-const IndexChannel = ChannelType(0x00000020)
+const UndefinedChannel  = ChannelType(0x00000000)
+const RedChannel        = ChannelType(0x00000001)
+const GrayChannel       = ChannelType(0x00000001)
+const CyanChannel       = ChannelType(0x00000001)
+const GreenChannel      = ChannelType(0x00000002)
+const MagentaChannel    = ChannelType(0x00000002)
+const BlueChannel       = ChannelType(0x00000004)
+const YellowChannel     = ChannelType(0x00000004)
+const AlphaChannel      = ChannelType(0x00000008)
+const MatteChannel      = ChannelType(0x00000008)
+const OpacityChannel    = ChannelType(0x00000008)
+const BlackChannel      = ChannelType(0x00000020)
+const IndexChannel      = ChannelType(0x00000020)
 const CompositeChannels = ChannelType(0x0000002F)
-const TrueAlphaChannel = ChannelType(0x00000040)
-const RGBChannels = ChannelType(0x00000080)
-const GrayChannels = ChannelType(0x00000080)
-const SyncChannels = ChannelType(0x00000100)
-const AllChannels = ChannelType(0x7fffffff)
-const DefaultChannels = ChannelType( (AllChannels.value | SyncChannels.value) &~ OpacityChannel.value )
+const TrueAlphaChannel  = ChannelType(0x00000040)
+const RGBChannels       = ChannelType(0x00000080)
+const GrayChannels      = ChannelType(0x00000080)
+const SyncChannels      = ChannelType(0x00000100)
+const AllChannels       = ChannelType(0x7fffffff)
+const DefaultChannels   = ChannelType((AllChannels.value | SyncChannels.value) & ~OpacityChannel.value)
 
 
 # Image type
@@ -208,15 +203,15 @@ function flip12(A)
 end
 pd(A) = permutedims(A, [2;1;3:ndims(A)])
 
-orientation_dict = Dict(nothing => pd,
-                        "1" => pd,
-                        "2" => A->pd(flip1(A)),
-                        "3" => A->pd(flip12(A)),
-                        "4" => A->pd(flip2(A)),
-                        "5" => identity,
-                        "6" => flip2,
-                        "7" => flip12,
-                        "8" => flip1)
+const orientation_dict = Dict(nothing => pd,
+    "1" => pd,
+    "2" => A->pd(flip1(A)),
+    "3" => A->pd(flip12(A)),
+    "4" => A->pd(flip2(A)),
+    "5" => identity,
+    "6" => flip2,
+    "7" => flip12,
+    "8" => flip1)
 
 function nchannels(imtype::AbstractString, cs::AbstractString, havealpha = false)
     n = 3
