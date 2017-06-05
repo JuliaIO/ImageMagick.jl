@@ -20,17 +20,17 @@ export MagickWand,
 
 const init_envs = Dict{String,String}()
 
-# Find the library
-const depsfile = joinpath(dirname(@__FILE__), "..", "deps", "deps.jl")
+const depsfile = joinpath(dirname(@__DIR__), "deps", "deps.jl")
 if isfile(depsfile)
     include(depsfile)
 else
     error("ImageMagick not properly installed. Please run Pkg.build(\"ImageMagick\") then restart Julia.")
 end
 
-const libmagic = Ref{Ptr{Void}}()
+const libmagick = Ref{Ptr{Void}}()
 
 const MagickWandGenesis                = Ref{Ptr{Void}}()
+const MagickWandTerminus               = Ref{Ptr{Void}}()
 const NewMagickWand                    = Ref{Ptr{Void}}()
 const DestroyMagickWand                = Ref{Ptr{Void}}()
 const NewPixelWand                     = Ref{Ptr{Void}}()
@@ -75,18 +75,23 @@ const MagickRelinquishMemory           = Ref{Ptr{Void}}()
 const MagickQueryConfigureOption       = Ref{Ptr{Void}}()
 const MagickQueryConfigureOptions      = Ref{Ptr{Void}}()
 
-const libversionref = Ref{VersionNumber}()
 
-loadsym(fun::Symbol) = Libdl.dlsym(libmagic[], fun)
+initialize() = ccall(MagickWandGenesis[], Void, ())
+destroy() = ccall(MagickWandTerminus[], Void, ())
+
+loadsym(fun::Symbol) = Libdl.dlsym(libmagick[], fun)
+
+getlibversion() = VersionNumber(join(split(queryoption("LIB_VERSION_NUMBER"), ',')[1:3], '.'))
 
 function __init__()
     for (key, value) in init_envs
         ENV[key] = value
     end
 
-    libmagic[]  = Libdl.dlopen(libwand, Libdl.RTLD_GLOBAL)
+    libmagick[]  = Libdl.dlopen(libwand, Libdl.RTLD_GLOBAL)
 
     MagickWandGenesis[]                = loadsym(:MagickWandGenesis)
+    MagickWandTerminus[]               = loadsym(:MagickWandTerminus)
     NewMagickWand[]                    = loadsym(:NewMagickWand)
     DestroyMagickWand[]                = loadsym(:DestroyMagickWand)
     NewPixelWand[]                     = loadsym(:NewPixelWand)
@@ -131,10 +136,9 @@ function __init__()
     MagickQueryConfigureOptions[]      = loadsym(:MagickQueryConfigureOptions)
     MagickQueryConfigureOption[]       = loadsym(:MagickQueryConfigureOption)
 
-    ccall(MagickWandGenesis[], Void, ())
+    initialize()
 
-    libversionref[] = VersionNumber(join(split(queryoption("LIB_VERSION_NUMBER"), ',')[1:3], '.'))
-    global libversion = libversionref[]
+    global libversion = getlibversion()
 end
 
 # Constants

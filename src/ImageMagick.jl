@@ -152,7 +152,7 @@ function image2wand(img, mapi=identity, quality=nothing, permute_horizontal=true
     T = eltype(imgw)
     channelorder = T<:Real ? "Gray" : ColorTypes.colorant_string(T)
     if T <: Union{RGB,RGBA,ARGB,BGRA,ABGR}
-        cs = libversionref[] > v"6.7.5" ? "sRGB" : "RGB"
+        cs = getlibversion() > v"6.7.5" ? "sRGB" : "RGB"
     else
         cs = channelorder
     end
