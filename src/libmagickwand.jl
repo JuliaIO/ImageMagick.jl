@@ -21,7 +21,7 @@ export MagickWand,
 const init_envs = Dict{String,String}()
 
 # Find the library
-const depsfile = joinpath("..", "deps", "deps.jl")
+const depsfile = joinpath(dirname(@__FILE__), "..", "deps", "deps.jl")
 if isfile(depsfile)
     include(depsfile)
 else
@@ -30,6 +30,7 @@ end
 
 const libmagic = Ref{Ptr{Void}}()
 
+const MagickWandGenesis                = Ref{Ptr{Void}}()
 const NewMagickWand                    = Ref{Ptr{Void}}()
 const DestroyMagickWand                = Ref{Ptr{Void}}()
 const NewPixelWand                     = Ref{Ptr{Void}}()
@@ -85,6 +86,7 @@ function __init__()
 
     libmagic[]  = Libdl.dlopen(libwand, Libdl.RTLD_GLOBAL)
 
+    MagickWandGenesis[]                = loadsym(:MagickWandGenesis)
     NewMagickWand[]                    = loadsym(:NewMagickWand)
     DestroyMagickWand[]                = loadsym(:DestroyMagickWand)
     NewPixelWand[]                     = loadsym(:NewPixelWand)
@@ -129,7 +131,7 @@ function __init__()
     MagickQueryConfigureOptions[]      = loadsym(:MagickQueryConfigureOptions)
     MagickQueryConfigureOption[]       = loadsym(:MagickQueryConfigureOption)
 
-    ccall((:MagickWandGenesis, libwand), Void, ())
+    ccall(MagickWandGenesis[], Void, ())
 
     libversionref[] = VersionNumber(join(split(queryoption("LIB_VERSION_NUMBER"), ',')[1:3], '.'))
     global libversion = libversionref[]
