@@ -49,14 +49,14 @@ some of your workarounds might interfere with the new approach. You can reset yo
 
 ```julia
 using Homebrew
-run(`brew remove imagemagick@6`)
-run(`brew prune`)
+Homebrew.rm("imagemagick@6")
+Homebrew.brew(`prune`)
 Pkg.build("ImageMagick")
 ```
 
 You may also find [debugging
 Homebrew](https://github.com/JuliaLang/Homebrew.jl/wiki/Debugging-Homebrew.jl)
-useful. 
+useful.
 
 Finally, an alternative to ImageMagick on OS X is
 [QuartzImageIO](https://github.com/JuliaIO/QuartzImageIO.jl).
