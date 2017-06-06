@@ -76,9 +76,10 @@ if is_apple()
     preloads =
         """
         function initenv()
-            ENV["MAGICK_CONFIGURE_PATH"]     = "$(escape_string(joinpath(homebrew_prefix, "lib", "ImageMagick", "config-Q16")))"
-            ENV["MAGICK_CODER_MODULE_PATH"]  = "$(escape_string(joinpath(homebrew_prefix, "lib", "ImageMagick", "modules-Q16", "coders")))"
-            ENV["MAGICK_FILTER_MODULE_PATH"] = "$(escape_string(joinpath(homebrew_prefix, "lib", "ImageMagick", "modules-Q16", "filters")))"
+            ENV["MAGICK_CONFIGURE_PATH"]     = "$(escape_string(joinpath(homebrew_prefix, "opt", "imagemagick@6", "lib", "ImageMagick", "config-Q16")))"
+            ENV["MAGICK_CODER_MODULE_PATH"]  = "$(escape_string(joinpath(homebrew_prefix, "opt", "imagemagick@6", "lib", "ImageMagick", "modules-Q16", "coders")))"
+            ENV["MAGICK_FILTER_MODULE_PATH"] = "$(escape_string(joinpath(homebrew_prefix, "opt", "imagemagick@6", "lib", "ImageMagick", "modules-Q16", "filters")))"
+            ENV["PATH"]                      = "$(escape_string(joinpath(homebrew_prefix, "opt", "imagemagick@6", "bin") * ":"))" * ENV["PATH"]
         end
         """
     provides(Homebrew.HB, "homebrew/core/imagemagick@6", libwand, os = :Darwin, preload = preloads)
