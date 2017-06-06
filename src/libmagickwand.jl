@@ -18,8 +18,6 @@ export MagickWand,
     setimageformat,
     writeimage
 
-const init_envs = Dict{String,String}()
-
 const depsfile = joinpath(dirname(@__DIR__), "deps", "deps.jl")
 if isfile(depsfile)
     include(depsfile)
@@ -75,18 +73,15 @@ const MagickRelinquishMemory           = Ref{Ptr{Void}}()
 const MagickQueryConfigureOption       = Ref{Ptr{Void}}()
 const MagickQueryConfigureOptions      = Ref{Ptr{Void}}()
 
+magickgenesis() = ccall(MagickWandGenesis[], Void, ())
+magickterminus() = ccall(MagickWandTerminus[], Void, ())
 
-initialize() = ccall(MagickWandGenesis[], Void, ())
-destroy() = ccall(MagickWandTerminus[], Void, ())
-
-loadsym(fun::Symbol) = Libdl.dlsym(libmagick[], fun)
+loadsym(cfun::Symbol) = Libdl.dlsym(libmagick[], cfun)
 
 getlibversion() = VersionNumber(join(split(queryoption("LIB_VERSION_NUMBER"), ',')[1:3], '.'))
 
 function __init__()
-    for (key, value) in init_envs
-        ENV[key] = value
-    end
+    isdefined(ImageMagick, :initenv) && initenv()
 
     libmagick[]  = Libdl.dlopen(libwand, Libdl.RTLD_GLOBAL)
 
@@ -136,7 +131,7 @@ function __init__()
     MagickQueryConfigureOptions[]      = loadsym(:MagickQueryConfigureOptions)
     MagickQueryConfigureOption[]       = loadsym(:MagickQueryConfigureOption)
 
-    initialize()
+    magickgenesis()
 
     global libversion = getlibversion()
 end

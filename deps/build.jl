@@ -49,10 +49,12 @@ if is_windows()
     innounp_url   = "https://bintray.com/artifact/download/julialang/generic/innounp.exe"
     preloads      =
         """
-        init_envs["MAGICK_CONFIGURE_PATH"]     = "$(escape_string(magick_libdir))"
-        init_envs["MAGICK_CODER_MODULE_PATH"]  = "$(escape_string(joinpath(magick_libdir, "modules", "coders")))"
-        init_envs["MAGICK_FILTER_MODULE_PATH"] = "$(escape_string(joinpath(magick_libdir, "modules", "filters")))"
-        init_envs["PATH"]                      = "$(escape_string(magick_libdir * ";"))" * ENV["PATH"]
+        function initenv()
+            ENV["MAGICK_CONFIGURE_PATH"]     = "$(escape_string(magick_libdir))"
+            ENV["MAGICK_CODER_MODULE_PATH"]  = "$(escape_string(joinpath(magick_libdir, "modules", "coders")))"
+            ENV["MAGICK_FILTER_MODULE_PATH"] = "$(escape_string(joinpath(magick_libdir, "modules", "filters")))"
+            ENV["PATH"]                      = "$(escape_string(magick_libdir * ";"))" * ENV["PATH"]
+        end
         """
 
     provides(BuildProcess,
@@ -73,9 +75,11 @@ if is_apple()
     homebrew_prefix = Homebrew.prefix()
     preloads =
         """
-        init_envs["MAGICK_CONFIGURE_PATH"]     = "$(escape_string(joinpath(homebrew_prefix, "lib", "ImageMagick", "config-Q16")))"
-        init_envs["MAGICK_CODER_MODULE_PATH"]  = "$(escape_string(joinpath(homebrew_prefix, "lib", "ImageMagick", "modules-Q16", "coders")))"
-        init_envs["MAGICK_FILTER_MODULE_PATH"] = "$(escape_string(joinpath(homebrew_prefix, "lib", "ImageMagick", "modules-Q16", "filters")))"
+        function initenv()
+            ENV["MAGICK_CONFIGURE_PATH"]     = "$(escape_string(joinpath(homebrew_prefix, "lib", "ImageMagick", "config-Q16")))"
+            ENV["MAGICK_CODER_MODULE_PATH"]  = "$(escape_string(joinpath(homebrew_prefix, "lib", "ImageMagick", "modules-Q16", "coders")))"
+            ENV["MAGICK_FILTER_MODULE_PATH"] = "$(escape_string(joinpath(homebrew_prefix, "lib", "ImageMagick", "modules-Q16", "filters")))"
+        end
         """
     provides(Homebrew.HB, "homebrew/core/imagemagick@6", libwand, os = :Darwin, preload = preloads)
 end
