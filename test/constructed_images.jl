@@ -94,11 +94,7 @@ type TestType end
 
     @testset "Colormap usage" begin
         datafloat = reshape(linspace(0.5, 1.5, 6), 2, 3)
-        if VERSION < v"0.6-"
-            dataint = round(UInt8, 254*(datafloat .- 0.5) .+ 1)  # ranges from 1 to 255
-        else
-            dataint = round.(UInt8, 254*(datafloat .- 0.5) .+ 1)  # ranges from 1 to 255
-        end
+        dataint = round.([UInt8], 254*(datafloat .- 0.5) .+ 1)  # ranges from 1 to 255
         # build our colormap
         b = RGB(0,0,1)
         w = RGB(1,1,1)
