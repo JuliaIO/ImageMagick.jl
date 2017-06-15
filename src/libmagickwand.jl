@@ -86,10 +86,8 @@ function __init__()
     isdefined(ImageMagick, :initenv) && initenv()
 
     libmagick[] = Libdl.dlopen(libwand, Libdl.RTLD_GLOBAL)
-
     MagickWandGenesis[]                = loadsym(:MagickWandGenesis)
-    MagickWandTerminus[]               = loadsym(:MagickWandTerminus)
-    IsMagickWandInstantiated[]         = loadsym(:IsMagickWandInstantiated)
+    MagickWandTerminus[]               = loadsym(:MagickWandTerminus)    
     NewMagickWand[]                    = loadsym(:NewMagickWand)
     DestroyMagickWand[]                = loadsym(:DestroyMagickWand)
     NewPixelWand[]                     = loadsym(:NewPixelWand)
@@ -133,12 +131,12 @@ function __init__()
     MagickRelinquishMemory[]           = loadsym(:MagickRelinquishMemory)
     MagickQueryConfigureOptions[]      = loadsym(:MagickQueryConfigureOptions)
     MagickQueryConfigureOption[]       = loadsym(:MagickQueryConfigureOption)
+    global libversion = getlibversion()
+    IsMagickWandInstantiated[] = libversion < v"6.9" ? loadsym(:IsMagickInstantiated) : loadsym(:IsMagickWandInstantiated)
 
     if !isinstantiated()
         magickgenesis()
     end
-    
-    global libversion = getlibversion()
 end
 
 # Constants
