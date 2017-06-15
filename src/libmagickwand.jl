@@ -87,7 +87,7 @@ function __init__()
 
     libmagick[] = Libdl.dlopen(libwand, Libdl.RTLD_GLOBAL)
     MagickWandGenesis[]                = loadsym(:MagickWandGenesis)
-    MagickWandTerminus[]               = loadsym(:MagickWandTerminus)    
+    MagickWandTerminus[]               = loadsym(:MagickWandTerminus)
     NewMagickWand[]                    = loadsym(:NewMagickWand)
     DestroyMagickWand[]                = loadsym(:DestroyMagickWand)
     NewPixelWand[]                     = loadsym(:NewPixelWand)
