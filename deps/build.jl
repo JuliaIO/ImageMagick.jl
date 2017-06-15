@@ -2,6 +2,16 @@ using BinDeps
 
 @BinDeps.setup
 
+const MAX_VERSION = v"7.0-"
+function magick_get_libversion(lib, handle)
+    sym = Libdl.dlsym_e(handle, :MagickQueryConfigureOption)
+    p = ccall(sym, Ptr{UInt8}, (Ptr{UInt8},), "LIB_VERSION_NUMBER")
+    p != C_NULL || error("Error obtaining ImageMagick library version.")
+    VersionNumber(join(split(unsafe_string(p), ',')[1:3], '.'))
+end
+compatible_version(lib, handle) = magick_get_libversion(lib, handle) < MAX_VERSION
+
+
 libnames    = ["libMagickWand", "CORE_RL_wand_"]
 suffixes    = ["", "-Q16", "-6.Q16", "-Q8"]
 options     = ["", "HDRI"]
@@ -10,7 +20,7 @@ aliases     = vec(libnames .*
                   reshape(suffixes, (1, length(suffixes))) .*
                   reshape(options, (1, 1, length(options))) .*
                   reshape(extensions, (1, 1, 1, length(extensions))))
-libwand     = library_dependency("libwand", aliases = aliases)
+libwand     = library_dependency("libwand", aliases = aliases, validate = compatible_version)
 
 
 mpath = get(ENV, "MAGICK_HOME", "") # If MAGICK_HOME is defined, add to library search path
