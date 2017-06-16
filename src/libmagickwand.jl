@@ -29,6 +29,7 @@ const libmagick = Ref{Ptr{Void}}()
 
 const MagickWandGenesis                = Ref{Ptr{Void}}()
 const MagickWandTerminus               = Ref{Ptr{Void}}()
+const IsMagickWandInstantiated         = Ref{Ptr{Void}}()
 const NewMagickWand                    = Ref{Ptr{Void}}()
 const DestroyMagickWand                = Ref{Ptr{Void}}()
 const NewPixelWand                     = Ref{Ptr{Void}}()
@@ -75,6 +76,7 @@ const MagickQueryConfigureOptions      = Ref{Ptr{Void}}()
 
 magickgenesis() = ccall(MagickWandGenesis[], Void, ())
 magickterminus() = ccall(MagickWandTerminus[], Void, ())
+isinstantiated() = ccall(IsMagickWandInstantiated[], Cint, ()) == 1
 
 loadsym(cfun::Symbol) = Libdl.dlsym(libmagick[], cfun)
 
@@ -83,8 +85,7 @@ getlibversion() = VersionNumber(join(split(queryoption("LIB_VERSION_NUMBER"), ',
 function __init__()
     isdefined(ImageMagick, :initenv) && initenv()
 
-    libmagick[]  = Libdl.dlopen(libwand, Libdl.RTLD_GLOBAL)
-
+    libmagick[] = Libdl.dlopen(libwand, Libdl.RTLD_GLOBAL)
     MagickWandGenesis[]                = loadsym(:MagickWandGenesis)
     MagickWandTerminus[]               = loadsym(:MagickWandTerminus)
     NewMagickWand[]                    = loadsym(:NewMagickWand)
@@ -130,10 +131,12 @@ function __init__()
     MagickRelinquishMemory[]           = loadsym(:MagickRelinquishMemory)
     MagickQueryConfigureOptions[]      = loadsym(:MagickQueryConfigureOptions)
     MagickQueryConfigureOption[]       = loadsym(:MagickQueryConfigureOption)
-
-    magickgenesis()
-
     global libversion = getlibversion()
+    IsMagickWandInstantiated[] = libversion < v"6.9" ? loadsym(:IsMagickInstantiated) : loadsym(:IsMagickWandInstantiated)
+
+    if !isinstantiated()
+        magickgenesis()
+    end
 end
 
 # Constants
