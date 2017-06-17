@@ -2,14 +2,39 @@ using BinDeps
 
 @BinDeps.setup
 
+
 const MAX_VERSION = v"7.0-"
-function magick_get_libversion(lib, handle)
-    sym = Libdl.dlsym_e(handle, :MagickQueryConfigureOption)
-    p = ccall(sym, Ptr{UInt8}, (Ptr{UInt8},), "LIB_VERSION_NUMBER")
-    p != C_NULL || error("Error obtaining ImageMagick library version.")
-    VersionNumber(join(split(unsafe_string(p), ',')[1:3], '.'))
+
+check_version(lib, handle) = preinit_getlibversion(lib, handle) < MAX_VERSION
+
+# Set the environment variables required by some providers and call a version of getlibversion that
+# instantiates and terminates MagickWand.
+function preinit_getlibversion(lib, handle)
+    if (is_apple() && startswith(lib, homebrew_prefix))
+        withenv(homebrew_envs...) do
+            _preinit_getlibversion(lib, handle)
+        end
+    elseif (is_windows() && startswith(lib, magick_libdir))
+        withenv(windows_binary_envs...) do
+            _preinit_getlibversion(lib, handle)
+        end
+    else
+        _preinit_getlibversion(lib, handle)
+    end
 end
-compatible_version(lib, handle) = magick_get_libversion(lib, handle) < MAX_VERSION
+
+function _preinit_getlibversion(lib, handle)
+    MagickWandGenesis = Libdl.dlsym(handle, :MagickWandGenesis)
+    MagickWandTerminus = Libdl.dlsym(handle, :MagickWandTerminus)
+    MagickQueryConfigureOption = Libdl.dlsym_e(handle, :MagickQueryConfigureOption)
+
+    ccall(MagickWandGenesis, Void, ())
+    p = ccall(MagickQueryConfigureOption, Ptr{UInt8}, (Ptr{UInt8},), "LIB_VERSION_NUMBER")
+    ccall(MagickWandTerminus, Void, ())
+
+    p != C_NULL || error("Error obtaining ImageMagick library version.")
+    return VersionNumber(join(split(unsafe_string(p), ',')[1:3], '.'))
+end
 
 
 libnames    = ["libMagickWand", "CORE_RL_wand_"]
@@ -20,7 +45,7 @@ aliases     = vec(libnames .*
                   reshape(suffixes, (1, length(suffixes))) .*
                   reshape(options, (1, 1, length(options))) .*
                   reshape(extensions, (1, 1, 1, length(extensions))))
-libwand     = library_dependency("libwand", aliases = aliases, validate = compatible_version)
+libwand     = library_dependency("libwand", aliases = aliases, validate = check_version)
 
 
 mpath = get(ENV, "MAGICK_HOME", "") # If MAGICK_HOME is defined, add to library search path
@@ -57,15 +82,15 @@ if is_windows()
     magick_installdir = joinpath(BinDeps.libdir(libwand), OS_ARCH)
     magick_libdir = joinpath(magick_installdir, "{app}")
     innounp_url   = "https://bintray.com/artifact/download/julialang/generic/innounp.exe"
-    preloads      =
-        """
-        function initenv()
-            ENV["MAGICK_CONFIGURE_PATH"]     = "$(escape_string(magick_libdir))"
-            ENV["MAGICK_CODER_MODULE_PATH"]  = "$(escape_string(joinpath(magick_libdir, "modules", "coders")))"
-            ENV["MAGICK_FILTER_MODULE_PATH"] = "$(escape_string(joinpath(magick_libdir, "modules", "filters")))"
-            ENV["PATH"]                      = "$(escape_string(magick_libdir * ";"))" * ENV["PATH"]
-        end
-        """
+
+    windows_binary_envs =
+        Dict("MAGICK_CONFIGURE_PATH" => magick_libdir,
+             "MAGICK_CODER_MODULE_PATH" => joinpath(magick_libdir, "modules", "coders"),
+             "MAGICK_FILTER_MODULE_PATH" => joinpath(magick_libdir, "modules", "filters"),
+             "PATH" => magick_libdir * ";" * ENV["PATH"])
+    preloads = string("function initenv()\n",
+                      [string("    ENV[\"", k, "\"] = \"", escape_string(v), "\"\n") for (k, v) in windows_binary_envs]...,
+                      "end\n")
 
     provides(BuildProcess,
         (@build_steps begin
@@ -83,15 +108,17 @@ end
 if is_apple()
     using Homebrew
     homebrew_prefix = Homebrew.prefix()
-    preloads =
-        """
-        function initenv()
-            ENV["MAGICK_CONFIGURE_PATH"]     = "$(escape_string(joinpath(homebrew_prefix, "opt", "imagemagick@6", "lib", "ImageMagick", "config-Q16")))"
-            ENV["MAGICK_CODER_MODULE_PATH"]  = "$(escape_string(joinpath(homebrew_prefix, "opt", "imagemagick@6", "lib", "ImageMagick", "modules-Q16", "coders")))"
-            ENV["MAGICK_FILTER_MODULE_PATH"] = "$(escape_string(joinpath(homebrew_prefix, "opt", "imagemagick@6", "lib", "ImageMagick", "modules-Q16", "filters")))"
-            ENV["PATH"]                      = "$(escape_string(joinpath(homebrew_prefix, "opt", "imagemagick@6", "bin") * ":"))" * ENV["PATH"]
-        end
-        """
+    homebrew_envs =
+        Dict("MAGICK_CONFIGURE_PATH" => joinpath(homebrew_prefix, "opt", "imagemagick@6", "lib",
+                "ImageMagick", "config-Q16"),
+             "MAGICK_CODER_MODULE_PATH" => joinpath(homebrew_prefix, "opt", "imagemagick@6", "lib",
+                "ImageMagick", "modules-Q16", "coders"),
+             "MAGICK_FILTER_MODULE_PATH" => joinpath(homebrew_prefix, "opt", "imagemagick@6",
+                "lib", "ImageMagick", "modules-Q16", "filters"),
+             "ENV" => joinpath(homebrew_prefix, "opt", "imagemagick@6", "bin") * ":" * ENV["PATH"])
+    preloads = string("function initenv()\n",
+                      [string("    ENV[\"", k, "\"] = \"", escape_string(v), "\"\n") for (k, v) in homebrew_envs]...,
+                      "end\n")
     provides(Homebrew.HB, "homebrew/core/imagemagick@6", libwand, os = :Darwin, preload = preloads)
 end
 
