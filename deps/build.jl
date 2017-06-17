@@ -24,13 +24,13 @@ function preinit_getlibversion(lib, handle)
 end
 
 function _preinit_getlibversion(lib, handle)
-    MagickWandGenesis = Libdl.dlsym(handle, :MagickWandGenesis)
-    MagickWandTerminus = Libdl.dlsym(handle, :MagickWandTerminus)
+    # MagickWandGenesis = Libdl.dlsym(handle, :MagickWandGenesis)
+    # MagickWandTerminus = Libdl.dlsym(handle, :MagickWandTerminus)
     MagickQueryConfigureOption = Libdl.dlsym_e(handle, :MagickQueryConfigureOption)
 
-    ccall(MagickWandGenesis, Void, ())
+    # ccall(MagickWandGenesis, Void, ())
     p = ccall(MagickQueryConfigureOption, Ptr{UInt8}, (Ptr{UInt8},), "LIB_VERSION_NUMBER")
-    ccall(MagickWandTerminus, Void, ())
+    # ccall(MagickWandTerminus, Void, ())
 
     p != C_NULL || error("Error obtaining ImageMagick library version.")
     return VersionNumber(join(split(unsafe_string(p), ',')[1:3], '.'))
