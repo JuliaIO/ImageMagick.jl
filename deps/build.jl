@@ -3,7 +3,7 @@ using BinDeps
 @BinDeps.setup
 
 
-const MIN_VERSION = v"6.7-" # First supported version
+const MIN_VERSION = v"6.0-" # First supported version
 const MAX_VERSION = v"7.0-" # First unsupported version
 
 # Set the environment variables required by some providers during the pre-init version validation.
