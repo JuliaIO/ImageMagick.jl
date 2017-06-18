@@ -78,7 +78,8 @@ magickterminus() = ccall(MagickWandTerminus[], Void, ())
 
 loadsym(cfun::Symbol) = Libdl.dlsym(libmagick[], cfun)
 
-getlibversion() = VersionNumber(join(split(queryoption("LIB_VERSION_NUMBER"), ',')[1:3], '.'))
+const _libversion = Ref{VersionNumber}()
+libversion() = _libversion[]
 
 function __init__()
     isdefined(ImageMagick, :initenv) && initenv()
@@ -133,7 +134,7 @@ function __init__()
 
     magickgenesis()
 
-    global libversion = getlibversion()
+    _libversion[] = VersionNumber(join(split(queryoption("LIB_VERSION_NUMBER"), ',')[1:3], '.'))
 end
 
 # Constants

@@ -3,35 +3,29 @@ using BinDeps
 @BinDeps.setup
 
 
-const MAX_VERSION = v"7.0-"
+const MIN_VERSION = v"6.7-" # First supported version
+const MAX_VERSION = v"7.0-" # First unsupported version
 
-check_version(lib, handle) = preinit_getlibversion(lib, handle) < MAX_VERSION
-
-# Set the environment variables required by some providers and call a version of getlibversion that
-# instantiates and terminates MagickWand.
-function preinit_getlibversion(lib, handle)
+# Set the environment variables required by some providers during the pre-init version validation.
+function check_version(lib, handle)
     if (is_apple() && startswith(lib, homebrew_prefix))
-        withenv(homebrew_envs...) do
-            _preinit_getlibversion(lib, handle)
+        version = withenv(homebrew_envs...) do
+            preinit_libversion(lib, handle)
         end
     elseif (is_windows() && startswith(lib, magick_libdir))
-        withenv(windows_binary_envs...) do
-            _preinit_getlibversion(lib, handle)
+        version = withenv(windows_binary_envs...) do
+            preinit_libversion(lib, handle)
         end
     else
-        _preinit_getlibversion(lib, handle)
+        version = preinit_libversion(lib, handle)
     end
+
+    return version >= MIN_VERSION && version < MAX_VERSION
 end
 
-function _preinit_getlibversion(lib, handle)
-    # MagickWandGenesis = Libdl.dlsym(handle, :MagickWandGenesis)
-    # MagickWandTerminus = Libdl.dlsym(handle, :MagickWandTerminus)
+function preinit_libversion(lib, handle)
     MagickQueryConfigureOption = Libdl.dlsym_e(handle, :MagickQueryConfigureOption)
-
-    # ccall(MagickWandGenesis, Void, ())
     p = ccall(MagickQueryConfigureOption, Ptr{UInt8}, (Ptr{UInt8},), "LIB_VERSION_NUMBER")
-    # ccall(MagickWandTerminus, Void, ())
-
     p != C_NULL || error("Error obtaining ImageMagick library version.")
     return VersionNumber(join(split(unsafe_string(p), ',')[1:3], '.'))
 end

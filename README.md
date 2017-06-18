@@ -80,7 +80,7 @@ necessary changes to take effect.**
 
 ImageMagick.jl automatically searches for an installed version of
 libMagickWand.  Use the environment variable `MAGICK_HOME` to add to the search
-path.  Use `ImageMagick.libversion` to see what version it found.  Version 6.7+
+path.  Use `ImageMagick.libversion()` to see what version it found.  Version 6.7+
 (up to but not including 7.0) are the most supported versions, in particular
 for multipage TIFFs.
 
