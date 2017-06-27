@@ -8,19 +8,18 @@ const MAX_VERSION = v"7.0-" # First unsupported version
 
 # Set the environment variables required by some providers during the pre-init version validation.
 function check_version(lib, handle)
-    if (is_apple() && startswith(lib, homebrew_prefix))
+    if is_apple() && startswith(lib, homebrew_prefix)
         version = withenv(homebrew_envs...) do
             preinit_libversion(lib, handle)
         end
-    elseif (is_windows() && startswith(lib, magick_libdir))
+    elseif is_windows() && startswith(lib, magick_libdir)
         version = withenv(windows_binary_envs...) do
             preinit_libversion(lib, handle)
         end
     else
         version = preinit_libversion(lib, handle)
     end
-
-    return version >= MIN_VERSION && version < MAX_VERSION
+    return MIN_VERSION ≤ version < MAX_VERSION
 end
 
 function preinit_libversion(lib, handle)
