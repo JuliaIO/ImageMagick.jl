@@ -80,7 +80,8 @@ isinstantiated() = ccall(IsMagickWandInstantiated[], Cint, ()) == 1
 
 loadsym(cfun::Symbol) = Libdl.dlsym(libmagick[], cfun)
 
-getlibversion() = VersionNumber(join(split(queryoption("LIB_VERSION_NUMBER"), ',')[1:3], '.'))
+const _libversion = Ref{VersionNumber}()
+libversion() = _libversion[]
 
 function __init__()
     isdefined(ImageMagick, :initenv) && initenv()
@@ -131,12 +132,10 @@ function __init__()
     MagickRelinquishMemory[]           = loadsym(:MagickRelinquishMemory)
     MagickQueryConfigureOptions[]      = loadsym(:MagickQueryConfigureOptions)
     MagickQueryConfigureOption[]       = loadsym(:MagickQueryConfigureOption)
-    global libversion = getlibversion()
-    IsMagickWandInstantiated[] = libversion < v"6.9" ? loadsym(:IsMagickInstantiated) : loadsym(:IsMagickWandInstantiated)
 
-    if !isinstantiated()
-        magickgenesis()
-    end
+    magickgenesis()
+
+    _libversion[] = VersionNumber(join(split(queryoption("LIB_VERSION_NUMBER"), ',')[1:3], '.'))
 end
 
 # Constants
