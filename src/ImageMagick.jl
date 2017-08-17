@@ -222,6 +222,8 @@ mapIM{T}(c::RGBA{T}) = convert(RGBA{N0f8}, c)
 mapIM{T<:Normed}(c::RGBA{T}) = c
 
 mapIM(x::UInt8) = reinterpret(N0f8, x)
+mapIM(x::UInt16) = reinterpret(N0f16, x)
+mapIM(x::UInt32) = reinterpret(N0f32, x)
 mapIM(x::Bool) = convert(N0f8, x)
 mapIM(x::AbstractFloat) = convert(N0f8, x)
 mapIM(x::Normed) = x
