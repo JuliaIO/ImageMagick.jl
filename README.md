@@ -32,6 +32,16 @@ further details.
 
 It's worth pointing out that packages such as [Images.jl](https://github.com/JuliaImages/Images.jl) load FileIO for you.
 
+Loading an image is then as simple as
+
+```julia
+img = load(filename[; view=false])
+```
+
+Set `view=true` to reduce memory consumption when loading large files, possibly
+at some slight cost in terms of performance of future operations.
+
+
 # Troubleshooting
 
 ## OSX

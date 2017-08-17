@@ -1,4 +1,4 @@
-import Base: error, size, PermutedDimsArrays
+import Base: error, size
 
 export MagickWand,
     constituteimage,
@@ -196,15 +196,11 @@ for AC in vcat(subtypes(AlphaColor), subtypes(ColorAlpha))
     end
 end
 
-flip1(A)  = flipdim(A, 1)
-flip2(A)  = flipdim(A, 2)
-function flip12(A)
-    inds = Any[indices(A)...]
-    inds[1] = reverse(inds[1])
-    inds[2] = reverse(inds[2])
-    A[inds...]
-end
-pd(A) = permutedims(A, [2;1;3:ndims(A)])
+flip1(A) = view(A, reverse(indices(A,1)), ntuple(x->Colon(),ndims(A)-1)...)
+flip2(A) = view(A, :, reverse(indices(A,2)), ntuple(x->Colon(),ndims(A)-2)...)
+flip12(A) = view(A, reverse(indices(A,1)), reverse(indices(A,2)), ntuple(x->Colon(),ndims(A)-2)...)
+
+pd(A) = PermutedDimsArray(A, [2;1;3:ndims(A)])
 
 const orientation_dict = Dict(nothing => pd,
     "1" => pd,
