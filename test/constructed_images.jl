@@ -5,7 +5,7 @@ using Base.Test
 
 ontravis = haskey(ENV, "TRAVIS")
 
-type TestType end
+mutable struct TestType end
 
 @testset "IO" begin
     workdir = joinpath(tempdir(), "Images")
