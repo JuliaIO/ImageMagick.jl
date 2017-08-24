@@ -59,7 +59,7 @@ const ufixedtype = Dict(10=>N6f10, 12=>N4f12, 14=>N2f14, 16=>N0f16)
 
 readblob(data::Vector{UInt8}) = load_(data)
 
-function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Array, extraprop="", extrapropertynames=nothing)
+function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Array, extraprop="", extrapropertynames=nothing, view=false)
     if ImageType != Array
         error("this function now returns an Array, do not use ImageType keyword.")
     end
@@ -119,7 +119,8 @@ function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Array, ex
     exportimagepixels!(rawview(channelview(buf)), wand, cs, channelorder)
 
     orient = getimageproperty(wand, "exif:Orientation", false)
-    orientation_dict[orient](buf)
+    oriented_buf = orientation_dict[orient](buf)
+    view ? oriented_buf : collect(oriented_buf)
 end
 
 
@@ -221,6 +222,8 @@ mapIM{T}(c::RGBA{T}) = convert(RGBA{N0f8}, c)
 mapIM{T<:Normed}(c::RGBA{T}) = c
 
 mapIM(x::UInt8) = reinterpret(N0f8, x)
+mapIM(x::UInt16) = reinterpret(N0f16, x)
+mapIM(x::UInt32) = reinterpret(N0f32, x)
 mapIM(x::Bool) = convert(N0f8, x)
 mapIM(x::AbstractFloat) = convert(N0f8, x)
 mapIM(x::Normed) = x

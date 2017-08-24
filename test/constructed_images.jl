@@ -153,6 +153,7 @@ type TestType end
         Ar[1] = 0xffff
         A = map(x->Gray(reinterpret(N0f16, x)), Ar)
         fn = joinpath(workdir, "3d16.tif")
+        ImageMagick.save(fn, Ar)
         ImageMagick.save(fn, A)
         B = ImageMagick.load(fn)
 
