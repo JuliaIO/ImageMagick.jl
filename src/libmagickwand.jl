@@ -151,11 +151,11 @@ storagetype(::Type{UInt16})  = SHORTPIXEL
 storagetype(::Type{UInt32})  = INTEGERPIXEL
 storagetype(::Type{Float32}) = FLOATPIXEL
 storagetype(::Type{Float64}) = DOUBLEPIXEL
-storagetype{T<:Normed}(::Type{T}) = storagetype(FixedPointNumbers.rawtype(T))
-storagetype{CV<:Colorant}(::Type{CV}) = storagetype(eltype(CV))
+storagetype(::Type{T}) where {T<:Normed} = storagetype(FixedPointNumbers.rawtype(T))
+storagetype(::Type{CV}) where {CV<:Colorant} = storagetype(eltype(CV))
 
 # Channel types
-type ChannelType
+mutable struct ChannelType
     value::UInt32
 end
 const UndefinedChannel  = ChannelType(0x00000000)
@@ -230,7 +230,7 @@ end
 # Compression
 const NoCompression = 1
 
-type MagickWand
+mutable struct MagickWand
     ptr::Ptr{Void}
 
     function MagickWand()
@@ -257,7 +257,7 @@ function free(wand::MagickWand)
     nothing
 end
 
-type PixelWand
+mutable struct PixelWand
     ptr::Ptr{Void}
 
     function PixelWand()
@@ -305,16 +305,16 @@ function getsize(buffer, channelorder)
         return size(buffer, 2), size(buffer, 3), size(buffer, 4)
     end
 end
-getsize{C<:Colorant}(buffer::AbstractArray{C}, channelorder) = size(buffer, 1), size(buffer, 2), size(buffer, 3)
+getsize(buffer::AbstractArray{C}, channelorder) where {C<:Colorant} = size(buffer, 1), size(buffer, 2), size(buffer, 3)
 
 colorsize(buffer, channelorder) = channelorder == "I" ? 1 : size(buffer, 1)
-colorsize{C<:Colorant}(buffer::AbstractArray{C}, channelorder) = 1
+colorsize(buffer::AbstractArray{C}, channelorder) where {C<:Colorant} = 1
 
-bitdepth{C<:Colorant}(buffer::AbstractArray{C}) = 8*sizeof(eltype(C))
-bitdepth{T}(buffer::AbstractArray{T}) = 8*sizeof(T)
+bitdepth(buffer::AbstractArray{C}) where {C<:Colorant} = 8*sizeof(eltype(C))
+bitdepth(buffer::AbstractArray{T}) where {T} = 8*sizeof(T)
 
 # colorspace is included for consistency with constituteimage, but it is not used
-function exportimagepixels!{T<:Unsigned}(buffer::AbstractArray{T}, wand::MagickWand,  colorspace::String, channelorder::String; x = 0, y = 0)
+function exportimagepixels!(buffer::AbstractArray{T}, wand::MagickWand,  colorspace::String, channelorder::String; x = 0, y = 0) where T<:Unsigned
     cols, rows, nimages = getsize(buffer, channelorder)
     ncolors = colorsize(buffer, channelorder)
     p = pointer(buffer)
@@ -334,7 +334,7 @@ end
 #     nothing
 # end
 
-function constituteimage{T<:Unsigned}(buffer::AbstractArray{T}, wand::MagickWand, colorspace::String, channelorder::String; x = 0, y = 0)
+function constituteimage(buffer::AbstractArray{T}, wand::MagickWand, colorspace::String, channelorder::String; x = 0, y = 0) where T<:Unsigned
     cols, rows, nimages = getsize(buffer, channelorder)
     ncolors = colorsize(buffer, channelorder)
     p = pointer(buffer)

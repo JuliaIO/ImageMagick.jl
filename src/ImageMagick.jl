@@ -6,12 +6,12 @@ using FixedPointNumbers, ColorTypes, Images
 using FileIO: DataFormat, @format_str, Stream, File, filename, stream
 using Compat
 
-@compat Color1{T}           = Color{T,1}
-@compat Color2{T,C<:Color1} = TransparentColor{C,T,2}
-@compat Color3{T}           = Color{T,3}
-@compat Color4{T,C<:Color3} = TransparentColor{C,T,4}
+Color1{T}           = Color{T,1}
+Color2{T,C<:Color1} = TransparentColor{C,T,2}
+Color3{T}           = Color{T,3}
+Color4{T,C<:Color3} = TransparentColor{C,T,4}
 
-@compat AbstractGray{T}     = Color{T,1}
+AbstractGray{T}     = Color{T,1}
 
 export readblob, image2wand, magickinfo
 
@@ -46,14 +46,14 @@ const image_formats = [
     format"TGA"
 ]
 
-load{T <: DataFormat}(imagefile::File{T}, args...; key_args...) = load_(filename(imagefile), args...; key_args...)
+load(imagefile::File{T}, args...; key_args...) where {T <: DataFormat} = load_(filename(imagefile), args...; key_args...)
 load(filename::AbstractString, args...; key_args...) = load_(filename, args...; key_args...)
-save{T <: DataFormat}(imagefile::File{T}, args...; key_args...) = save_(filename(imagefile), args...; key_args...)
+save(imagefile::File{T}, args...; key_args...) where {T <: DataFormat} = save_(filename(imagefile), args...; key_args...)
 save(filename::AbstractString, args...; key_args...) = save_(filename, args...; key_args...)
 
-load{T <: DataFormat}(imgstream::Stream{T}, args...; key_args...) = load_(stream(imgstream), args...; key_args...)
+load(imgstream::Stream{T}, args...; key_args...) where {T <: DataFormat} = load_(stream(imgstream), args...; key_args...)
 load(imgstream::IO, args...; key_args...) = load_(imgstream, args...; key_args...)
-save{T <: DataFormat}(imgstream::Stream{T}, args...; key_args...) = save_(imgstream, args...; key_args...)
+save(imgstream::Stream{T}, args...; key_args...) where {T <: DataFormat} = save_(imgstream, args...; key_args...)
 
 const ufixedtype = Dict(10=>N6f10, 12=>N4f12, 14=>N2f14, 16=>N0f16)
 
@@ -174,7 +174,7 @@ function image2wand(img, mapi=identity, quality=nothing, permute_horizontal=true
     wand
 end
 
-formatstring{S}(s::Stream{DataFormat{S}}) = string(S)
+formatstring(s::Stream{DataFormat{S}}) where {S} = string(S)
 
 function magickinfo(file::Union{AbstractString,IO})
     wand = MagickWand()
@@ -206,20 +206,20 @@ end
 # ImageMagick element-mapping function. Converts to RGB/RGBA and uses
 # N0f8 "inner" element type.
 mapIM(c::Color1) = mapIM(convert(Gray, c))
-mapIM{T}(c::Gray{T}) = convert(Gray{N0f8}, c)
-mapIM{T<:Normed}(c::Gray{T}) = c
+mapIM(c::Gray{T}) where {T} = convert(Gray{N0f8}, c)
+mapIM(c::Gray{T}) where {T<:Normed} = c
 
 mapIM(c::Color2) = mapIM(convert(GrayA, c))
-mapIM{T}(c::GrayA{T}) = convert(GrayA{N0f8}, c)
-mapIM{T<:Normed}(c::GrayA{T}) = c
+mapIM(c::GrayA{T}) where {T} = convert(GrayA{N0f8}, c)
+mapIM(c::GrayA{T}) where {T<:Normed} = c
 
 mapIM(c::Color3) = mapIM(convert(RGB, c))
-mapIM{T}(c::RGB{T}) = convert(RGB{N0f8}, c)
-mapIM{T<:Normed}(c::RGB{T}) = c
+mapIM(c::RGB{T}) where {T} = convert(RGB{N0f8}, c)
+mapIM(c::RGB{T}) where {T<:Normed} = c
 
 mapIM(c::Color4) = mapIM(convert(RGBA, c))
-mapIM{T}(c::RGBA{T}) = convert(RGBA{N0f8}, c)
-mapIM{T<:Normed}(c::RGBA{T}) = c
+mapIM(c::RGBA{T}) where {T} = convert(RGBA{N0f8}, c)
+mapIM(c::RGBA{T}) where {T<:Normed} = c
 
 mapIM(x::UInt8) = reinterpret(N0f8, x)
 mapIM(x::UInt16) = reinterpret(N0f16, x)
@@ -235,10 +235,10 @@ to_contiguous(A::AbstractArray) = Compat.collect(A)
 to_contiguous(A::BitArray) = convert(Array{N0f8}, A)
 to_contiguous(A::ColorView) = to_contiguous(channelview(A))
 
-to_explicit{C<:Colorant}(A::Array{C}) = to_explicit(channelview(A))
-to_explicit{T}(A::ChannelView{T}) = to_explicit(copy!(Array{T}(size(A)), A))
-to_explicit{T<:Normed}(A::Array{T}) = rawview(A)
-to_explicit{T<:AbstractFloat}(A::Array{T}) = to_explicit(convert(Array{N0f8}, A))
+to_explicit(A::Array{C}) where {C<:Colorant} = to_explicit(channelview(A))
+to_explicit(A::ChannelView{T}) where {T} = to_explicit(copy!(Array{T}(size(A)), A))
+to_explicit(A::Array{T}) where {T<:Normed} = rawview(A)
+to_explicit(A::Array{T}) where {T<:AbstractFloat} = to_explicit(convert(Array{N0f8}, A))
 
 permutedims_horizontal(img::AbstractVector) = img
 function permutedims_horizontal(img)
