@@ -119,7 +119,7 @@ function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Array, ex
     exportimagepixels!(rawview(channelview(buf)), wand, cs, channelorder)
 
     orient = getimageproperty(wand, "exif:Orientation", false)
-    oriented_buf = orientation_dict[orient](buf)
+    oriented_buf = get(orientation_dict, orient, pd)(buf)
     view ? oriented_buf : collect(oriented_buf)
 end
 
