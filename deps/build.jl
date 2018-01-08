@@ -30,7 +30,7 @@ end
 
 
 libnames    = ["libMagickWand", "CORE_RL_wand_"]
-suffixes    = ["", "-Q16", "-6.Q16", "-Q8"]
+suffixes    = ["", "-Q16", "-6.Q16", "-Q8", "-6"]
 options     = ["", "HDRI"]
 extensions  = ["", ".so.2", ".so.4", ".so.5"]
 aliases     = vec(libnames .*
