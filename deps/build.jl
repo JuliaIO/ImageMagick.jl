@@ -114,6 +114,10 @@ if is_apple()
     provides(Homebrew.HB, "homebrew/core/imagemagick@6", libwand, os = :Darwin, preload = preloads)
 end
 
+if Sys.KERNEL === :FreeBSD
+    provides(BSDPkg, "ImageMagick", libwand)
+end
+
 
 @BinDeps.install Dict([(:libwand, :libwand)])
 
