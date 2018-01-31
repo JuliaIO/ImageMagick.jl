@@ -46,6 +46,8 @@ mutable struct TestType end
         ImageMagick.save(fn, aim)
         b = ImageMagick.load(fn)
         @test b == a8
+
+        @test ImageMagick.metadata(fn) == ((5,5), Gray{N0f8})
     end
 
     @testset "Gray png" begin
@@ -73,6 +75,8 @@ mutable struct TestType end
         @test eltype(eltype(b)) == N0f16
         # Gets loaded as RGB{N0f16} on windows/osx
         @test N0f16.(Gray.(b)) == aa
+        m = ImageMagick.metadata(fn)
+        @test m[1]==(3,2)
     end
 
     @testset "Color" begin
@@ -147,6 +151,8 @@ mutable struct TestType end
         B = ImageMagick.load(fn)
 
         @test A == B
+
+        @test ImageMagick.metadata(fn) == ((2,2,4), Gray{N0f8})
     end
 
     @testset "16-bit TIFF (issue #49)" begin
