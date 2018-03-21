@@ -75,14 +75,17 @@ if is_windows()
     magick_libdir = joinpath(magick_installdir, "{app}")
     innounp_url   = "https://bintray.com/artifact/download/julialang/generic/innounp.exe"
 
-    windows_binary_envs =
-        Dict("MAGICK_CONFIGURE_PATH" => magick_libdir,
-             "MAGICK_CODER_MODULE_PATH" => joinpath(magick_libdir, "modules", "coders"),
-             "MAGICK_FILTER_MODULE_PATH" => joinpath(magick_libdir, "modules", "filters"),
-             "PATH" => magick_libdir * ";" * ENV["PATH"])
-    preloads = string("function initenv()\n",
-                      [string("    ENV[\"", k, "\"] = \"", escape_string(v), "\"\n") for (k, v) in windows_binary_envs]...,
-                      "end\n")
+    windows_binary_envs = Dict(
+        "MAGICK_CONFIGURE_PATH" => magick_libdir,
+        "MAGICK_CODER_MODULE_PATH" => joinpath(magick_libdir, "modules", "coders"),
+        "MAGICK_FILTER_MODULE_PATH" => joinpath(magick_libdir, "modules", "filters"),
+        "PATH" => magick_libdir * ";$(ENV["PATH"])"
+    )
+    preloads = string(
+        "function initenv()\n",
+        [string("    ENV[\"", k, "\"] = \"", escape_string(v), "\"\n") for (k, v) in windows_binary_envs]...,
+        "end\ninitenv()\n"
+    )
 
     provides(BuildProcess,
         (@build_steps begin
@@ -93,7 +96,8 @@ if is_windows()
                 `innounp.exe -q -y -b -x -d$(magick_installdir) $(magick_exe)`
             end
         end),
-        libwand, os = :Windows, unpacked_dir = magick_libdir, preload = preloads)
+        libwand, os = :Windows, unpacked_dir = magick_libdir, preload = preloads
+    )
 end
 
 
