@@ -71,7 +71,8 @@ mutable struct TestType end
         ImageMagick.save(fn, aa)
         b = ImageMagick.load(fn)
         @test eltype(eltype(b)) == N0f16
-        @test b == aa
+        # Gets loaded as RGB{N0f16} on windows/osx
+        @test N0f16.(Gray.(b)) == aa
     end
 
     @testset "Color" begin

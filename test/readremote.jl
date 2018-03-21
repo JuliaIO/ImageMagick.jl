@@ -45,7 +45,7 @@ end
         file = getfile("wmark_image.png")
         img = ImageMagick.load(file)
         @test ndims(img) == 2
-        @test eltype(img) == GrayA{N0f8}
+        @test eltype(img) in (GrayA{N0f8}, RGBA{N0f8})
         if is_linux()
             outname = joinpath(writedir, "wmark_image.png")
             ImageMagick.save(outname, img)
