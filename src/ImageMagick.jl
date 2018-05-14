@@ -46,30 +46,22 @@ const image_formats = [
     format"TGA"
 ]
 
-load(imagefile::File{T}, args...; key_args...) where {T <: DataFormat} = load_(filename(imagefile), args...; key_args...)
-load(filename::AbstractString, args...; key_args...) = load_(filename, args...; key_args...)
-save(imagefile::File{T}, args...; key_args...) where {T <: DataFormat} = save_(filename(imagefile), args...; key_args...)
-save(filename::AbstractString, args...; key_args...) = save_(filename, args...; key_args...)
+"""
+    metadata(file) -> tuple of dimensions
 
-load(imgstream::Stream{T}, args...; key_args...) where {T <: DataFormat} = load_(stream(imgstream), args...; key_args...)
-load(imgstream::IO, args...; key_args...) = load_(imgstream, args...; key_args...)
-save(imgstream::Stream{T}, args...; key_args...) where {T <: DataFormat} = save_(imgstream, args...; key_args...)
-
-const ufixedtype = Dict(10=>N6f10, 12=>N4f12, 14=>N2f14, 16=>N0f16)
-
-readblob(data::Vector{UInt8}) = load_(data)
-
-function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Array, extraprop="", extrapropertynames=nothing, view=false)
-    if ImageType != Array
-        error("this function now returns an Array, do not use ImageType keyword.")
-    end
-    if extraprop != "" || extrapropertynames != nothing
-        error("keywords \"extraprop\" and \"extrapropertynames\" no longer work, use magickinfo instead")
-    end
+The returned value is (X,Y[,Z]), not (R,C), so the first two dimensions
+of the corresponding Array returned by `load` are reversed.
+"""
+function metadata(filename::AbstractString)
     wand = MagickWand()
-    readimage(wand, file)
-    resetiterator(wand)
+    readimage(wand, filename)
+    sz, T, _, _ = _metadata(wand)
+    return sz, T
+end
 
+metadata(imagefile::File{T}) where {T <: DataFormat} = metadata(filename(imagefile))
+
+function _metadata(wand)
     # Determine what we need to know about the image format
     sz = size(wand)
     n = getnumberimages(wand)
@@ -114,6 +106,35 @@ function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Array, ex
             error("Cannot parse colorspace $channelorder")
         end
     end
+    sz, T, cs, channelorder
+end
+
+load(imagefile::File{T}, args...; key_args...) where {T <: DataFormat} = load_(filename(imagefile), args...; key_args...)
+load(filename::AbstractString, args...; key_args...) = load_(filename, args...; key_args...)
+save(imagefile::File{T}, args...; key_args...) where {T <: DataFormat} = save_(filename(imagefile), args...; key_args...)
+save(filename::AbstractString, args...; key_args...) = save_(filename, args...; key_args...)
+
+load(imgstream::Stream{T}, args...; key_args...) where {T <: DataFormat} = load_(stream(imgstream), args...; key_args...)
+load(imgstream::IO, args...; key_args...) = load_(imgstream, args...; key_args...)
+save(imgstream::Stream{T}, args...; key_args...) where {T <: DataFormat} = save_(imgstream, args...; key_args...)
+
+const ufixedtype = Dict(10=>N6f10, 12=>N4f12, 14=>N2f14, 16=>N0f16)
+
+readblob(data::Vector{UInt8}) = load_(data)
+
+function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Array, extraprop="", extrapropertynames=nothing, view=false)
+    if ImageType != Array
+        error("this function now returns an Array, do not use ImageType keyword.")
+    end
+    if extraprop != "" || extrapropertynames != nothing
+        error("keywords \"extraprop\" and \"extrapropertynames\" no longer work, use magickinfo instead")
+    end
+    wand = MagickWand()
+    readimage(wand, file)
+    resetiterator(wand)
+
+    sz, T, cs, channelorder = _metadata(wand)
+    
     # Allocate the buffer and get the pixel data
     buf = Array{T}(sz)
     exportimagepixels!(rawview(channelview(buf)), wand, cs, channelorder)

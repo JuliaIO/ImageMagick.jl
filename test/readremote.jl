@@ -25,6 +25,7 @@ end
     @testset "Gray" begin
         file = getfile("jigsaw_tmpl.png")
         img = ImageMagick.load(file)
+        @test ImageMagick.metadata(file) == (reverse(size(img)), Gray{N0f8})
         @test eltype(img) == Gray{N0f8}
         @test ndims(img) == 2
         outname = joinpath(writedir, "jigsaw_tmpl.png")
@@ -44,6 +45,8 @@ end
     @testset "Gray with alpha channel" begin
         file = getfile("wmark_image.png")
         img = ImageMagick.load(file)
+        m = ImageMagick.metadata(file)
+        @test m[1] == reverse(size(img))
         @test ndims(img) == 2
         @test eltype(img) in (GrayA{N0f8}, RGBA{N0f8})
         if is_linux()
@@ -63,6 +66,7 @@ end
     @testset "RGB" begin
         file = getfile("rose.png")
         img = ImageMagick.load(file)
+        @test ImageMagick.metadata(file) == (reverse(size(img)), RGB{N0f8})
         # Mac reader reports RGB4, imagemagick reports RGB
         @test ndims(img) == 2
         @test eltype(img) == RGB{N0f8}
@@ -85,6 +89,7 @@ end
     @testset "RGBA with 16 bit depth" begin
         file = getfile("autumn_leaves.png")
         img = ImageMagick.load(file)
+        @test ImageMagick.metadata(file) == (reverse(size(img)), RGBA{N0f16})
         @test ndims(img) == 2
         @test eltype(img) == RGBA{N0f16}
         outname = joinpath(writedir, "autumn_leaves.png")
@@ -104,6 +109,7 @@ end
     @testset "Indexed" begin
         file = getfile("present.gif")
         img = ImageMagick.load(file)
+        @test ImageMagick.metadata(file) == (reverse(size(img)), RGB{N0f8})
         @test nimages(img) == 1
         @test reinterpret(UInt32, map(RGB24, img)) ==
             map(x->x&0x00ffffff, reinterpret(UInt32, map(ARGB32, img)))
@@ -118,6 +124,7 @@ end
         #fname = "bunny_anim.gif"  # this one has transparency but LibMagick gets confused about its size
         file = getfile(fname)  # this also has transparency
         img = ImageMagick.load(file)
+        @test ImageMagick.metadata(file) == (size(img)[[2,1,3]], RGB{N0f8})
         @test size(img, 3) == 26
         outname = joinpath(writedir, fname)
         ImageMagick.save(outname, img)
@@ -134,6 +141,7 @@ end
             @show extraProps
 
             img = ImageMagick.load(file)
+            @test ImageMagick.metadata(file) == (reverse(size(img)), RGBA{N0f16})
             props = magickinfo(file, extraProps)
             for key in extraProps
                 @test haskey(props, key) == true
