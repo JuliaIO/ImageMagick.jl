@@ -83,8 +83,15 @@ loadsym(cfun::Symbol) = Libdl.dlsym(libmagick[], cfun)
 const _libversion = Ref{VersionNumber}()
 libversion() = _libversion[]
 
+function initenv()
+    magick_libdir = dirname(libwand)
+    ENV["MAGICK_CONFIGURE_PATH"] = magick_libdir,
+    ENV["MAGICK_CODER_MODULE_PATH"] = magick_libdir
+    ENV["MAGICK_FILTER_MODULE_PATH"] = magick_libdir
+end
+
 function __init__()
-    isdefined(ImageMagick, :initenv) && initenv()
+    is_windows() && initenv()
 
     libmagick[] = Libdl.dlopen(libwand, Libdl.RTLD_GLOBAL)
     MagickWandGenesis[]                = loadsym(:MagickWandGenesis)
@@ -135,7 +142,8 @@ function __init__()
 
     magickgenesis()
 
-    _libversion[] = VersionNumber(join(split(queryoption("LIB_VERSION_NUMBER"), ',')[1:3], '.'))
+    _libversion[] = v"6.9.9-34" #VersionNumber(join(split(queryoption("LIB_VERSION_NUMBER"), ',')[1:3], '.'))
+
 end
 
 # Constants
