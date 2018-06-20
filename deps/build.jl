@@ -5,8 +5,6 @@ const verbose = "--verbose" in ARGS
 const prefix = Prefix(get([a for a in ARGS if a != "--verbose"], 1, joinpath(@__DIR__, "usr")))
 products = [
     LibraryProduct(prefix, String["libMagickWand"], :libwand),
-    LibraryProduct(prefix, String["libMagickCore"], :libmagickcore),
-    LibraryProduct(prefix, String["libMagick++"], :libmagick),
 ]
 
 # Download binaries from hosted location
