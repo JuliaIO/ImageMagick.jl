@@ -56,5 +56,17 @@ elseif unsatisfied
     error("Your platform $(triplet(platform_key())) is not supported by this package!")
 end
 
+for elem in readdir(joinpath(products[1].prefix, "lib"))
+    path = joinpath(products[1].prefix, "lib", elem)
+    if contains(elem, "libMagickWand")
+        try
+            Libdl.dlopen(path)
+            info("Able to load $elem")
+        catch e
+            println("error with $elem")
+            println(e)
+        end
+    end
+end
 # Write out a deps.jl file that will contain mappings for our products
 write_deps_file(joinpath(@__DIR__, "deps.jl"), products)
