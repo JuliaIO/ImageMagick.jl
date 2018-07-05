@@ -1,5 +1,20 @@
 using BinaryProvider # requires BinaryProvider 0.3.0 or later
 
+
+dependencies = [
+    "build_Zlib.v1.2.11.jl",
+    "build_libpng.v1.0.0.jl",
+    "build_libjpeg.v9.0.0-b.jl",
+    "build_libtiff.v4.0.9.jl"
+]
+
+for elem in dependencies
+    # it's a bit faster to run the build in an anonymous module instead of
+    # starting a new julia process
+    m = Module(:__anon__)
+    eval(m, :(include($(joinpath(@__DIR__, elem)))))
+end
+
 # Parse some basic command-line arguments
 const verbose = "--verbose" in ARGS
 const prefix = Prefix(get([a for a in ARGS if a != "--verbose"], 1, joinpath(@__DIR__, "usr")))
