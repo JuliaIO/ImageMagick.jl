@@ -2,7 +2,6 @@ julia 0.6
 Compat 0.24
 FixedPointNumbers 0.3.0
 ColorTypes 0.2.7
-Images 0.6
+ImageCore
 FileIO
-@osx Homebrew
-BinDeps
+BinaryProvider 0.3.0

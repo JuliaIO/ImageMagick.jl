@@ -2,9 +2,10 @@ __precompile__()
 
 module ImageMagick
 
-using FixedPointNumbers, ColorTypes, Images
+using FixedPointNumbers, ColorTypes
 using FileIO: DataFormat, @format_str, Stream, File, filename, stream
 using Compat
+using ImageCore
 
 Color1{T}           = Color{T,1}
 Color2{T,C<:Color1} = TransparentColor{C,T,2}
@@ -134,7 +135,7 @@ function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Array, ex
     resetiterator(wand)
 
     sz, T, cs, channelorder = _metadata(wand)
-    
+
     # Allocate the buffer and get the pixel data
     buf = Array{T}(sz)
     exportimagepixels!(rawview(channelview(buf)), wand, cs, channelorder)
