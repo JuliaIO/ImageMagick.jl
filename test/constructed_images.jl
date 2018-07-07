@@ -1,7 +1,7 @@
 using ImageMagick, ColorTypes, FixedPointNumbers, IndirectArrays, FileIO, OffsetArrays
 using Images       # for show(io, ::MIME, img) & ImageMeta
-using Compat       # for I/O redirection
-using Base.Test
+# using Compat       # for I/O redirection
+using Test
 
 ontravis = haskey(ENV, "TRAVIS")
 
@@ -98,19 +98,19 @@ mutable struct TestType end
     end
 
     @testset "Colormap usage" begin
-        datafloat = reshape(linspace(0.5, 1.5, 6), 2, 3)
+        datafloat = reshape(range(0.5, stop=1.5, length=6), 2, 3)
         dataint = round.([UInt8], 254*(datafloat .- 0.5) .+ 1)  # ranges from 1 to 255
         # build our colormap
         b = RGB(0,0,1)
         w = RGB(1,1,1)
         r = RGB(1,0,0)
-        cmaprgb = Array{RGB{Float64}}(255)
-        f = linspace(0,1,128)
+        cmaprgb = Array{RGB{Float64}}(undef, 255)
+        f = range(0, stop=1, length=128)
         cmaprgb[1:128] = [(1-x)*b + x*w for x in f]
         cmaprgb[129:end] = [(1-x)*w + x*r for x in f[2:end]]
         img = IndirectArray(dataint, cmaprgb)
         ImageMagick.save(joinpath(workdir,"cmap.jpg"), img)
-        cmaprgb = Array{RGB}(255) # poorly-typed cmap, Images issue #336
+        cmaprgb = Array{RGB}(undef, 255) # poorly-typed cmap, Images issue #336
         cmaprgb[1:128] = [(1-x)*b + x*w for x in f]
         cmaprgb[129:end] = [(1-x)*w + x*r for x in f[2:end]]
         img = IndirectArray(dataint, cmaprgb)
@@ -122,14 +122,14 @@ mutable struct TestType end
         fn = joinpath(workdir, "alpha.png")
     	ImageMagick.save(fn, c)
         C = ImageMagick.load(fn)
-        if !ontravis || !Base.is_linux()
+        if !ontravis || !Sys.islinux()
             # disabled on Linux Travis because it has a weird copy of
             # ImageMagick for which this fails (see Images#261)
             @test C[1] == c[1]
         end
         ImageMagick.save(fn, reinterpret(ARGB32, [0xf0884422]''))
         D = ImageMagick.load(fn)
-        if !ontravis || !Base.is_linux()
+        if !ontravis || !Sys.islinux()
             @test D[1] == c[1]
         end
 
@@ -137,7 +137,7 @@ mutable struct TestType end
         c = colorview(RGBA, normedview(permuteddimsview(reshape(0x00:0x11:0xff, 2, 2, 4), (3,1,2))))
         ImageMagick.save(fn, c)
         D = ImageMagick.load(fn)
-        if !ontravis || !Base.is_linux()
+        if !ontravis || !Sys.islinux()
             @test D == c
         end
     end
@@ -187,11 +187,12 @@ mutable struct TestType end
         A[1,1] = -0.4
         fn = joinpath(workdir, "2by2.png")
         errfile, io = mktemp()
-        redirect_stderr(io) do
+        with_logger(SimpleLogger(io)) do
             @test_throws ArgumentError ImageMagick.save(fn, A)
         end
         close(io)
-        @test contains(readlines(errfile)[1], "out-of-range")
+        println("errfile: ",readlines(errfile)) # DEBUG
+        @test occursin("out-of-range", readlines(errfile)[1])
         rm(errfile)
         ImageMagick.save(fn, A, mapi=clamp01nan)
         B = ImageMagick.load(fn)
@@ -199,7 +200,7 @@ mutable struct TestType end
         @test B == map(Gray{N0f8}, A)
     end
 
-    is_unix() && @testset "Reading from a stream (issue #312)" begin
+    Sys.isunix() && @testset "Reading from a stream (issue #312)" begin
         fn = joinpath(workdir, "2by2.png")
         img = open(fn) do io
             ImageMagick.load(io)
@@ -207,7 +208,7 @@ mutable struct TestType end
         @test size(img) == (2,2)
     end
 
-    is_unix() && @testset "Writing to a stream (PR #22)" begin
+    Sys.isunix() && @testset "Writing to a stream (PR #22)" begin
         orig_img = ImageMagick.load(joinpath(workdir, "2by2.png"))
         fn = joinpath(workdir, "2by2_fromstream.png")
         open(fn, "w") do f
@@ -217,7 +218,7 @@ mutable struct TestType end
         @test img == orig_img
     end
 
-    is_unix() && @testset "Reading from a byte array (issue #279)" begin
+    Sys.isunix() && @testset "Reading from a byte array (issue #279)" begin
         fn = joinpath(workdir, "2by2.png")
         io = open(fn)
         arr = read(io)

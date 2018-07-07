@@ -1,6 +1,6 @@
 using ImageMagick
 using FileIO, Colors, FixedPointNumbers, ZipFile
-using Base.Test
+using Test
 
 workdir = joinpath(tempdir(), "Images")
 writedir = joinpath(workdir, "write")
