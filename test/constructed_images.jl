@@ -191,7 +191,6 @@ mutable struct TestType end
             @test_throws ArgumentError ImageMagick.save(fn, A)
         end
         close(io)
-        println("errfile: ",readlines(errfile)) # DEBUG
         @test occursin("out-of-range", readlines(errfile)[1])
         rm(errfile)
         ImageMagick.save(fn, A, mapi=clamp01nan)

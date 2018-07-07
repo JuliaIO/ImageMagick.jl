@@ -93,9 +93,9 @@ for AC in vcat(subtypes(AlphaColor), subtypes(ColorAlpha))
     end
 end
 
-flip1(A) = view(A, reverse(indices(A,1)), ntuple(x->Colon(),ndims(A)-1)...)
-flip2(A) = view(A, :, reverse(indices(A,2)), ntuple(x->Colon(),ndims(A)-2)...)
-flip12(A) = view(A, reverse(indices(A,1)), reverse(indices(A,2)), ntuple(x->Colon(),ndims(A)-2)...)
+flip1(A) = view(A, reverse(axes(A,1)), ntuple(x->Colon(),ndims(A)-1)...)
+flip2(A) = view(A, :, reverse(axes(A,2)), ntuple(x->Colon(),ndims(A)-2)...)
+flip12(A) = view(A, reverse(axes(A,1)), reverse(axes(A,2)), ntuple(x->Colon(),ndims(A)-2)...)
 
 pd(A) = PermutedDimsArray(A, [2;1;3:ndims(A)])
 
@@ -324,7 +324,7 @@ function getimageproperties(wand::MagickWand,patt::AbstractString)
         error("Pattern not in property names")
     else
         nP = convert(Int, numbProp[])
-        ret = Vector{String}(nP)
+        ret = Vector{String}(undef, nP)
         for i = 1:nP
             ret[i] = unsafe_string(unsafe_load(p,i))
         end

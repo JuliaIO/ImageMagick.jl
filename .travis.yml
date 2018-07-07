@@ -3,18 +3,18 @@ os:
   - linux
   - osx
 julia:
-  - 0.6
+  - 0.7
   - nightly
 matrix:
   allow_failures:
-    - julia: nightly
+    - julia: 0.7
 
 notifications:
   email: false
 # uncomment the following lines to override the default test script
-# script:
-#   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-#   - julia -e 'Pkg.clone(pwd()); Pkg.build("ImageMagick")'
-#   - julia --check-bounds=yes -e 'Pkg.test("ImageMagick"; coverage=true)'
+  script:
+    - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
+    - julia --color=yes -e 'import InteractiveUtils; versioninfo(); import Pkg; push!(ARGS,"--verbose"); Pkg.clone(pwd()); Pkg.build("ImageMagick")'
+    - julia --color=yes --check-bounds=yes -e 'import Pkg; Pkg.test("ImageMagick"; coverage=true)'
 after_success:
-  - julia -e 'cd(Pkg.dir("ImageMagick")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(process_folder()); Codecov.submit(process_folder())'
+  - julia -e 'import Pkg; cd(Pkg.dir("ImageMagick")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(process_folder()); Codecov.submit(process_folder())'
