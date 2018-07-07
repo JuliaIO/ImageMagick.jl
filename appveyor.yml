@@ -1,19 +1,19 @@
 environment:
   matrix:
-  - JULIA_URL: "https://julialang-s3.julialang.org/bin/winnt/x86/0.7/julia-0.7-latest-win32.exe"
-  - JULIA_URL: "https://julialang-s3.julialang.org/bin/winnt/x64/0.7/julia-0.7-latest-win64.exe"
-  - JULIA_URL: "https://julialangnightlies-s3.julialang.org/bin/winnt/x86/julia-latest-win32.exe"
   - JULIA_URL: "https://julialangnightlies-s3.julialang.org/bin/winnt/x64/julia-latest-win64.exe"
+#  - JULIA_URL: "https://julialangnightlies-s3.julialang.org/bin/winnt/x86/julia-latest-win32.exe"
+#   - JULIA_URL: "https://julialang-s3.julialang.org/bin/winnt/x86/0.7/julia-0.7-latest-win32.exe"
+#   - JULIA_URL: "https://julialang-s3.julialang.org/bin/winnt/x64/0.7/julia-0.7-latest-win64.exe"
 
 # matrix:
 #   allow_failures:
 #   - JULIA_URL: "https://julialangnightlies-s3.julialang.org/bin/winnt/x86/julia-latest-win32.exe"
 #   - JULIA_URL: "https://julialangnightlies-s3.julialang.org/bin/winnt/x64/julia-latest-win64.exe"
 
-branches:
-  only:
-    - master
-    - /release-.*/
+# branches:
+#  only:
+#    - master
+#    - /release-.*/
 install:
   - ps: "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12"
 # if there's a newer build queued for the same PR, cancel this one
@@ -31,8 +31,8 @@ install:
 build_script:
 # Need to convert from shallow to complete for Pkg.clone to work
   - IF EXIST .git\shallow (git fetch --unshallow)
-  - C:\projects\julia\bin\julia --color=yes -e "using InteractiveUtils; versioninfo(); import Pkg; Pkg.clone(pwd(), \"ImageMagick\");"
-  - C:\projects\julia\bin\julia --color=yes -e "import Pkg; push!(ARGS,\"--verbose\"); Pkg.build(\"ImageMagick\")"
+  - C:\projects\julia\bin\julia -e "using InteractiveUtils; versioninfo(); import Pkg; Pkg.clone(pwd(), \"ImageMagick\");"
+  - C:\projects\julia\bin\julia -e "import Pkg; Pkg.build(\"ImageMagick\")"
 
 test_script:
-  - C:\projects\julia\bin\julia --color=yes -e "Pkg.test(\"ImageMagick\")"
+  - C:\projects\julia\bin\julia -e "Pkg.test(\"ImageMagick\")"
