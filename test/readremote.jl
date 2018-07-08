@@ -49,7 +49,7 @@ end
         @test m[1] == reverse(size(img))
         @test ndims(img) == 2
         @test eltype(img) in (GrayA{N0f8}, RGBA{N0f8})
-        if is_linux()
+        if Sys.islinux()
             outname = joinpath(writedir, "wmark_image.png")
             ImageMagick.save(outname, img)
             sleep(0.2)
@@ -75,7 +75,7 @@ end
         imgc = ImageMagick.load(outname)
         T = eltype(imgc)
         # Why does this one fail on OSX??
-        is_apple() || @test img == imgc
+        Sys.isapple() || @test img == imgc
         @test reinterpret(UInt32, map(RGB24, img)) ==
             map(x->x&0x00ffffff, reinterpret(UInt32, map(ARGB32, img)))
         imgrgb8 = map(RGB{N0f8}, img)
@@ -93,7 +93,7 @@ end
         @test ndims(img) == 2
         @test eltype(img) == RGBA{N0f16}
         outname = joinpath(writedir, "autumn_leaves.png")
-        is_apple() || begin
+        Sys.isapple() || begin
             ImageMagick.save(outname, img)
             sleep(0.2)
             imgc = ImageMagick.load(outname)
@@ -134,7 +134,7 @@ end
     end
 
     @testset "Extra properties" begin
-        is_apple() || begin
+        Sys.isapple() || begin
             file = getfile("autumn_leaves.png")
             # List properties
             extraProps = magickinfo(file)
@@ -171,7 +171,7 @@ end
     r = ZipFile.Reader(fn)
     local img0
     for f in r.files
-        data = read(f, UInt8, f.uncompressedsize)
+        data = read!(f, Array{UInt8}(undef, f.uncompressedsize...))
         if first_img
             img0 = readblob(data)
             first_img = false
