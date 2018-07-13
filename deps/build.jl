@@ -64,9 +64,10 @@ write_deps_file(joinpath(@__DIR__, "deps_im.jl"), products)
 function include_deps(name)
     """
     module $name
+        import Libdl
         path = joinpath(@__DIR__, $(repr(string("deps_", name, ".jl"))))
         isfile(path) || error("$name wasn't build correctly. Please run Pkg.build(\\\"ImageMagick\\\")")
-        Main.include(path)
+        include(path)
     end
     using .$name
     """
