@@ -2,7 +2,7 @@ __precompile__()
 
 module ImageMagick
 
-using FixedPointNumbers, ColorTypes, Images
+using FixedPointNumbers, ColorTypes
 using FileIO: DataFormat, @format_str, Stream, File, filename, stream
 using InteractiveUtils: subtypes
 using ImageCore
@@ -136,7 +136,7 @@ function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Array, ex
     resetiterator(wand)
 
     sz, T, cs, channelorder = _metadata(wand)
-    
+
     # Allocate the buffer and get the pixel data
     buf = Array{T}(undef, sz)
     exportimagepixels!(rawview(channelview(buf)), wand, cs, channelorder)
