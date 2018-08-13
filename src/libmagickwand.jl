@@ -337,7 +337,7 @@ function getimageproperty(wand::MagickWand, prop::AbstractString, warnuser::Bool
     if p == convert(Ptr{UInt8}, C_NULL)
         if warnuser
             possib = getimageproperties(wand,"*")
-            warn("Undefined property, possible names are \"$(join(possib,"\",\""))\"")
+            @warn "Undefined property, possible names are \"$(join(possib,"\",\""))\""
         end
         nothing
     else

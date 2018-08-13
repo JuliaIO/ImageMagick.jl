@@ -1,5 +1,3 @@
-__precompile__()
-
 module ImageMagick
 
 using FixedPointNumbers, ColorTypes, Images
