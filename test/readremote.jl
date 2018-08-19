@@ -152,11 +152,7 @@ end
             @test haskey(props, extraProps[1]) == true
             @test props[extraProps[1]] != nothing
 
-            warnfile, io = mktemp()
-            props = redirect_stderr(io) do
-                magickinfo(file, "Nonexistent property")
-            end
-            close(io)
+            props = (@test_logs (:warn, r"^Undefined property") magickinfo(file, "Nonexistent property"))
             @test haskey(props, "Nonexistent property") == true
             @test props["Nonexistent property"] == nothing
         end

@@ -18,12 +18,7 @@ mutable struct TestType end
 
     a = [TestType() TestType()]
     fn = joinpath(workdir, "5by5.png")
-    errfile, io = mktemp()  # suppress warning message
-    redirect_stderr(io) do
-        @test_throws MethodError ImageMagick.save(fn, a)
-    end
-    close(io)
-    rm(errfile)
+    @test_logs (:warn,r"^Mapping") (@test_throws MethodError ImageMagick.save(fn, a))
 
     @testset "Binary png" begin
         a = rand(Bool,5,5)
