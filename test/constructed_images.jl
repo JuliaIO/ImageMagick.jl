@@ -1,7 +1,7 @@
 using ImageMagick, ColorTypes, FixedPointNumbers, IndirectArrays, FileIO, OffsetArrays
-using Images       # for show(io, ::MIME, img) & ImageMeta
-# using Compat       # for I/O redirection
+using ImageShow       # for show(io, ::MIME, img) & ImageMeta
 using Test
+using ImageCore
 
 ontravis = haskey(ENV, "TRAVIS")
 
