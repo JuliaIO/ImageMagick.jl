@@ -6,8 +6,8 @@ using Pkg
 
 function is_ci()
     get(ENV, "TRAVIS", "") == "true" ||
-    get(ENV, "APPVEYOR", "") == "true" ||
-    get(ENV, "CI", "") == "true"
+    get(ENV, "APPVEYOR", "") in ("true", "True") ||
+    get(ENV, "CI", "") in ("true", "True")
 end
 
 # TODO remove once registered
