@@ -2,9 +2,11 @@ __precompile__()
 
 module ImageMagick
 
-using FixedPointNumbers, ColorTypes, Images
+using FixedPointNumbers, ColorTypes
 using FileIO: DataFormat, @format_str, Stream, File, filename, stream
-using Compat
+using InteractiveUtils: subtypes
+using ImageCore
+using Libdl
 
 Color1{T}           = Color{T,1}
 Color2{T,C<:Color1} = TransparentColor{C,T,2}
@@ -84,7 +86,7 @@ function _metadata(wand)
     elseif depth <= 16
         T = Normed{UInt16,evendepth}
     else
-        warn("some versions of ImageMagick give spurious low-order bits for 32-bit TIFFs")
+        @warn "some versions of ImageMagick give spurious low-order bits for 32-bit TIFFs"
         T = Normed{UInt32,evendepth}
     end
 
@@ -134,9 +136,9 @@ function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Array, ex
     resetiterator(wand)
 
     sz, T, cs, channelorder = _metadata(wand)
-    
+
     # Allocate the buffer and get the pixel data
-    buf = Array{T}(sz)
+    buf = Array{T}(undef, sz)
     exportimagepixels!(rawview(channelview(buf)), wand, cs, channelorder)
 
     orient = getimageproperty(wand, "exif:Orientation", false)
@@ -163,7 +165,7 @@ function image2wand(img, mapi=identity, quality=nothing, permute_horizontal=true
     try
         imgw = map(x->mapIM(mapi(x)), img)
     catch
-        warn("Mapping to the storage type failed; perhaps your data had out-of-range values?\nTry `map(clamp01nan, img)` to clamp values to a valid range.")
+        @warn "Mapping to the storage type failed; perhaps your data had out-of-range values?\nTry `map(clamp01nan, img)` to clamp values to a valid range."
         rethrow()
     end
     permute_horizontal && (imgw = permutedims_horizontal(imgw))
@@ -252,12 +254,16 @@ mapIM(x::Normed) = x
 # Make the data contiguous in memory, this is necessary for
 # imagemagick since it doesn't handle stride.
 to_contiguous(A::Array) = A
-to_contiguous(A::AbstractArray) = Compat.collect(A)
+to_contiguous(A::AbstractArray) = collect(A)
 to_contiguous(A::BitArray) = convert(Array{N0f8}, A)
 to_contiguous(A::ColorView) = to_contiguous(channelview(A))
 
 to_explicit(A::Array{C}) where {C<:Colorant} = to_explicit(channelview(A))
-to_explicit(A::ChannelView{T}) where {T} = to_explicit(copy!(Array{T}(size(A)), A))
+function to_explicit(A::AbstractArray)
+    As = similar(A)
+    As .= A
+    to_explicit(As)
+end
 to_explicit(A::Array{T}) where {T<:Normed} = rawview(A)
 to_explicit(A::Array{T}) where {T<:AbstractFloat} = to_explicit(convert(Array{N0f8}, A))
 

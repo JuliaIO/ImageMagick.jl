@@ -1,7 +1,6 @@
-julia 0.6
-Compat 0.24
+julia 0.7
 FixedPointNumbers 0.3.0
 ColorTypes 0.2.7
-Images 0.6
 FileIO
 BinaryProvider 0.3.0
+ImageCore

@@ -12,7 +12,7 @@ for elem in dependencies
     # it's a bit faster to run the build in an anonymous module instead of
     # starting a new julia process
     m = Module(:__anon__)
-    Core.eval(m, :(Main.include($(joinpath(@__DIR__, elem)))))
+    Core.include(m, (joinpath(@__DIR__, elem)))
 end
 
 # Parse some basic command-line arguments
@@ -64,9 +64,10 @@ write_deps_file(joinpath(@__DIR__, "deps_im.jl"), products)
 function include_deps(name)
     """
     module $name
+        import Libdl
         path = joinpath(@__DIR__, $(repr(string("deps_", name, ".jl"))))
         isfile(path) || error("$name wasn't build correctly. Please run Pkg.build(\\\"ImageMagick\\\")")
-        Main.include(path)
+        include(path)
     end
     using .$name
     """
