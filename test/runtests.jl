@@ -10,9 +10,6 @@ function is_ci()
     get(ENV, "CI", "") in ("true", "True")
 end
 
-# TODO remove once registered
-is_ci() && Pkg.pkg"add https://github.com/RalphAS/ImageShow.jl.git"
-
 @info "ImageMagick version ", ImageMagick.libversion()
 
 include("constructed_images.jl")
