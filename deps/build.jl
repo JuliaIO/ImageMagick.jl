@@ -3,7 +3,7 @@ using BinaryProvider # requires BinaryProvider 0.3.0 or later
 
 dependencies = [
     "build_Zlib.v1.2.11.jl",
-    "build_libpng.v1.0.0.jl",
+    "build_libpng.v1.0.1.jl",
     "build_libjpeg.v9.0.0-b.jl",
     "build_libtiff.v4.0.9.jl"
 ]
