@@ -270,9 +270,9 @@ function pingimage(wand::MagickWand, filename::AbstractString)
 end
 
 function readimage(wand::MagickWand, filename::AbstractString)
-    status = ccall((:MagickReadImage, libwand), Cint, (Ptr{Cvoid}, Ptr{UInt8}), wand, filename)
-    status == 0 && error(wand)
-    nothing
+    open(filename, "r") do io
+        readimage(wand, io)
+    end
 end
 
 function readimage(wand::MagickWand, stream::IO)
@@ -288,9 +288,9 @@ function readimage(wand::MagickWand, stream::Vector{UInt8})
 end
 
 function writeimage(wand::MagickWand, filename::AbstractString)
-    status = ccall((:MagickWriteImages, libwand), Cint, (Ptr{Cvoid}, Ptr{UInt8}, Cint), wand, filename, true)
-    status == 0 && error(wand)
-    nothing
+    open(filename, "w") do io
+        writeimage(wand, io)
+    end
 end
 
 function writeimage(wand::MagickWand, stream::IO)

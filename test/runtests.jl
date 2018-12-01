@@ -15,6 +15,7 @@ end
 include("constructed_images.jl")
 include("readremote.jl")
 include("badimages.jl")
+include("unicode.jl")
 
 workdir = joinpath(tempdir(), "Images")
 try
