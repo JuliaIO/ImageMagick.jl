@@ -264,13 +264,29 @@ function getblob(wand::MagickWand, format::AbstractString)
 end
 
 function pingimage(wand::MagickWand, filename::AbstractString)
+    #Warning: filename is not UTF-8 on Windows
     status = ccall((:MagickPingImage, libwand), Cint, (Ptr{Cvoid}, Ptr{UInt8}), wand, filename)
+    status == 0 && error(wand)
+    nothing
+end
+
+#MagickSetFilename for reading, MagickSetImageFilename for writing
+function setfilename(wand::MagickWand, filename::AbstractString)
+    status = ccall((:MagickSetFilename, libwand), Cint, (Ptr{Cvoid}, Ptr{UInt8}), wand, filename)
+    status == 0 && error(wand)
+    nothing
+end
+
+function setimagefilename(wand::MagickWand, filename::AbstractString)
+    status = ccall((:MagickSetImageFilename, libwand), Cint, (Ptr{Cvoid}, Ptr{UInt8}), wand, filename)
     status == 0 && error(wand)
     nothing
 end
 
 function readimage(wand::MagickWand, filename::AbstractString)
     open(filename, "r") do io
+        (_, ext) = splitext(filename)
+        setfilename(wand, "a"*ext)
         readimage(wand, io)
     end
 end
@@ -289,6 +305,9 @@ end
 
 function writeimage(wand::MagickWand, filename::AbstractString)
     open(filename, "w") do io
+        #Let IM infer the format when writing to a stream
+        (_, ext) = splitext(filename)
+        setimagefilename(wand, "a"*ext)
         writeimage(wand, io)
     end
 end
