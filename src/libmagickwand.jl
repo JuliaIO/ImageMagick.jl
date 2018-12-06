@@ -292,7 +292,9 @@ function readimage(wand::MagickWand, filename::AbstractString)
 end
 
 function readimage(wand::MagickWand, stream::IO)
-    status = ccall((:MagickReadImageFile, libwand), Cint, (Ptr{Cvoid}, Ptr{Cvoid}), wand, Libc.FILE(stream).ptr)
+    file = Libc.FILE(stream)
+    status = ccall((:MagickReadImageFile, libwand), Cint, (Ptr{Cvoid}, Ptr{Cvoid}), wand, file.ptr)
+    close(file)
     status == 0 && error(wand)
     nothing
 end
@@ -313,7 +315,9 @@ function writeimage(wand::MagickWand, filename::AbstractString)
 end
 
 function writeimage(wand::MagickWand, stream::IO)
-    status = ccall((:MagickWriteImagesFile, libwand), Cint, (Ptr{Cvoid}, Ptr{Cvoid}), wand, Libc.FILE(stream).ptr)
+    file = Libc.FILE(stream)
+    status = ccall((:MagickWriteImagesFile, libwand), Cint, (Ptr{Cvoid}, Ptr{Cvoid}), wand, file.ptr)
+    close(file)
     status == 0 && error(wand)
     nothing
 end
