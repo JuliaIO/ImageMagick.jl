@@ -284,6 +284,28 @@ mutable struct TestType end
         imgr = ImageMagick.load(fn)
         @test imgr == parent(img)
     end
+
+    @testset "permute_horizontal" begin
+        Ar = [0x00 0xff; 0x00 0x00] 
+        A = map(x->Gray(N0f8(x,0)), Ar)
+        fn = joinpath(workdir, "2d.tif")
+
+        ImageMagick.save(fn, A)
+        B = ImageMagick.load(fn)
+        @test A==B
+
+        ImageMagick.save(fn, A, false)
+        B = ImageMagick.load(fn, false)
+        @test A==B
+
+        ImageMagick.save(fn, A, true)
+        B = ImageMagick.load(fn, false)
+        @test A==transpose(B)
+
+        ImageMagick.save(fn, A, false)
+        B = ImageMagick.load(fn, true)
+        @test transpose(A)==B
+    end
 end
 
 nothing
