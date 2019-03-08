@@ -97,17 +97,19 @@ flip1(A) = view(A, reverse(axes(A,1)), ntuple(x->Colon(),ndims(A)-1)...)
 flip2(A) = view(A, :, reverse(axes(A,2)), ntuple(x->Colon(),ndims(A)-2)...)
 flip12(A) = view(A, reverse(axes(A,1)), reverse(axes(A,2)), ntuple(x->Colon(),ndims(A)-2)...)
 
-pd(A) = PermutedDimsArray(A, [2;1;3:ndims(A)])
+vertical_major(img::AbstractVector) = img
+vertical_major(A) = PermutedDimsArray(A, [2;1;3:ndims(A)])
 
-const orientation_dict = Dict(nothing => pd,
-    "1" => pd,
-    "2" => A->pd(flip1(A)),
-    "3" => A->pd(flip12(A)),
-    "4" => A->pd(flip2(A)),
-    "5" => identity,
-    "6" => flip2,
-    "7" => flip12,
-    "8" => flip1)
+const orientation_dict = Dict(
+    nothing => (A,ph) -> ph ? vertical_major(A) : identity(A),
+    "1" => (A,ph) -> ph ? vertical_major(A) : identity(A),
+    "2" => (A,ph) -> ph ? vertical_major(flip1(A)) : flip1(A),
+    "3" => (A,ph) -> ph ? vertical_major(flip12(A)) : flip12(A),
+    "4" => (A,ph) -> ph ? vertical_major(flip2(A)) : flip2(A),
+    "5" => (A,ph) -> ph ? identity(A) : vertical_major(A),
+    "6" => (A,ph) -> ph ? flip2(A) : vertical_major(flip2(A)),
+    "7" => (A,ph) -> ph ? flip12(A) : vertical_major(flip12(A)),
+    "8" => (A,ph) -> ph ? flip1(A) : vertical_major(flip1(A)))
 
 function nchannels(imtype::AbstractString, cs::AbstractString, havealpha = false)
     n = 3

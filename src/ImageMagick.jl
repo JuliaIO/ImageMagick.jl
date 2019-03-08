@@ -122,7 +122,7 @@ const ufixedtype = Dict(10=>N6f10, 12=>N4f12, 14=>N2f14, 16=>N0f16)
 
 readblob(data::Vector{UInt8}) = load_(data)
 
-function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Array, extraprop="", extrapropertynames=nothing, view=false)
+function load_(file::Union{AbstractString,IO,Vector{UInt8}}, permute_horizontal=true; ImageType=Array, extraprop="", extrapropertynames=nothing, view=false)
     if ImageType != Array
         error("this function now returns an Array, do not use ImageType keyword.")
     end
@@ -140,7 +140,8 @@ function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Array, ex
     exportimagepixels!(rawview(channelview(buf)), wand, cs, channelorder)
 
     orient = getimageproperty(wand, "exif:Orientation", false)
-    oriented_buf = get(orientation_dict, orient, pd)(buf)
+    default = (A,ph) -> ph ? vertical_major(A) : identity(A)
+    oriented_buf = get(orientation_dict, orient, default)(buf, permute_horizontal)
     view ? oriented_buf : collect(oriented_buf)
 end
 
@@ -166,7 +167,7 @@ function image2wand(img, mapi=identity, quality=nothing, permute_horizontal=true
         @warn "Mapping to the storage type failed; perhaps your data had out-of-range values?\nTry `map(clamp01nan, img)` to clamp values to a valid range."
         rethrow()
     end
-    permute_horizontal && (imgw = permutedims_horizontal(imgw))
+    permute_horizontal && (imgw = collect(vertical_major(imgw)))
     if ndims(imgw) > 3
         error("At most 3 dimensions are supported")
     end
@@ -264,12 +265,5 @@ function to_explicit(A::AbstractArray)
 end
 to_explicit(A::Array{T}) where {T<:Normed} = rawview(A)
 to_explicit(A::Array{T}) where {T<:AbstractFloat} = to_explicit(convert(Array{N0f8}, A))
-
-permutedims_horizontal(img::AbstractVector) = img
-function permutedims_horizontal(img)
-    # Vertical-major is hard-coded here
-    p = [2;1;3:ndims(img)]
-    permutedims(img, p)
-end
 
 end # module
