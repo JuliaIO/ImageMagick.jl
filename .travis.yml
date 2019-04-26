@@ -16,8 +16,9 @@ notifications:
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
   - if [[ `uname` = "Linux" ]]; then TESTCMD="xvfb-run julia"; else TESTCMD="julia"; fi
+  - $TESTCMD --color=yes --check-bounds=yes -e 'using Pkg, InteractiveUtils; versioninfo(); Pkg.build();'
   - cat deps/build.log
-  - $TESTCMD --color=yes --check-bounds=yes -e 'using Pkg, InteractiveUtils; versioninfo(); Pkg.build(); Pkg.test(coverage=true)'
+  - $TESTCMD --color=yes --check-bounds=yes -e 'import Pkg; Pkg.test(coverage=true);' 
 after_success:
   # push coverage results to Codecov
   - julia -e 'using Pkg, ImageMagick; cd(dirname(dirname(pathof(ImageMagick)))); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
