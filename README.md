@@ -75,13 +75,13 @@ Finally, an alternative to ImageMagick on OS X is
 ## Manual installation on Windows
 
 If automatic installation fails, get the current version from
-http://www.imagemagick.org/script/binary-releases.php#windows
-(e.g. ImageMagick-6.8.8-7-Q16-x86-dll.exe) and make sure that the "Install
+https://imagemagick.org/script/download.php#windows
+(e.g. ImageMagick-7.0.8-43-Q16-x64-dll.exe) and make sure that the "Install
 development headers and libraries for C and C++" checkbox is selected.  You may
 choose to let the installer add the installation directory to the system path or
 provide it separately.  In the later case you may add it to your `.juliarc.jl`
 file as (for example) `push!(Base.DL_LOAD_PATH,
-"C:/programs/ImageMagick-6.8.8"`). Alternatively, you can set your `MAGICK_HOME` environment variable.
+"C:/programs/ImageMagick-7.0.8"`). Alternatively, you can set your `MAGICK_HOME` environment variable.
 
 **When manual intervention is necessary, you need to restart Julia for the
 necessary changes to take effect.**
