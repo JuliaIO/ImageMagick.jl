@@ -8,3 +8,4 @@ deps/windows/*
 deps/build.log
 deps/build_*
 Manifest.toml
+.DS_Store
