@@ -5,6 +5,11 @@ const verbose = "--verbose" in ARGS
 const prefix = Prefix(get([a for a in ARGS if a != "--verbose"], 1, joinpath(@__DIR__, "usr")))
 
 products = [
+    LibraryProduct(prefix, ["libz"], :libz),
+    LibraryProduct(prefix, String["libjpeg"], :libjpeg),
+    LibraryProduct(prefix, String["libpng16"], :libpng),
+    LibraryProduct(prefix, String["libtiff"], :libtiff),
+    LibraryProduct(prefix, String["libtiffxx"], :libtiffxx),
     LibraryProduct(prefix, String["libMagickWand"], :libwand),
 ]
 
@@ -34,17 +39,7 @@ if any(!satisfied(p; verbose=verbose) for p in products)
     write_deps_file(joinpath(@__DIR__, "deps.jl"), products)
 end
                 
-open("deps.jl", "w") do io
-    println(io, """
-    libversion() = $(repr(version))
-    const libwand = im.libwand
-    function check_deps()
-        zlib.check_deps()
-        png.check_deps()
-        jpeg.check_deps()
-        tiff.check_deps()
-        im.check_deps()
-    end
-    """)
+open("deps.jl", "a") do io
+    write(io, "libversion() =  $(repr(version))")
 end
                 
