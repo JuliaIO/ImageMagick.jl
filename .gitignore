@@ -6,4 +6,5 @@ deps/downloads/*
 deps/usr/*
 deps/windows/*
 deps/build.log
+deps/build_*
 Manifest.toml
