@@ -40,6 +40,7 @@ if any(!satisfied(p; verbose=verbose) for p in products)
 end
                 
 open("deps.jl", "a") do io
-    write(io, "libversion() =  $(repr(version))")
+    write(io, """
+        libversion() =  $(repr(version))
+        """)
 end
-                
