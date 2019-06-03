@@ -19,7 +19,6 @@ BinaryProvider = "≥ 0.3.0"
 ColorTypes = "≥ 0.2.7"
 FixedPointNumbers = "≥ 0.3.0"
 ImageCore = ">= 0.7.0"
-ColorTypes = ">= 0.7.2"
 
 [extras]
 ColorVectorSpace = "c3611d14-8923-5661-9e6a-0046d554d3a4"
