@@ -14,11 +14,13 @@ Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
 [compat]
+julia = "≥ 1.0.0"
 BinaryProvider = "≥ 0.3.0"
 ColorTypes = "≥ 0.2.7"
 FixedPointNumbers = "≥ 0.3.0"
-ImageCore = ">= 0.8"
-julia = "≥ 1.0.0"
+ImageCore = ">= 0.7.0"
+FixedPointNumbers = ">= 0.5.2"
+ColorTypes = ">= 0.7.2"
 
 [extras]
 ColorVectorSpace = "c3611d14-8923-5661-9e6a-0046d554d3a4"
