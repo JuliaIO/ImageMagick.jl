@@ -15,6 +15,7 @@ products = [
 
 version = v"6.9.10-12"
 dependencies = [
+    "https://github.com/JuliaMath/OpenlibmBuilder/releases/download/v0.6.0/build_Openlibm.v0.6.0.jl",
     "https://github.com/bicycle1885/ZlibBuilder/releases/download/v1.0.4/build_Zlib.v1.2.11.jl",
     "https://github.com/SimonDanisch/LibpngBuilder/releases/download/v1.0.2/build_libpng.v1.6.31.jl",
     "https://github.com/SimonDanisch/LibJPEGBuilder/releases/download/v9b/build_libjpeg.v9.0.0-b.jl",
