@@ -7,7 +7,9 @@ using Pkg
 function is_ci()
     get(ENV, "TRAVIS", "") == "true" ||
     get(ENV, "APPVEYOR", "") in ("true", "True") ||
-    get(ENV, "CI", "") in ("true", "True")
+    get(ENV, "CI", "") in ("true", "True") ||
+    get(ENV, "DRONE", "") in ("true", "True")
+    
 end
 
 @info "ImageMagick version ", ImageMagick.libversion()
