@@ -12,7 +12,7 @@ steps:
       - uname -a
       - julia -e 'using Pkg; Pkg.clone(pwd()); Pkg.build("ImageMagick"); Pkg.test("ImageMagick"; coverage=true)'
 
-#---
+#--- 
 #
 #kind: pipeline
 #name: linux-arm-1.1
