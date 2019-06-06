@@ -5,12 +5,13 @@ const verbose = "--verbose" in ARGS
 const prefix = Prefix(get([a for a in ARGS if a != "--verbose"], 1, joinpath(@__DIR__, "usr")))
 
 products = [
-    LibraryProduct(prefix, ["libz"], :libz),
+    LibraryProduct(prefix, String["libz"], :libz),
     LibraryProduct(prefix, String["libjpeg"], :libjpeg),
     LibraryProduct(prefix, String["libpng16"], :libpng),
     LibraryProduct(prefix, String["libtiff"], :libtiff),
     LibraryProduct(prefix, String["libtiffxx"], :libtiffxx),
     LibraryProduct(prefix, String["libMagickWand"], :libwand),
+    LibraryProduct(prefix, String["libm"], :libz),
 ]
 
 version = v"6.9.10-12"
