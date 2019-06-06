@@ -11,7 +11,7 @@ products = [
     LibraryProduct(prefix, String["libtiff"], :libtiff),
     LibraryProduct(prefix, String["libtiffxx"], :libtiffxx),
     LibraryProduct(prefix, String["libMagickWand"], :libwand),
-    LibraryProduct(prefix, String["libm"], :libz),
+    LibraryProduct(prefix, String["libopenlibm"], :libm),
 ]
 
 version = v"6.9.10-12"
