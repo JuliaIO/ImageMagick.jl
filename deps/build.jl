@@ -33,14 +33,10 @@ for dependency in dependencies
     Mod.include(file)
 end
 
-# First, check to see if we're all satisfied
-if any(!satisfied(p; verbose=verbose) for p in products)
-    # Finally, write out a deps.jl file
-    write_deps_file(joinpath(@__DIR__, "deps.jl"), products)
-end
+write_deps_file(joinpath(@__DIR__, "deps.jl"), products)
 
 open("deps.jl", "a") do io
     write(io, """
-        libversion() =  $(repr(version))
+    libversion() =  $(repr(version))
     """)
 end
