@@ -16,10 +16,10 @@ products = [
 version = v"6.9.10-12"
 dependencies = [
     "https://github.com/bicycle1885/ZlibBuilder/releases/download/v1.0.4/build_Zlib.v1.2.11.jl",
-    "https://github.com/SimonDanisch/LibpngBuilder/releases/download/v1.0.2/build_libpng.v1.6.31.jl",
-    "https://github.com/SimonDanisch/LibJPEGBuilder/releases/download/v9b/build_libjpeg.v9.0.0-b.jl",
-    "https://github.com/SimonDanisch/LibTIFFBuilder/releases/download/v5/build_libtiff.v4.0.9.jl",
-    "https://github.com/JuliaIO/ImageMagickBuilder/releases/download/v$(version)/build_ImageMagick.v$(version).jl"
+    "https://github.com/SimonDanisch/LibpngBuilder/releases/download/v1.0.3/build_libpng.v1.6.37.jl",
+    "https://github.com/SimonDanisch/LibJPEGBuilder/releases/download/v10/build_libjpeg.v9.0.0-b.jl",
+    "https://github.com/SimonDanisch/LibTIFFBuilder/releases/download/v6/build_libtiff.v4.0.9.jl",
+    "https://github.com/JuliaIO/ImageMagickBuilder/releases/download/v3/build_ImageMagick.v$(version).jl"
 ]
 
 for dependency in dependencies
@@ -33,14 +33,10 @@ for dependency in dependencies
     Mod.include(file)
 end
 
-# First, check to see if we're all satisfied
-if any(!satisfied(p; verbose=verbose) for p in products)
-    # Finally, write out a deps.jl file
-    write_deps_file(joinpath(@__DIR__, "deps.jl"), products)
-end
-                
+write_deps_file(joinpath(@__DIR__, "deps.jl"), products)
+
 open("deps.jl", "a") do io
     write(io, """
-        libversion() =  $(repr(version))
-        """)
+    libversion() =  $(repr(version))
+    """)
 end
