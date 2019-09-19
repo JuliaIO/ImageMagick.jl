@@ -1,9 +1,13 @@
 # ImageMagick
 
-[![Build Status](https://travis-ci.org/JuliaIO/ImageMagick.jl.svg?branch=master)](https://travis-ci.org/JuliaIO/ImageMagick.jl)
-[![Build status](https://ci.appveyor.com/api/projects/status/hl0j4amikte3pl9c/branch/master?svg=true)](https://ci.appveyor.com/project/SimonDanisch/imagemagick-jl/branch/master)
-[![Coverage Status](https://coveralls.io/repos/JuliaIO/ImageMagick.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/JuliaIO/ImageMagick.jl?branch=master)
-[![codecov.io](http://codecov.io/github/JuliaIO/ImageMagick.jl/coverage.svg?branch=master)](http://codecov.io/github/JuliaIO/ImageMagick.jl?branch=master)
+| **Platform**                                                               | **Build Status**                                                                                |
+|:-------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------:|
+| Linux & MacOS x86 | [![][travis-img]][travis-url] |
+| Windows 32/64-bit | [![][appveyor-img]][appveyor-url] |
+| Linux ARM 32/64-bit | [![][drone-img]][drone-url] |
+| FreeBSD x86 | [![][cirrus-img]][cirrus-url] |
+|  | [![Codecoverage Status][codecov-img]][codecov-url]<br>[![Coveralls Status][coveralls-img]][coveralls-url] |
+
 
 This package provides a wrapper around
 [ImageMagick](http://www.imagemagick.org/) version 6.  It was split off from
@@ -95,3 +99,25 @@ path.  Use `ImageMagick.libversion()` to see what version it found.  Version 6.7
 for multipage TIFFs.
 
 The environment variable `MAGICK_THREAD_LIMIT` can be used to throttle multithreading.
+
+[discourse-tag-url]: https://discourse.julialang.org/tags/yolo
+
+[travis-img]: https://travis-ci.com/JuliaIO/ImageMagick.jl.svg?branch=master
+[travis-url]: https://travis-ci.com/JuliaIO/ImageMagick.jl
+
+[appveyor-img]: https://ci.appveyor.com/api/projects/status/hl0j4amikte3pl9c/branch/master?svg=true
+[appveyor-url]: https://ci.appveyor.com/project/SimonDanisch/imagemagick-jl/branch/master
+
+[drone-img]: https://cloud.drone.io/api/badges/JuliaIO/ImageMagick.jl/status.svg
+[drone-url]: https://cloud.drone.io/JuliaIO/ImageMagick.jl
+
+[cirrus-img]: https://api.cirrus-ci.com/github/JuliaIO/ImageMagick.jl.svg
+[cirrus-url]: https://cirrus-ci.com/github/JuliaIO/ImageMagick.jl
+
+[codecov-img]: https://codecov.io/gh/JuliaIO/ImageMagick.jl/branch/master/graph/badge.svg
+[codecov-url]: https://codecov.io/gh/JuliaIO/ImageMagick.jl
+
+[coveralls-img]: https://coveralls.io/repos/github/JuliaIO/ImageMagick.jl/badge.svg?branch=master
+[coveralls-url]: https://coveralls.io/github/JuliaIO/ImageMagick.jl?branch=master
+
+[issues-url]: https://github.com/JuliaIO/ImageMagick.jl/issues
