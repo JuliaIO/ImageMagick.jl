@@ -97,7 +97,7 @@ mutable struct TestType end
             @test bb == imgrgb8
         end
     end
-    @testset "jpeg" begin
+    @testset "jpg" begin
         # Approx tests due to lossiness of jpeg
         @testset "Gray" begin
             a = [0 1/2^16 1/2^8; 1-1/2^8 1-1/2^16 1]
@@ -110,6 +110,32 @@ mutable struct TestType end
 
         @testset "Color" begin
             fn = joinpath(workdir, "2by2.jpg")
+            A = rand(3,2,2)
+            A[1] = 1
+            img = colorview(RGB, A)
+            img24 = convert(Array{RGB24}, img)
+            ImageMagick.save(fn, img24)
+            b = ImageMagick.load(fn)
+            
+            #Tests disabled because images are numerically very different (RGB lossy compression)
+            #imgrgb8 = convert(Array{RGB{N0f8}}, img)
+            #@test isapprox(imgrgb8, b, atol=0.1) 
+            
+        end
+    end
+    @testset "jpeg" begin
+        # Approx tests due to lossiness of jpeg
+        @testset "Gray" begin
+            a = [0 1/2^16 1/2^8; 1-1/2^8 1-1/2^16 1]
+            aa = convert(Array{N0f8}, a)
+            fn = joinpath(workdir, "2by3.jpeg")
+            ImageMagick.save(fn, a)
+            b = ImageMagick.load(fn)
+            @test isapprox(b,aa, atol=0.1)
+        end
+
+        @testset "Color" begin
+            fn = joinpath(workdir, "2by2.jpeg")
             A = rand(3,2,2)
             A[1] = 1
             img = colorview(RGB, A)
