@@ -24,77 +24,154 @@ mutable struct TestType end
     end
     close(io)
     rm(errfile)
+    @testset "png" begin
+        @testset "Binary" begin
+            a = rand(Bool,5,5)
+            fn = joinpath(workdir, "5by5.png")
+            ImageMagick.save(fn, a)
+            b = ImageMagick.load(fn)
+            a8 = convert(Array{Gray{N0f8}}, a) # IM won't read back as Bool
+            @test b == a8
+            aim = colorview(Gray, a)
+            ImageMagick.save(fn, aim)
+            b = ImageMagick.load(fn)
+            @test b == a8
+            a = bitrand(5,5)
+            fn = joinpath(workdir, "5by5.png")
+            ImageMagick.save(fn, a)
+            b = ImageMagick.load(fn)
+            a8 = convert(Array{Gray{N0f8}}, a)
+            @test b == a8
+            aim = colorview(Gray, a)
+            ImageMagick.save(fn, aim)
+            b = ImageMagick.load(fn)
+            @test b == a8
 
-    @testset "Binary png" begin
-        a = rand(Bool,5,5)
-        fn = joinpath(workdir, "5by5.png")
-        ImageMagick.save(fn, a)
-        b = ImageMagick.load(fn)
-        a8 = convert(Array{Gray{N0f8}}, a) # IM won't read back as Bool
-        @test b == a8
-        aim = colorview(Gray, a)
-        ImageMagick.save(fn, aim)
-        b = ImageMagick.load(fn)
-        @test b == a8
-        a = bitrand(5,5)
-        fn = joinpath(workdir, "5by5.png")
-        ImageMagick.save(fn, a)
-        b = ImageMagick.load(fn)
-        a8 = convert(Array{Gray{N0f8}}, a)
-        @test b == a8
-        aim = colorview(Gray, a)
-        ImageMagick.save(fn, aim)
-        b = ImageMagick.load(fn)
-        @test b == a8
-
-        @test ImageMagick.metadata(fn) == ((5,5), Gray{N0f8})
-    end
-
-    @testset "Gray png" begin
-        a = [0 1/2^16 1/2^8; 1-1/2^8 1-1/2^16 1]
-        aa = convert(Array{N0f8}, a)
-        fn = joinpath(workdir, "2by3.png")
-        ImageMagick.save(fn, a)
-        b = ImageMagick.load(fn)
-        @test b == aa
-        ImageMagick.save(fn, aa)
-        b = ImageMagick.load(fn)
-        @test b == aa
-        open(fn, "w") do io
-            show(io, MIME("image/png"), b; minpixels=0)
+            @test ImageMagick.metadata(fn) == ((5,5), Gray{N0f8})
         end
-        bb = ImageMagick.load(fn)
-        @test bb == b
-        aaimg = Gray.(aa)
-        ImageMagick.save(fn, aaimg)
-        b = ImageMagick.load(fn)
-        @test b == aaimg
-        aa = convert(Array{N0f16}, a)
-        ImageMagick.save(fn, aa)
-        b = ImageMagick.load(fn)
-        @test eltype(eltype(b)) == N0f16
-        # Gets loaded as RGB{N0f16} on windows/osx
-        @test N0f16.(Gray.(b)) == aa
-        m = ImageMagick.metadata(fn)
-        @test m[1]==(3,2)
-    end
 
-    @testset "Color" begin
-        fn = joinpath(workdir, "2by2.png")
-        A = rand(3,2,2)
-        A[1] = 1
-        img = colorview(RGB, A)
-        img24 = convert(Array{RGB24}, img)
-        ImageMagick.save(fn, img24)
-        b = ImageMagick.load(fn)
-        imgrgb8 = convert(Array{RGB{N0f8}}, img)
-        @test imgrgb8 == b
-
-        open(fn, "w") do io
-            show(io, MIME("image/png"), imgrgb8; minpixels=0)
+        @testset "Gray" begin
+            a = [0 1/2^16 1/2^8; 1-1/2^8 1-1/2^16 1]
+            aa = convert(Array{N0f8}, a)
+            fn = joinpath(workdir, "2by3.png")
+            ImageMagick.save(fn, a)
+            b = ImageMagick.load(fn)
+            @test b == aa
+            ImageMagick.save(fn, aa)
+            b = ImageMagick.load(fn)
+            @test b == aa
+            open(fn, "w") do io
+                show(io, MIME("image/png"), b; minpixels=0)
+            end
+            bb = ImageMagick.load(fn)
+            @test bb == b
+            aaimg = Gray.(aa)
+            ImageMagick.save(fn, aaimg)
+            b = ImageMagick.load(fn)
+            @test b == aaimg
+            aa = convert(Array{N0f16}, a)
+            ImageMagick.save(fn, aa)
+            b = ImageMagick.load(fn)
+            @test eltype(eltype(b)) == N0f16
+            # Gets loaded as RGB{N0f16} on windows/osx
+            @test N0f16.(Gray.(b)) == aa
+            m = ImageMagick.metadata(fn)
+            @test m[1]==(3,2)
         end
-        bb = ImageMagick.load(fn)
-        @test bb == imgrgb8
+
+        @testset "Color" begin
+            fn = joinpath(workdir, "2by2.png")
+            A = rand(3,2,2)
+            A[1] = 1
+            img = colorview(RGB, A)
+            img24 = convert(Array{RGB24}, img)
+            ImageMagick.save(fn, img24)
+            b = ImageMagick.load(fn)
+            imgrgb8 = convert(Array{RGB{N0f8}}, img)
+            @test imgrgb8 == b
+
+            open(fn, "w") do io
+                show(io, MIME("image/png"), imgrgb8; minpixels=0)
+            end
+            bb = ImageMagick.load(fn)
+            @test bb == imgrgb8
+        end
+    end
+    @testset "jpeg" begin
+        # Approx tests due to lossiness of jpeg
+        @testset "Gray" begin
+            a = [0 1/2^16 1/2^8; 1-1/2^8 1-1/2^16 1]
+            aa = convert(Array{N0f8}, a)
+            fn = joinpath(workdir, "2by3.jpg")
+            ImageMagick.save(fn, a)
+            b = ImageMagick.load(fn)
+            @test isapprox(b,aa, atol=0.1)
+        end
+
+        @testset "Color" begin
+            fn = joinpath(workdir, "2by2.jpg")
+            A = rand(3,2,2)
+            A[1] = 1
+            img = colorview(RGB, A)
+            img24 = convert(Array{RGB24}, img)
+            ImageMagick.save(fn, img24)
+            b = ImageMagick.load(fn)
+            
+            #Tests disabled because images are numerically very different (RGB lossy compression)
+            #imgrgb8 = convert(Array{RGB{N0f8}}, img)
+            #@test isapprox(imgrgb8, b, atol=0.1) 
+            
+        end
+    end
+    @testset "tiff" begin
+        @testset "Binary" begin
+            a = rand(Bool,5,5)
+            fn = joinpath(workdir, "5by5.tiff")
+            ImageMagick.save(fn, a)
+            b = ImageMagick.load(fn)
+            a8 = convert(Array{Gray{N0f8}}, a) # IM won't read back as Bool
+            @test b == a8
+            aim = colorview(Gray, a)
+            ImageMagick.save(fn, aim)
+            b = ImageMagick.load(fn)
+            @test b == a8
+            a = bitrand(5,5)
+            fn = joinpath(workdir, "5by5.tiff")
+            ImageMagick.save(fn, a)
+            b = ImageMagick.load(fn)
+            a8 = convert(Array{Gray{N0f8}}, a)
+            @test b == a8
+            aim = colorview(Gray, a)
+            ImageMagick.save(fn, aim)
+            b = ImageMagick.load(fn)
+            @test b == a8
+
+            @test ImageMagick.metadata(fn) == ((5,5), Gray{N0f8})
+        end
+
+        @testset "Gray" begin
+            a = [0 1/2^16 1/2^8; 1-1/2^8 1-1/2^16 1]
+            aa = convert(Array{N0f8}, a)
+            fn = joinpath(workdir, "2by3.tiff")
+            ImageMagick.save(fn, a)
+            b = ImageMagick.load(fn)
+            @test b == aa
+            ImageMagick.save(fn, aa)
+            b = ImageMagick.load(fn)
+            @test b == aa
+        end
+
+        @testset "Color" begin
+            fn = joinpath(workdir, "2by2.tiff")
+            A = rand(3,2,2)
+            A[1] = 1
+            img = colorview(RGB, A)
+            img24 = convert(Array{RGB24}, img)
+            ImageMagick.save(fn, img24)
+            b = ImageMagick.load(fn)
+            imgrgb8 = convert(Array{RGB{N0f8}}, img)
+            @test imgrgb8 == b
+        end
     end
 
     @testset "Colormap usage" begin
