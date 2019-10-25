@@ -10,8 +10,6 @@ function is_ci()
     get(ENV, "CI", "") in ("true", "True")
 end
 
-@info "ImageMagick version ", ImageMagick.libversion()
-
 include("constructed_images.jl")
 include("readremote.jl")
 include("badimages.jl")

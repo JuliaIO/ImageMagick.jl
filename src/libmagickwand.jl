@@ -18,20 +18,12 @@ export MagickWand,
     setimageformat,
     writeimage
 
-const depsfile = joinpath(dirname(@__DIR__), "deps", "deps.jl")
-if isfile(depsfile)
-    include(depsfile)
-else
-    error("ImageMagick not properly installed. Please run Pkg.build(\"ImageMagick\") then restart Julia.")
-end
-
 magickgenesis() = ccall((:MagickWandGenesis, libwand), Cvoid, ())
 magickterminus() = ccall((:MagickWandTerminus, libwand), Cvoid, ())
 isinstantiated() = ccall((:IsMagickWandInstantiated, libwand), Cint, ()) == 1
 
 
 function __init__()
-    check_deps()
     magickgenesis()
 end
 
