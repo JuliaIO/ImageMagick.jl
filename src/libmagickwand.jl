@@ -92,13 +92,16 @@ flip12(A) = view(A, reverse(axes(A,1)), reverse(axes(A,2)), ntuple(x->Colon(),nd
 vertical_major(img::AbstractVector) = img
 vertical_major(A) = PermutedDimsArray(A, [2;1;3:ndims(A)])
 
+# This orientation is used so often it's worth naming it for better precompilation
+default_orientation(A, ph) = ph ? vertical_major(A) : A
+
 const orientation_dict = Dict(
-    nothing => (A,ph) -> ph ? vertical_major(A) : identity(A),
-    "1" => (A,ph) -> ph ? vertical_major(A) : identity(A),
+    nothing => default_orientation,
+    "1" => (A,ph) -> ph ? vertical_major(A) : A,
     "2" => (A,ph) -> ph ? vertical_major(flip1(A)) : flip1(A),
     "3" => (A,ph) -> ph ? vertical_major(flip12(A)) : flip12(A),
     "4" => (A,ph) -> ph ? vertical_major(flip2(A)) : flip2(A),
-    "5" => (A,ph) -> ph ? identity(A) : vertical_major(A),
+    "5" => (A,ph) -> ph ? A : vertical_major(A),
     "6" => (A,ph) -> ph ? flip2(A) : vertical_major(flip2(A)),
     "7" => (A,ph) -> ph ? flip12(A) : vertical_major(flip12(A)),
     "8" => (A,ph) -> ph ? flip1(A) : vertical_major(flip1(A)))
@@ -205,7 +208,8 @@ bitdepth(buffer::AbstractArray{C}) where {C<:Colorant} = 8*sizeof(eltype(C))
 bitdepth(buffer::AbstractArray{T}) where {T} = 8*sizeof(T)
 
 # colorspace is included for consistency with constituteimage, but it is not used
-function exportimagepixels!(buffer::AbstractArray{T}, wand::MagickWand,  colorspace::String, channelorder::String; x = 0, y = 0) where T<:Unsigned
+function exportimagepixels!(@nospecialize(buffer::AbstractArray{<:Unsigned}), wand::MagickWand,  colorspace::String, channelorder::String; x = 0, y = 0)
+    T = eltype(buffer)
     cols, rows, nimages = getsize(buffer, channelorder)
     ncolors = colorsize(buffer, channelorder)
     if isa(buffer, Array)

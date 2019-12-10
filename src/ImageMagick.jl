@@ -110,14 +110,14 @@ function _metadata(wand)
     sz, T, cs, channelorder
 end
 
-load(imagefile::File{T}, args...; key_args...) where {T <: DataFormat} = load_(filename(imagefile), args...; key_args...)
-load(filename::AbstractString, args...; key_args...) = load_(filename, args...; key_args...)
-save(imagefile::File{T}, args...; key_args...) where {T <: DataFormat} = save_(filename(imagefile), args...; key_args...)
-save(filename::AbstractString, args...; key_args...) = save_(filename, args...; key_args...)
+load(@nospecialize(imagefile::File{<:DataFormat}), @nospecialize(args...); key_args...) = load_(filename(imagefile), args...; key_args...)
+load(filename::AbstractString, @nospecialize(args...); key_args...) = load_(filename, args...; key_args...)
+save(@nospecialize(imagefile::File{<:DataFormat}), @nospecialize(args...); key_args...) = save_(filename(imagefile), args...; key_args...)
+save(filename::AbstractString, @nospecialize(args...); key_args...) = save_(filename, args...; key_args...)
 
-load(imgstream::Stream{T}, args...; key_args...) where {T <: DataFormat} = load_(stream(imgstream), args...; key_args...)
+load(@nospecialize(imgstream::Stream{<:DataFormat}), @nospecialize(args...); key_args...) = load_(stream(imgstream), args...; key_args...)
 load(imgstream::IO, args...; key_args...) = load_(imgstream, args...; key_args...)
-save(imgstream::Stream{T}, args...; key_args...) where {T <: DataFormat} = save_(imgstream, args...; key_args...)
+save(@nospecialize(imgstream::Stream{<:DataFormat}), args...; key_args...) = save_(imgstream, args...; key_args...)
 
 const ufixedtype = Dict(10=>N6f10, 12=>N4f12, 14=>N2f14, 16=>N0f16)
 
@@ -147,7 +147,7 @@ function load_(file::Union{AbstractString,IO,Vector{UInt8}}, permute_horizontal=
 end
 
 
-function save_(filename::AbstractString, img, permute_horizontal=true; mapi = identity, quality = nothing, kwargs...)
+function save_(filename::AbstractString, @nospecialize(img), permute_horizontal=true; mapi = identity, quality = nothing, kwargs...)
     wand = image2wand(img, mapi, quality, permute_horizontal; kwargs...)
     writeimage(wand, filename)
 end
@@ -160,7 +160,7 @@ function save_(s::Stream, img, permute_horizontal=true; mapi = clamp01nan, quali
     write(stream(s), blob)
 end
 
-function image2wand(img, mapi=identity, quality=nothing, permute_horizontal=true; kwargs...)
+function image2wand(@nospecialize(img), mapi=identity, quality=nothing, permute_horizontal=true; kwargs...)
     local imgw
     try
         imgw = map(x->mapIM(mapi(x)), img)
@@ -268,5 +268,8 @@ function to_explicit(A::AbstractArray)
 end
 to_explicit(A::Array{T}) where {T<:Normed} = rawview(A)
 to_explicit(A::Array{T}) where {T<:AbstractFloat} = to_explicit(convert(Array{N0f8}, A))
+
+include("precompile.jl")
+_precompile_()
 
 end # module
