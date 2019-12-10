@@ -18,12 +18,11 @@ mutable struct TestType end
 
     a = [TestType() TestType()]
     fn = joinpath(workdir, "5by5.png")
-    errfile, io = mktemp()  # suppress warning message
-    redirect_stderr(io) do
+    io = IOBuffer()
+    with_logger(SimpleLogger(io)) do  # suppress warning
         @test_throws MethodError ImageMagick.save(fn, a)
     end
-    close(io)
-    rm(errfile)
+    @test occursin("out-of-range", String(take!(io)))
 
     @testset "Binary png" begin
         a = rand(Bool,5,5)
@@ -120,7 +119,7 @@ mutable struct TestType end
     @testset "Alpha" begin
         c = reinterpret(BGRA{N0f8}, [0xf0884422]'')
         fn = joinpath(workdir, "alpha.png")
-    	ImageMagick.save(fn, c)
+        ImageMagick.save(fn, c)
         C = ImageMagick.load(fn)
         if !ontravis || !Sys.islinux()
             # disabled on Linux Travis because it has a weird copy of
@@ -286,7 +285,7 @@ mutable struct TestType end
     end
 
     @testset "permute_horizontal" begin
-        Ar = [0x00 0xff; 0x00 0x00] 
+        Ar = [0x00 0xff; 0x00 0x00]
         A = map(x->Gray(N0f8(x,0)), Ar)
         fn = joinpath(workdir, "2d.tif")
 
@@ -307,5 +306,3 @@ mutable struct TestType end
         @test transpose(A)==B
     end
 end
-
-nothing

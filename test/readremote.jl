@@ -138,7 +138,6 @@ end
             file = getfile("autumn_leaves.png")
             # List properties
             extraProps = magickinfo(file)
-            @show extraProps
 
             img = ImageMagick.load(file)
             @test ImageMagick.metadata(file) == (reverse(size(img)), RGBA{N0f16})
@@ -152,11 +151,11 @@ end
             @test haskey(props, extraProps[1]) == true
             @test props[extraProps[1]] != nothing
 
-            warnfile, io = mktemp()
-            props = redirect_stderr(io) do
+            io = IOBuffer()
+            props = with_logger(SimpleLogger(io)) do
                 magickinfo(file, "Nonexistent property")
             end
-            close(io)
+            @test occursin("Undefined", String(take!(io)))
             @test haskey(props, "Nonexistent property") == true
             @test props["Nonexistent property"] == nothing
         end
