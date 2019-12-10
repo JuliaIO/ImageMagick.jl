@@ -3,8 +3,6 @@ using ImageShow       # for show(io, ::MIME, img) & ImageMeta
 using Test
 using ImageCore
 
-ontravis = haskey(ENV, "TRAVIS")
-
 mutable struct TestType end
 
 @testset "IO" begin
@@ -121,24 +119,16 @@ mutable struct TestType end
         fn = joinpath(workdir, "alpha.png")
         ImageMagick.save(fn, c)
         C = ImageMagick.load(fn)
-        if !ontravis || !Sys.islinux()
-            # disabled on Linux Travis because it has a weird copy of
-            # ImageMagick for which this fails (see Images#261)
-            @test C[1] == c[1]
-        end
+        @test C[1] == c[1]
         ImageMagick.save(fn, reinterpret(ARGB32, [0xf0884422]''))
         D = ImageMagick.load(fn)
-        if !ontravis || !Sys.islinux()
-            @test D[1] == c[1]
-        end
+        @test D[1] == c[1]
 
         # Images#396
         c = colorview(RGBA, normedview(permuteddimsview(reshape(0x00:0x11:0xff, 2, 2, 4), (3,1,2))))
         ImageMagick.save(fn, c)
         D = ImageMagick.load(fn)
-        if !ontravis || !Sys.islinux()
-            @test D == c
-        end
+        @test D == c
     end
 
     @testset "3D TIFF (issue #307)" begin
@@ -166,18 +156,16 @@ mutable struct TestType end
         @test A == B
     end
 
-#= FAILS ON SCIENTIFIC LINUX 7.2 WITH IMAGEMAGICK 6.9.5, works for other combos
-    @testset "32-bit TIFF (issue #49)" begin
-        Ar = rand(0x00000000:0xffffffff, 2, 2, 4)
-        Ar[1] = 0xffffffff
-        A = map(x->Gray(reinterpret(N0f32, x)), Ar)
-        fn = joinpath(workdir, "3d32.tif")
-        ImageMagick.save(fn, A)
-        B = ImageMagick.load(fn)
-
-        @test A == B
-    end
-=#
+    # @testset "32-bit TIFF (issue #49)" begin
+    #     Ar = rand(0x00000000:0xffffffff, 2, 2, 4)
+    #     Ar[1] = 0xffffffff
+    #     A = map(x->Gray(reinterpret(N0f32, x)), Ar)
+    #     fn = joinpath(workdir, "3d32.tif")
+    #     ImageMagick.save(fn, A)
+    #     B = ImageMagick.load(fn)
+    #
+    #     @test A == B
+    # end
 
     @testset "Clamping (issue #256)" begin
         Ar = rand(2,2)
