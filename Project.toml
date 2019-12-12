@@ -1,6 +1,6 @@
 name = "ImageMagick"
 uuid = "6218d12a-5da1-5696-b52f-db25d2ecc6d1"
-version = "1.0.0"
+version = "1.1.0"
 
 [deps]
 ColorTypes = "3da002f7-5984-5a60-b8a6-cbb66c0b333f"
