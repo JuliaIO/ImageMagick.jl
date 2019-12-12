@@ -2,6 +2,7 @@ using ImageMagick, ColorTypes, FixedPointNumbers, IndirectArrays, FileIO, Offset
 using ImageShow       # for show(io, ::MIME, img) & ImageMeta
 using Test
 using ImageCore
+using Random, Base.CoreLogging
 
 mutable struct TestType end
 
@@ -27,24 +28,31 @@ mutable struct TestType end
         fn = joinpath(workdir, "5by5.png")
         ImageMagick.save(fn, a)
         b = ImageMagick.load(fn)
-        a8 = convert(Array{Gray{N0f8}}, a) # IM won't read back as Bool
-        @test b == a8
+        ag = convert(Array{Gray{Bool}}, a) # IM won't read back as Bool
+        @test b == ag
+        @test eltype(b) ∈ (Bool, Gray{Bool})
         aim = colorview(Gray, a)
         ImageMagick.save(fn, aim)
         b = ImageMagick.load(fn)
-        @test b == a8
+        @test b == ag
         a = bitrand(5,5)
         fn = joinpath(workdir, "5by5.png")
         ImageMagick.save(fn, a)
         b = ImageMagick.load(fn)
-        a8 = convert(Array{Gray{N0f8}}, a)
-        @test b == a8
+        ag = convert(Array{Gray{Bool}}, a)
+        @test b == ag
         aim = colorview(Gray, a)
         ImageMagick.save(fn, aim)
         b = ImageMagick.load(fn)
-        @test b == a8
+        @test b == ag
 
-        @test ImageMagick.metadata(fn) == ((5,5), Gray{N0f8})
+        @test ImageMagick.metadata(fn) == ((5,5), Gray{Bool})
+
+        # If we try to save as JPG, don't error
+        fn = joinpath(workdir, "5by5.jpg")
+        ImageMagick.save(fn, a)
+        b = ImageMagick.load(fn)
+        @test eltype(b) == Gray{N0f8}
     end
 
     @testset "Gray png" begin

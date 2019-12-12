@@ -35,6 +35,7 @@ const FLOATPIXEL   = 3
 const INTEGERPIXEL = 4
 const SHORTPIXEL   = 7
 const IMStorageTypes = Union{UInt8,UInt16,UInt32,Float32,Float64}
+storagetype(::Type{Bool})    = CHARPIXEL
 storagetype(::Type{UInt8})   = CHARPIXEL
 storagetype(::Type{UInt16})  = SHORTPIXEL
 storagetype(::Type{UInt32})  = INTEGERPIXEL
@@ -208,7 +209,7 @@ bitdepth(buffer::AbstractArray{C}) where {C<:Colorant} = 8*sizeof(eltype(C))
 bitdepth(buffer::AbstractArray{T}) where {T} = 8*sizeof(T)
 
 # colorspace is included for consistency with constituteimage, but it is not used
-function exportimagepixels!(@nospecialize(buffer::AbstractArray{<:Unsigned}), wand::MagickWand,  colorspace::String, channelorder::String; x = 0, y = 0)
+function exportimagepixels!(@nospecialize(buffer::AbstractArray{<:Union{Unsigned,Bool}}), wand::MagickWand,  colorspace::String, channelorder::String; x = 0, y = 0)
     T = eltype(buffer)
     cols, rows, nimages = getsize(buffer, channelorder)
     ncolors = colorsize(buffer, channelorder)
@@ -235,11 +236,11 @@ end
 #     nothing
 # end
 
-function constituteimage(buffer::AbstractArray{T}, wand::MagickWand, colorspace::String, channelorder::String; x = 0, y = 0) where T<:Unsigned
+function constituteimage(buffer::AbstractArray{T}, wand::MagickWand, colorspace::String, channelorder::String; x = 0, y = 0) where T<:Union{Unsigned,Bool}
     cols, rows, nimages = getsize(buffer, channelorder)
     ncolors = colorsize(buffer, channelorder)
     p = pointer(buffer)
-    depth = bitdepth(buffer)
+    depth = T == Bool ? 1 : bitdepth(buffer)
     for i = 1:nimages
         status = ccall((:MagickConstituteImage, libwand), Cint, (Ptr{Cvoid}, Cssize_t, Cssize_t, Ptr{UInt8}, Cint, Ptr{Cvoid}), wand, cols, rows, channelorder, storagetype(T), p)
         status == 0 && error(wand)
