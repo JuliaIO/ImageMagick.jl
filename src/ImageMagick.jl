@@ -81,7 +81,11 @@ function _metadata(wand)
     # use an even # of fractional bits for depth>8 (see issue 242#issuecomment-68845157)
     evendepth = ((depth+1)>>1)<<1
     if depth <= 8
-        T = Normed{UInt8,8}     # otherwise use 8 fractional bits
+        if cs == "Gray"
+            T = getimagechanneldepth(wand, GrayChannel) == 1 ? Bool : N0f8
+        else
+            T = Normed{UInt8,8}     # otherwise use 8 fractional bits
+        end
     elseif depth <= 16
         T = Normed{UInt16,evendepth}
     else
@@ -249,7 +253,7 @@ mapIM(c::RGBA{T}) where {T<:Normed} = c
 mapIM(x::UInt8) = reinterpret(N0f8, x)
 mapIM(x::UInt16) = reinterpret(N0f16, x)
 mapIM(x::UInt32) = reinterpret(N0f32, x)
-mapIM(x::Bool) = convert(N0f8, x)
+mapIM(x::Bool) = x
 mapIM(x::AbstractFloat) = convert(N0f8, x)
 mapIM(x::Normed) = x
 
@@ -257,7 +261,7 @@ mapIM(x::Normed) = x
 # imagemagick since it doesn't handle stride.
 to_contiguous(A::Array) = A
 to_contiguous(A::AbstractArray) = collect(A)
-to_contiguous(A::BitArray) = convert(Array{N0f8}, A)
+to_contiguous(A::BitArray) = convert(Array{Bool}, A)
 to_contiguous(A::ColorView) = to_contiguous(channelview(A))
 
 to_explicit(A::Array{C}) where {C<:Colorant} = to_explicit(channelview(A))
@@ -266,6 +270,7 @@ function to_explicit(A::AbstractArray)
     As .= A
     to_explicit(As)
 end
+to_explicit(A::Array{Bool}) = A
 to_explicit(A::Array{T}) where {T<:Normed} = rawview(A)
 to_explicit(A::Array{T}) where {T<:AbstractFloat} = to_explicit(convert(Array{N0f8}, A))
 
