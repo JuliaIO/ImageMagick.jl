@@ -1,5 +1,5 @@
 using ImageMagick
-using FileIO, Colors, FixedPointNumbers, ZipFile
+using FileIO, ImageCore, ZipFile
 using Test
 
 workdir = joinpath(tempdir(), "Images")
@@ -65,7 +65,7 @@ end
         file = getfile("rose.png")
         img = ImageMagick.load(file)
         @test ImageMagick.metadata(file) == (reverse(size(img)), RGB{N0f8})
-        # Mac reader reports RGB4, imagemagick reports RGB
+        # Mac reader reports RGBX, imagemagick reports RGB
         @test ndims(img) == 2
         @test eltype(img) == RGB{N0f8}
         outname = joinpath(writedir, "rose.tiff")

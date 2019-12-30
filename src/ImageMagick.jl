@@ -1,6 +1,5 @@
 module ImageMagick
 
-using FixedPointNumbers, ColorTypes
 using FileIO: DataFormat, @format_str, Stream, File, filename, stream
 using InteractiveUtils: subtypes
 using ImageCore

@@ -1,4 +1,4 @@
-using ImageMagick, ColorTypes, FixedPointNumbers, IndirectArrays, FileIO, OffsetArrays
+using ImageMagick, IndirectArrays, FileIO, OffsetArrays
 using ImageShow       # for show(io, ::MIME, img) & ImageMeta
 using Test
 using ImageCore

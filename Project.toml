@@ -1,11 +1,9 @@
 name = "ImageMagick"
 uuid = "6218d12a-5da1-5696-b52f-db25d2ecc6d1"
-version = "1.1.0"
+version = "1.1.1"
 
 [deps]
-ColorTypes = "3da002f7-5984-5a60-b8a6-cbb66c0b333f"
 FileIO = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
-FixedPointNumbers = "53c48c17-4a7d-5ca2-90c5-79b7896eea93"
 ImageCore = "a09fc81d-aa75-5fe9-8630-4744c3626534"
 ImageMagick_jll = "c73af94c-d91f-53ed-93a7-00f77d67a9d7"
 InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
@@ -14,10 +12,8 @@ Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
 [compat]
-ColorTypes = "0.8"
 FileIO = "1"
-FixedPointNumbers = "0.6.1"
-ImageCore = "0.8"
+ImageCore = "0.8.1"
 ImageMagick_jll = "6.9.10"
 julia = "1.3"
 
