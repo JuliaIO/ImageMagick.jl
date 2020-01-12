@@ -88,7 +88,7 @@ function _metadata(wand)
     elseif depth <= 16
         T = Normed{UInt16,evendepth}
     else
-        @warn "some versions of ImageMagick give spurious low-order bits for 32-bit TIFFs"
+        @warn "some versions of ImageMagick give spurious low-order bits for 32-bit TIFFs" maxlog=1
         T = Normed{UInt32,evendepth}
     end
 
