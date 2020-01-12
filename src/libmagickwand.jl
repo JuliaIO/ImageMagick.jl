@@ -214,6 +214,7 @@ function exportimagepixels!(@nospecialize(buffer::AbstractArray{<:Union{Unsigned
     cols, rows, nimages = getsize(buffer, channelorder)
     ncolors = colorsize(buffer, channelorder)
     if isa(buffer, Array)
+        tmp = nothing
         p = pointer(buffer)
     else
         tmp = similar(buffer)
@@ -225,7 +226,7 @@ function exportimagepixels!(@nospecialize(buffer::AbstractArray{<:Union{Unsigned
         status == 0 && error(wand)
         p += sizeof(T)*cols*rows*ncolors
     end
-    isa(buffer, Array) || buffer .= tmp
+    isa(buffer, Array) || (buffer .= tmp)
     buffer
 end
 
