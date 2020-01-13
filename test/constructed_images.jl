@@ -301,4 +301,30 @@ mutable struct TestType end
         B = ImageMagick.load(fn, true)
         @test transpose(A)==B
     end
+
+    @testset "exportimagepixels!()" begin
+        # test the direct use of exportimagepixels!()
+        Ar = [0x10 0xff 0x80; 0x00 0x00 0x20]
+        A = Gray.(N0f8.(Ar, 0))
+        fn = joinpath(workdir, "2d.tif")
+        ImageMagick.save(fn, A, false)
+
+        wand = MagickWand()
+        readimage(wand, fn)
+        @test ImageMagick.getnumberimages(wand) == 1
+        ImageMagick.resetiterator(wand)
+        sz, T, cs, channelorder = ImageMagick._metadata(wand)
+        @test sz == size(Ar)
+        @test T == Gray{N0f8}
+        # test using the array
+        buf = Array{UInt8}(undef, sz)
+        exportimagepixels!(buf, wand, cs, channelorder)
+        @test buf == Ar
+
+        # test using the subarray
+        buf2 = similar(buf, ntuple(i -> i <= length(sz) ? sz[i] + 1 : 2, length(sz) + 1))
+        buf2view = view(buf2, 1:sz[1], 1:sz[2], 2)
+        exportimagepixels!(buf2view, wand, cs, channelorder)
+        @test buf2view == Ar
+    end
 end
