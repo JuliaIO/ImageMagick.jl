@@ -209,7 +209,7 @@ bitdepth(buffer::AbstractArray{C}) where {C<:Colorant} = 8*sizeof(eltype(C))
 bitdepth(buffer::AbstractArray{T}) where {T} = 8*sizeof(T)
 
 # colorspace is included for consistency with constituteimage, but it is not used
-function exportimagepixels!(@nospecialize(buffer::AbstractArray{<:Union{Unsigned,Bool}}), wand::MagickWand,  colorspace::String, channelorder::String; x = 0, y = 0)
+function exportimagepixels!(@nospecialize(buffer::AbstractArray{<:Union{Unsigned,Bool}}), wand::MagickWand, colorspace::String, channelorder::String; x = 0, y = 0)
     T = eltype(buffer)
     cols, rows, nimages = getsize(buffer, channelorder)
     ncolors = colorsize(buffer, channelorder)
