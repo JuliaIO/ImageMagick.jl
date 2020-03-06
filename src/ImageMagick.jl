@@ -81,9 +81,17 @@ function _metadata(wand)
     evendepth = ((depth+1)>>1)<<1
     if depth <= 8
         if cs == "Gray"
-            T = getimagechanneldepth(wand, GrayChannel) == 1 ? Bool : N0f8
+            cdepth = getimagechanneldepth(wand, GrayChannel)
+            if n > 1
+                for k = 1:n  # while it might seem that this should be 2:n, that doesn't work...
+                    nextimage(wand)
+                    cdepth = max(cdepth, getimagechanneldepth(wand, GrayChannel))
+                end
+                resetiterator(wand)
+            end
+            T = cdepth == 1 ? Bool : N0f8
         else
-            T = Normed{UInt8,8}     # otherwise use 8 fractional bits
+            T = N0f8     # otherwise use 8 fractional bits
         end
     elseif depth <= 16
         T = Normed{UInt16,evendepth}

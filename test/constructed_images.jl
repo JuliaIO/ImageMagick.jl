@@ -1,7 +1,7 @@
-using ImageMagick, IndirectArrays, FileIO, OffsetArrays
+using ImageMagick, IndirectArrays, FileIO, OffsetArrays, ImageMetadata, ImageTransformations
 using ImageShow       # for show(io, ::MIME, img) & ImageMeta
 using Test
-using ImageCore
+using ImageCore, ColorVectorSpace
 using Random, Base.CoreLogging
 
 mutable struct TestType end
@@ -139,7 +139,8 @@ mutable struct TestType end
         @test D == c
     end
 
-    @testset "3D TIFF (issue #307)" begin
+    @testset "3D TIFF" begin
+        # issue #307
         Ar = rand(0x00:0xff, 2, 2, 4)
         Ar[1] = 0xff
         A = map(x->Gray(N0f8(x,0)), Ar)
@@ -150,6 +151,13 @@ mutable struct TestType end
         @test A == B
 
         @test ImageMagick.metadata(fn) == ((2,2,4), Gray{N0f8})
+
+        # ensure proper colordepth if first image is black
+        A = cat(N0f8[0 0; 0 0], N0f8[0 0.2; 0.4 0.8]; dims=3)
+        fn = joinpath(workdir, "3dblack.tif")
+        ImageMagick.save(fn, A)
+        B = ImageMagick.load(fn)
+        @test A == B
     end
 
     @testset "16-bit TIFF (issue #49)" begin
