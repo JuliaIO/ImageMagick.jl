@@ -287,6 +287,8 @@ function readimage(wand::MagickWand, stream::Vector{UInt8})
     nothing
 end
 
+readimage(wand::MagickWand, stream::IOBuffer) = readimage(wand, stream.data)
+
 function writeimage(wand::MagickWand, filename::AbstractString)
     status = ccall((:MagickWriteImages, libwand), Cint, (Ptr{Cvoid}, Ptr{UInt8}, Cint), wand, filename, true)
     status == 0 && error(wand)

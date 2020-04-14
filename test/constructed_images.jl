@@ -229,6 +229,16 @@ mutable struct TestType end
         @test size(img) == (2,2)
     end
 
+    Sys.isunix() && @testset "Reading from an IOBuffer (issue https://github.com/JuliaIO/FileIO.jl/issues/174)" begin
+        fn = joinpath(workdir, "2by2.png")
+        io = open(fn)
+        arr = read(io)
+        close(io)
+        iobuffer = IOBuffer(arr)
+        img = ImageMagick.load(iobuffer)
+        @test size(img) == (2,2)
+    end
+
     @testset "show(MIME)" begin
         Ar = rand(UInt8, 3, 2, 2)
         Ar[1] = typemax(eltype(Ar))
