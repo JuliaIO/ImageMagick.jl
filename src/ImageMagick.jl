@@ -5,6 +5,7 @@ using InteractiveUtils: subtypes
 using ImageCore
 using Libdl
 using ImageMagick_jll
+using Base: convert
 
 Color1{T}           = Color{T,1}
 Color2{T,C<:Color1} = TransparentColor{C,T,2}
