@@ -253,8 +253,10 @@ mapIM(x::Normed) = x
 # imagemagick since it doesn't handle stride.
 to_contiguous(A::Array) = A
 to_contiguous(A::AbstractArray) = collect(A)
-to_contiguous(A::BitArray) = convert(Array{N0f8}, A)
-to_contiguous(A::ColorView) = to_contiguous(channelview(A))
+to_contiguous(A::BitArray) = convert(Array{Bool}, A)
+if isdefined(ImageCore, :ColorView)
+    to_contiguous(A::ColorView) = to_contiguous(channelview(A))
+end
 
 to_explicit(A::Array{C}) where {C<:Colorant} = to_explicit(channelview(A))
 function to_explicit(A::AbstractArray)
