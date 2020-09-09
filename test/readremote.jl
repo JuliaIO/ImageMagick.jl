@@ -1,5 +1,5 @@
 using ImageMagick
-using FileIO, Colors, FixedPointNumbers, ZipFile
+using FileIO, ImageCore, ZipFile
 using Test
 
 workdir = joinpath(tempdir(), "Images")

@@ -1,4 +1,4 @@
-using ImageMagick, ColorTypes, FixedPointNumbers, IndirectArrays, FileIO, OffsetArrays
+using ImageMagick, ImageCore, IndirectArrays, FileIO, OffsetArrays
 using ImageShow       # for show(io, ::MIME, img) & ImageMeta
 using Test
 using ImageCore
@@ -286,7 +286,7 @@ mutable struct TestType end
     end
 
     @testset "permute_horizontal" begin
-        Ar = [0x00 0xff; 0x00 0x00] 
+        Ar = [0x00 0xff; 0x00 0x00]
         A = map(x->Gray(N0f8(x,0)), Ar)
         fn = joinpath(workdir, "2d.tif")
 
