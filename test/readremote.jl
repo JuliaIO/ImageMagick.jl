@@ -1,6 +1,10 @@
 using ImageMagick
 using FileIO, ImageCore, ZipFile
 using Test
+if Base.VERSION >= v"1.6.0-DEV.1016"
+    import Downloads
+    download = Downloads.download
+end
 
 workdir = joinpath(tempdir(), "Images")
 writedir = joinpath(workdir, "write")

@@ -133,7 +133,7 @@ mutable struct TestType end
         @test D[1] == c[1]
 
         # Images#396
-        c = colorview(RGBA, normedview(permuteddimsview(reshape(0x00:0x11:0xff, 2, 2, 4), (3,1,2))))
+        c = colorview(RGBA, normedview(PermutedDimsArray(reshape(0x00:0x11:0xff, 2, 2, 4), (3,1,2))))
         ImageMagick.save(fn, c)
         D = ImageMagick.load(fn)
         @test D == c
