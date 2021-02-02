@@ -20,7 +20,7 @@ Pkg.add("ImageMagick")
 
 ## Usage
 
-ImageMagick will be used as needed if you've said
+After installation, ImageMagick will be used as needed if you've said
 
 ```julia
 using FileIO
