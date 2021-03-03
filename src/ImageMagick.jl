@@ -213,6 +213,43 @@ end
 
 formatstring(s::Stream{DataFormat{S}}) where {S} = string(S)
 
+@doc raw"""
+    magickinfo(file::Union{AbstractString,IO})
+
+Reads an image `file` and returns an array of strings describing the property data in the image file.
+
+# Examples
+```julia-repl
+julia> p = magickinfo("Image.jpeg")
+63-element Array{String,1}:
+ "date:create"
+ "date:modify"
+ "exif:ApertureValue"
+ "exif:BrightnessValue"
+ "exif:ColorSpace"
+ "exif:ComponentsConfiguration"
+ "exif:DateTime"
+ "exif:DateTimeDigitized"
+ "exif:DateTimeOriginal"
+ "exif:ExifImageLength"
+ "exif:ExifImageWidth"
+ "exif:ExifOffset"
+ "exif:ExifVersion"
+ ⋮
+ "exif:thumbnail:JPEGInterchangeFormat"
+ "exif:thumbnail:JPEGInterchangeFormatLength"
+ "exif:thumbnail:ResolutionUnit"
+ "exif:thumbnail:XResolution"
+ "exif:thumbnail:YResolution"
+ "exif:WhiteBalance"
+ "exif:XResolution"
+ "exif:YCbCrPositioning"
+ "exif:YResolution"
+ "jpeg:colorspace"
+ "jpeg:sampling-factor"
+ "unknown"a
+```
+"""
 function magickinfo(file::Union{AbstractString,IO})
     wand = MagickWand()
     readimage(wand, file)
@@ -220,6 +257,25 @@ function magickinfo(file::Union{AbstractString,IO})
     getimageproperties(wand, "*")
 end
 
+@doc raw"""
+    magickinfo(file::Union{AbstractString,IO}, properties::Union{Tuple,AbstractVector})
+
+Reads an image `file` and returns a Dict containing the values for the requested `properties`.
+
+# Examples
+```julia-repl
+julia> magickinfo("IMG_6477.jpeg",
+           ("exif:DateTime","exif:GPSLatitude","exif:GPSLatitudeRef",
+            "exif:GPSLongitude","exif:GPSLongitudeRef","exif:GPSAltitude"))
+Dict{String,Any} with 6 entries:
+  "exif:GPSLongitudeRef" => "W"
+  "exif:GPSLatitude"     => "44/1, 22/1, 2326/100"
+  "exif:GPSLatitudeRef"  => "N"
+  "exif:GPSLongitude"    => "71/1, 13/1, 5301/100"
+  "exif:DateTime"        => "2020:01:22 13:17:41"
+  "exif:GPSAltitude"     => "261189/757"
+```
+"""
 function magickinfo(file::Union{AbstractString,IO}, properties::Union{Tuple,AbstractVector})
     wand = MagickWand()
     readimage(wand, file)
