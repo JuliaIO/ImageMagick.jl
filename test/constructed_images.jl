@@ -214,7 +214,7 @@ mutable struct TestType end
         orig_img = ImageMagick.load(joinpath(workdir, "2by2.png"))
         fn = joinpath(workdir, "2by2_fromstream.png")
         open(fn, "w") do f
-            ImageMagick.save(Stream(format"PNG", f), orig_img)
+            ImageMagick.save(Stream{format"PNG"}(f), orig_img)
         end
         img = ImageMagick.load(fn)
         @test img == orig_img
