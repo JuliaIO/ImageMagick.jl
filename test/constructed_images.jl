@@ -279,6 +279,15 @@ mutable struct TestType end
         readimage(wand, fn)
         resetiterator(wand)
         @test ImageMagick.getimagedelay(wand) == 50
+
+        fn = joinpath(workdir, "animated.gif")
+        open(fn, "w") do io
+            ImageMagick.save(FileIO.Stream{format"GIF"}(io), A, fps=2)
+        end
+        wand = MagickWand()
+        readimage(wand, fn)
+        resetiterator(wand)
+        @test ImageMagick.getimagedelay(wand) == 50
     end
 
     @testset "ImageMeta" begin
