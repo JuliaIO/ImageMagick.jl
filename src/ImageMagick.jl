@@ -166,8 +166,8 @@ end
 
 # This differs from `save_` for files because this is primarily used
 # by IJulia, and we want to restrict large images to make display faster.
-function save_(s::Stream, img, permute_horizontal=true; mapi = clamp01nan, quality = nothing)
-    wand = image2wand(img, mapi, quality, permute_horizontal)
+function save_(s::Stream, img, permute_horizontal=true; mapi = clamp01nan, quality = nothing, kwargs...)
+    wand = image2wand(img, mapi, quality, permute_horizontal; kwargs...)
     blob = getblob(wand, formatstring(s))
     write(stream(s), blob)
 end

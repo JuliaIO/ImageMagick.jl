@@ -160,9 +160,8 @@ end
 end
 
 @testset "EXIF orientation" begin
-    url = "http://magnushoff.com/assets/test-exiforientation.zip"
-    fn = joinpath(workdir, "test-exiforientation.zip")
-    download(url, fn)
+    # downloaded from http://magnushoff.com/assets/test-exiforientation.zip
+    fn = joinpath(@__DIR__, "images", "test-exiforientation.zip")
     first_img = true
     r = ZipFile.Reader(fn)
     local img0

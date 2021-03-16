@@ -214,7 +214,7 @@ mutable struct TestType end
         orig_img = ImageMagick.load(joinpath(workdir, "2by2.png"))
         fn = joinpath(workdir, "2by2_fromstream.png")
         open(fn, "w") do f
-            ImageMagick.save(Stream(format"PNG", f), orig_img)
+            ImageMagick.save(Stream{format"PNG"}(f), orig_img)
         end
         img = ImageMagick.load(fn)
         @test img == orig_img
@@ -275,6 +275,15 @@ mutable struct TestType end
         A = rand(RGB{N0f8}, 100, 100, 5)
         fn = joinpath(workdir, "animated.gif")
         ImageMagick.save(fn, A, fps=2)
+        wand = MagickWand()
+        readimage(wand, fn)
+        resetiterator(wand)
+        @test ImageMagick.getimagedelay(wand) == 50
+
+        fn = joinpath(workdir, "animated.gif")
+        open(fn, "w") do io
+            ImageMagick.save(FileIO.Stream{format"GIF"}(io), A, fps=2)
+        end
         wand = MagickWand()
         readimage(wand, fn)
         resetiterator(wand)
