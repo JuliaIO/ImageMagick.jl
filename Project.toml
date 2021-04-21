@@ -13,7 +13,7 @@ Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
 [compat]
 FileIO = "1"
-ImageCore = "0.8.1"
+ImageCore = "0.8.1, 0.9"
 ImageMagick_jll = "6.9.10"
 julia = "1.3"
 
