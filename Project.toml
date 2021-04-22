@@ -18,8 +18,6 @@ ImageMagick_jll = "6.9.10"
 julia = "1.3"
 
 [extras]
-ColorVectorSpace = "c3611d14-8923-5661-9e6a-0046d554d3a4"
-Colors = "5ae59095-9a9b-59fe-a467-6f913c188581"
 Downloads = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 ImageMetadata = "bc367c6b-8a6b-528e-b4bd-a4b897500b49"
 ImageShow = "4e3cecfd-b093-5904-9786-8bbb286a6a31"
@@ -32,4 +30,4 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
 
 [targets]
-test = ["ColorVectorSpace", "Colors", "Downloads", "OffsetArrays", "Pkg", "Test", "Random", "IndirectArrays", "ZipFile", "ImageTransformations", "ImageShow", "ImageMetadata"]
+test = ["Downloads", "OffsetArrays", "Pkg", "Test", "Random", "IndirectArrays", "ZipFile", "ImageTransformations", "ImageShow", "ImageMetadata"]

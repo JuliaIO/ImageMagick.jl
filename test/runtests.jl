@@ -1,4 +1,4 @@
-using ImageMagick, ColorVectorSpace, ImageMetadata, ImageTransformations
+using ImageMagick, ImageMetadata, ImageTransformations
 
 using Random: bitrand
 using Base.CoreLogging: SimpleLogger, with_logger
