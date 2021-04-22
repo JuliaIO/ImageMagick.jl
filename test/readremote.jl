@@ -16,7 +16,7 @@ if !isdir(writedir)
 end
 
 @testset "Read remote" begin
-    urlbase = "http://www.imagemagick.org/Usage/images/"
+    urlbase = "https://legacy.imagemagick.org/Usage/images/"
 
     function getfile(name)
         file = joinpath(workdir, name)
