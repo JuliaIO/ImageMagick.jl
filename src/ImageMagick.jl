@@ -3,7 +3,6 @@ module ImageMagick
 using FileIO: DataFormat, @format_str, Stream, File, filename, stream
 using InteractiveUtils: subtypes
 using ImageCore
-using Libdl
 using ImageMagick_jll
 using Base: convert
 
