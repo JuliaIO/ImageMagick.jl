@@ -1,9 +1,11 @@
 # ImageMagick
 
-[![Build Status](https://travis-ci.org/JuliaIO/ImageMagick.jl.svg?branch=master)](https://travis-ci.org/JuliaIO/ImageMagick.jl)
-[![Build status](https://ci.appveyor.com/api/projects/status/hl0j4amikte3pl9c/branch/master?svg=true)](https://ci.appveyor.com/project/SimonDanisch/imagemagick-jl/branch/master)
-[![Coverage Status](https://coveralls.io/repos/JuliaIO/ImageMagick.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/JuliaIO/ImageMagick.jl?branch=master)
-[![codecov.io](http://codecov.io/github/JuliaIO/ImageMagick.jl/coverage.svg?branch=master)](http://codecov.io/github/JuliaIO/ImageMagick.jl?branch=master)
+| **Platform**                                                               | **Build Status**                                                                                |
+|:-------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------:|
+| Linux & MacOS & Windows | [![Github Action][github-action-img]][github-action-url] |
+| FreeBSD x86 | [![Cirrus][cirrus-img]][cirrus-url] |
+
+[![Codecoverage Status][codecov-img]][codecov-url] [![Coveralls Status][coveralls-img]][coveralls-url]
 
 This package provides a wrapper around
 [ImageMagick](http://www.imagemagick.org/) version 6.  It was split off from
@@ -44,3 +46,15 @@ at some slight cost in terms of performance of future operations.
 ## Advanced usage
 
 The environment variable `MAGICK_THREAD_LIMIT` can be used to throttle multithreading.
+
+[github-action-img]: https://github.com/JuliaIO/ImageMagick.jl/actions/workflows/CI.yml/badge.svg
+[github-action-url]: https://github.com/JuliaIO/ImageMagick.jl/actions/workflows/CI.yml
+
+[cirrus-img]: https://api.cirrus-ci.com/github/JuliaIO/ImageMagick.jl.svg
+[cirrus-url]: https://cirrus-ci.com/github/JuliaIO/ImageMagick.jl
+
+[codecov-img]: https://codecov.io/gh/JuliaIO/ImageMagick.jl/branch/master/graph/badge.svg
+[codecov-url]: https://codecov.io/gh/JuliaIO/ImageMagick.jl
+
+[coveralls-img]: https://coveralls.io/repos/github/JuliaIO/ImageMagick.jl/badge.svg?branch=master
+[coveralls-url]: https://coveralls.io/github/JuliaIO/ImageMagick.jl?branch=master

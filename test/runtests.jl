@@ -1,8 +1,7 @@
-using ImageMagick, ColorVectorSpace, ImageMetadata, ImageTransformations
+using ImageMagick, ImageMetadata, ImageTransformations
 
 using Random: bitrand
 using Base.CoreLogging: SimpleLogger, with_logger
-using Pkg
 
 include("constructed_images.jl")
 include("readremote.jl")

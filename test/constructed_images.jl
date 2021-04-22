@@ -1,7 +1,7 @@
 using ImageMagick, IndirectArrays, FileIO, OffsetArrays, ImageMetadata, ImageTransformations
 using ImageShow       # for show(io, ::MIME, img) & ImageMeta
 using Test
-using ImageCore, ColorVectorSpace
+using ImageCore
 using Random, Base.CoreLogging
 
 mutable struct TestType end
