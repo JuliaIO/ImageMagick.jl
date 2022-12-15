@@ -54,7 +54,7 @@ of the corresponding Array returned by `load` are reversed.
 """
 function metadata(filename::AbstractString)
     wand = MagickWand()
-    readimage(wand, filename)
+    pingimage(wand, filename)
     sz, T, _, _ = _metadata(wand)
     return sz, T
 end
@@ -251,7 +251,7 @@ julia> p = magickinfo("Image.jpeg")
 """
 function magickinfo(file::Union{AbstractString,IO})
     wand = MagickWand()
-    readimage(wand, file)
+    pingimage(wand, file)
     resetiterator(wand)
     getimageproperties(wand, "*")
 end
@@ -277,7 +277,7 @@ Dict{String,Any} with 6 entries:
 """
 function magickinfo(file::Union{AbstractString,IO}, properties::Union{Tuple,AbstractVector})
     wand = MagickWand()
-    readimage(wand, file)
+    pingimage(wand, file)
     resetiterator(wand)
 
     props = Dict{String,Any}()
