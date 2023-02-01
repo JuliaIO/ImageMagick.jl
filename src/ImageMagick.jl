@@ -134,14 +134,20 @@ const ufixedtype = Dict(10=>N6f10, 12=>N4f12, 14=>N2f14, 16=>N0f16)
 
 readblob(data::Vector{UInt8}) = load_(data)
 
-function load_(file::Union{AbstractString,IO,Vector{UInt8}}, permute_horizontal=true; ImageType=Array, extraprop="", extrapropertynames=nothing, view=false)
+function load_(
+    file::Union{AbstractString,IO,Vector{UInt8}}, permute_horizontal::Bool=true;
+    ImageType=Array, extraprop="", extrapropertynames=nothing, view::Bool=false,
+    wand::MagickWand=MagickWand(), dpi::Union{Nothing,Real}=nothing,
+)
     if ImageType != Array
         error("this function now returns an Array, do not use ImageType keyword.")
     end
     if extraprop != "" || extrapropertynames != nothing
         error("keywords \"extraprop\" and \"extrapropertynames\" no longer work, use magickinfo instead")
     end
-    wand = MagickWand()
+    if dpi !== nothing
+        setresolution(wand, dpi, dpi)
+    end
     readimage(wand, file)
     resetiterator(wand)
 
