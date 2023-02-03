@@ -354,4 +354,9 @@ mutable struct TestType end
         exportimagepixels!(buf2view, wand, cs, channelorder)
         @test buf2view == Ar
     end
+
+    @testset "issue #206" begin
+        img = ImageMagick.load("images/cameraman.tif")
+        @test size(img) == (512, 512)
+    end
 end
