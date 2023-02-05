@@ -3,6 +3,7 @@ using ImageShow       # for show(io, ::MIME, img) & ImageMeta
 using Test
 using ImageCore
 using Random, Base.CoreLogging
+using TestImages
 
 mutable struct TestType end
 
@@ -356,7 +357,8 @@ mutable struct TestType end
     end
 
     @testset "issue #206" begin
-        img = ImageMagick.load("images/cameraman.tif")
+        filepath = testimage("camera", download_only=true)
+        img = ImageMagick.load(filepath)
         @test size(img) == (512, 512)
     end
 end
