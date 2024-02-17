@@ -3,7 +3,6 @@
 | **Platform**                                                               | **Build Status**                                                                                |
 |:-------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------:|
 | Linux & MacOS & Windows | [![Github Action][github-action-img]][github-action-url] |
-| FreeBSD x86 | [![Cirrus][cirrus-img]][cirrus-url] |
 
 [![Codecoverage Status][codecov-img]][codecov-url] [![Coveralls Status][coveralls-img]][coveralls-url]
 
