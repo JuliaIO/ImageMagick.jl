@@ -1,9 +1,9 @@
-using ImageMagick, ColorTypes, FixedPointNumbers, IndirectArrays, FileIO, OffsetArrays
+using ImageMagick, IndirectArrays, FileIO, OffsetArrays, ImageMetadata, ImageTransformations
 using ImageShow       # for show(io, ::MIME, img) & ImageMeta
 using Test
 using ImageCore
-
-ontravis = haskey(ENV, "TRAVIS")
+using Random, Base.CoreLogging
+using TestImages
 
 mutable struct TestType end
 
@@ -18,36 +18,42 @@ mutable struct TestType end
 
     a = [TestType() TestType()]
     fn = joinpath(workdir, "5by5.png")
-    errfile, io = mktemp()  # suppress warning message
-    redirect_stderr(io) do
+    io = IOBuffer()
+    with_logger(SimpleLogger(io)) do  # suppress warning
         @test_throws MethodError ImageMagick.save(fn, a)
     end
-    close(io)
-    rm(errfile)
+    @test occursin("out-of-range", String(take!(io)))
 
     @testset "Binary png" begin
         a = rand(Bool,5,5)
         fn = joinpath(workdir, "5by5.png")
         ImageMagick.save(fn, a)
         b = ImageMagick.load(fn)
-        a8 = convert(Array{Gray{N0f8}}, a) # IM won't read back as Bool
-        @test b == a8
+        ag = convert(Array{Gray{Bool}}, a) # IM won't read back as Bool
+        @test b == ag
+        @test eltype(b) ∈ (Bool, Gray{Bool})
         aim = colorview(Gray, a)
         ImageMagick.save(fn, aim)
         b = ImageMagick.load(fn)
-        @test b == a8
+        @test b == ag
         a = bitrand(5,5)
         fn = joinpath(workdir, "5by5.png")
         ImageMagick.save(fn, a)
         b = ImageMagick.load(fn)
-        a8 = convert(Array{Gray{N0f8}}, a)
-        @test b == a8
+        ag = convert(Array{Gray{Bool}}, a)
+        @test b == ag
         aim = colorview(Gray, a)
         ImageMagick.save(fn, aim)
         b = ImageMagick.load(fn)
-        @test b == a8
+        @test b == ag
 
-        @test ImageMagick.metadata(fn) == ((5,5), Gray{N0f8})
+        @test ImageMagick.metadata(fn) == ((5,5), Gray{Bool})
+
+        # If we try to save as JPG, don't error
+        fn = joinpath(workdir, "5by5.jpg")
+        ImageMagick.save(fn, a)
+        b = ImageMagick.load(fn)
+        @test eltype(b) == Gray{N0f8}
     end
 
     @testset "Gray png" begin
@@ -120,29 +126,22 @@ mutable struct TestType end
     @testset "Alpha" begin
         c = reinterpret(BGRA{N0f8}, [0xf0884422]'')
         fn = joinpath(workdir, "alpha.png")
-    	ImageMagick.save(fn, c)
+        ImageMagick.save(fn, c)
         C = ImageMagick.load(fn)
-        if !ontravis || !Sys.islinux()
-            # disabled on Linux Travis because it has a weird copy of
-            # ImageMagick for which this fails (see Images#261)
-            @test C[1] == c[1]
-        end
+        @test C[1] == c[1]
         ImageMagick.save(fn, reinterpret(ARGB32, [0xf0884422]''))
         D = ImageMagick.load(fn)
-        if !ontravis || !Sys.islinux()
-            @test D[1] == c[1]
-        end
+        @test D[1] == c[1]
 
         # Images#396
-        c = colorview(RGBA, normedview(permuteddimsview(reshape(0x00:0x11:0xff, 2, 2, 4), (3,1,2))))
+        c = colorview(RGBA, normedview(PermutedDimsArray(reshape(0x00:0x11:0xff, 2, 2, 4), (3,1,2))))
         ImageMagick.save(fn, c)
         D = ImageMagick.load(fn)
-        if !ontravis || !Sys.islinux()
-            @test D == c
-        end
+        @test D == c
     end
 
-    @testset "3D TIFF (issue #307)" begin
+    @testset "3D TIFF" begin
+        # issue #307
         Ar = rand(0x00:0xff, 2, 2, 4)
         Ar[1] = 0xff
         A = map(x->Gray(N0f8(x,0)), Ar)
@@ -153,6 +152,13 @@ mutable struct TestType end
         @test A == B
 
         @test ImageMagick.metadata(fn) == ((2,2,4), Gray{N0f8})
+
+        # ensure proper colordepth if first image is black
+        A = cat(N0f8[0 0; 0 0], N0f8[0 0.2; 0.4 0.8]; dims=3)
+        fn = joinpath(workdir, "3dblack.tif")
+        ImageMagick.save(fn, A)
+        B = ImageMagick.load(fn)
+        @test A == B
     end
 
     @testset "16-bit TIFF (issue #49)" begin
@@ -167,18 +173,16 @@ mutable struct TestType end
         @test A == B
     end
 
-#= FAILS ON SCIENTIFIC LINUX 7.2 WITH IMAGEMAGICK 6.9.5, works for other combos
-    @testset "32-bit TIFF (issue #49)" begin
-        Ar = rand(0x00000000:0xffffffff, 2, 2, 4)
-        Ar[1] = 0xffffffff
-        A = map(x->Gray(reinterpret(N0f32, x)), Ar)
-        fn = joinpath(workdir, "3d32.tif")
-        ImageMagick.save(fn, A)
-        B = ImageMagick.load(fn)
-
-        @test A == B
-    end
-=#
+    # @testset "32-bit TIFF (issue #49)" begin
+    #     Ar = rand(0x00000000:0xffffffff, 2, 2, 4)
+    #     Ar[1] = 0xffffffff
+    #     A = map(x->Gray(reinterpret(N0f32, x)), Ar)
+    #     fn = joinpath(workdir, "3d32.tif")
+    #     ImageMagick.save(fn, A)
+    #     B = ImageMagick.load(fn)
+    #
+    #     @test A == B
+    # end
 
     @testset "Clamping (issue #256)" begin
         Ar = rand(2,2)
@@ -211,7 +215,7 @@ mutable struct TestType end
         orig_img = ImageMagick.load(joinpath(workdir, "2by2.png"))
         fn = joinpath(workdir, "2by2_fromstream.png")
         open(fn, "w") do f
-            ImageMagick.save(Stream(format"PNG", f), orig_img)
+            ImageMagick.save(Stream{format"PNG"}(f), orig_img)
         end
         img = ImageMagick.load(fn)
         @test img == orig_img
@@ -223,6 +227,16 @@ mutable struct TestType end
         arr = read(io)
         close(io)
         img = readblob(arr)
+        @test size(img) == (2,2)
+    end
+
+    Sys.isunix() && @testset "Reading from an IOBuffer (issue https://github.com/JuliaIO/FileIO.jl/issues/174)" begin
+        fn = joinpath(workdir, "2by2.png")
+        io = open(fn)
+        arr = read(io)
+        close(io)
+        iobuffer = IOBuffer(arr)
+        img = ImageMagick.load(iobuffer)
         @test size(img) == (2,2)
     end
 
@@ -266,6 +280,15 @@ mutable struct TestType end
         readimage(wand, fn)
         resetiterator(wand)
         @test ImageMagick.getimagedelay(wand) == 50
+
+        fn = joinpath(workdir, "animated.gif")
+        open(fn, "w") do io
+            ImageMagick.save(FileIO.Stream{format"GIF"}(io), A, fps=2)
+        end
+        wand = MagickWand()
+        readimage(wand, fn)
+        resetiterator(wand)
+        @test ImageMagick.getimagedelay(wand) == 50
     end
 
     @testset "ImageMeta" begin
@@ -284,6 +307,58 @@ mutable struct TestType end
         imgr = ImageMagick.load(fn)
         @test imgr == parent(img)
     end
-end
 
-nothing
+    @testset "permute_horizontal" begin
+        Ar = [0x00 0xff; 0x00 0x00]
+        A = map(x->Gray(N0f8(x,0)), Ar)
+        fn = joinpath(workdir, "2d.tif")
+
+        ImageMagick.save(fn, A)
+        B = ImageMagick.load(fn)
+        @test A==B
+
+        ImageMagick.save(fn, A, false)
+        B = ImageMagick.load(fn, false)
+        @test A==B
+
+        ImageMagick.save(fn, A, true)
+        B = ImageMagick.load(fn, false)
+        @test A==transpose(B)
+
+        ImageMagick.save(fn, A, false)
+        B = ImageMagick.load(fn, true)
+        @test transpose(A)==B
+    end
+
+    @testset "exportimagepixels!()" begin
+        # test the direct use of exportimagepixels!()
+        Ar = [0x10 0xff 0x80; 0x00 0x00 0x20]
+        A = Gray.(N0f8.(Ar, 0))
+        fn = joinpath(workdir, "2d.tif")
+        ImageMagick.save(fn, A, false)
+
+        wand = MagickWand()
+        readimage(wand, fn)
+        @test ImageMagick.getnumberimages(wand) == 1
+        ImageMagick.resetiterator(wand)
+        sz, T, cs, channelorder = ImageMagick._metadata(wand)
+        @test sz == size(Ar)
+        @test T == Gray{N0f8}
+        # test using the array
+        buf = Array{UInt8}(undef, sz)
+        exportimagepixels!(buf, wand, cs, channelorder)
+        @test buf == Ar
+
+        # test using the subarray
+        buf2 = similar(buf, ntuple(i -> i <= length(sz) ? sz[i] + 1 : 2, length(sz) + 1))
+        buf2view = view(buf2, 1:sz[1], 1:sz[2], 2)
+        exportimagepixels!(buf2view, wand, cs, channelorder)
+        @test buf2view == Ar
+    end
+
+    @testset "issue #206" begin
+        filepath = testimage("camera", download_only=true)
+        img = ImageMagick.load(filepath)
+        @test size(img) == (512, 512)
+    end
+end

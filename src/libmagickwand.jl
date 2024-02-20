@@ -18,20 +18,12 @@ export MagickWand,
     setimageformat,
     writeimage
 
-const depsfile = joinpath(dirname(@__DIR__), "deps", "deps.jl")
-if isfile(depsfile)
-    include(depsfile)
-else
-    error("ImageMagick not properly installed. Please run Pkg.build(\"ImageMagick\") then restart Julia.")
-end
-
 magickgenesis() = ccall((:MagickWandGenesis, libwand), Cvoid, ())
 magickterminus() = ccall((:MagickWandTerminus, libwand), Cvoid, ())
 isinstantiated() = ccall((:IsMagickWandInstantiated, libwand), Cint, ()) == 1
 
 
 function __init__()
-    check_deps()
     magickgenesis()
 end
 
@@ -43,6 +35,7 @@ const FLOATPIXEL   = 3
 const INTEGERPIXEL = 4
 const SHORTPIXEL   = 7
 const IMStorageTypes = Union{UInt8,UInt16,UInt32,Float32,Float64}
+storagetype(::Type{Bool})    = CHARPIXEL
 storagetype(::Type{UInt8})   = CHARPIXEL
 storagetype(::Type{UInt16})  = SHORTPIXEL
 storagetype(::Type{UInt32})  = INTEGERPIXEL
@@ -97,17 +90,22 @@ flip1(A) = view(A, reverse(axes(A,1)), ntuple(x->Colon(),ndims(A)-1)...)
 flip2(A) = view(A, :, reverse(axes(A,2)), ntuple(x->Colon(),ndims(A)-2)...)
 flip12(A) = view(A, reverse(axes(A,1)), reverse(axes(A,2)), ntuple(x->Colon(),ndims(A)-2)...)
 
-pd(A) = PermutedDimsArray(A, [2;1;3:ndims(A)])
+vertical_major(img::AbstractVector) = img
+vertical_major(A) = PermutedDimsArray(A, [2;1;3:ndims(A)])
 
-const orientation_dict = Dict(nothing => pd,
-    "1" => pd,
-    "2" => A->pd(flip1(A)),
-    "3" => A->pd(flip12(A)),
-    "4" => A->pd(flip2(A)),
-    "5" => identity,
-    "6" => flip2,
-    "7" => flip12,
-    "8" => flip1)
+# This orientation is used so often it's worth naming it for better precompilation
+default_orientation(A, ph) = ph ? vertical_major(A) : A
+
+const orientation_dict = Dict(
+    nothing => default_orientation,
+    "1" => (A,ph) -> ph ? vertical_major(A) : A,
+    "2" => (A,ph) -> ph ? vertical_major(flip1(A)) : flip1(A),
+    "3" => (A,ph) -> ph ? vertical_major(flip12(A)) : flip12(A),
+    "4" => (A,ph) -> ph ? vertical_major(flip2(A)) : flip2(A),
+    "5" => (A,ph) -> ph ? A : vertical_major(A),
+    "6" => (A,ph) -> ph ? flip2(A) : vertical_major(flip2(A)),
+    "7" => (A,ph) -> ph ? flip12(A) : vertical_major(flip12(A)),
+    "8" => (A,ph) -> ph ? flip1(A) : vertical_major(flip1(A)))
 
 function nchannels(imtype::AbstractString, cs::AbstractString, havealpha = false)
     n = 3
@@ -211,10 +209,12 @@ bitdepth(buffer::AbstractArray{C}) where {C<:Colorant} = 8*sizeof(eltype(C))
 bitdepth(buffer::AbstractArray{T}) where {T} = 8*sizeof(T)
 
 # colorspace is included for consistency with constituteimage, but it is not used
-function exportimagepixels!(buffer::AbstractArray{T}, wand::MagickWand,  colorspace::String, channelorder::String; x = 0, y = 0) where T<:Unsigned
+function exportimagepixels!(@nospecialize(buffer::AbstractArray{<:Union{Unsigned,Bool}}), wand::MagickWand, colorspace::String, channelorder::String; x = 0, y = 0)
+    T = eltype(buffer)
     cols, rows, nimages = getsize(buffer, channelorder)
     ncolors = colorsize(buffer, channelorder)
     if isa(buffer, Array)
+        tmp = nothing
         p = pointer(buffer)
     else
         tmp = similar(buffer)
@@ -226,7 +226,7 @@ function exportimagepixels!(buffer::AbstractArray{T}, wand::MagickWand,  colorsp
         status == 0 && error(wand)
         p += sizeof(T)*cols*rows*ncolors
     end
-    isa(buffer, Array) || buffer .= tmp
+    isa(buffer, Array) || (buffer .= tmp)
     buffer
 end
 
@@ -237,11 +237,11 @@ end
 #     nothing
 # end
 
-function constituteimage(buffer::AbstractArray{T}, wand::MagickWand, colorspace::String, channelorder::String; x = 0, y = 0) where T<:Unsigned
+function constituteimage(buffer::AbstractArray{T}, wand::MagickWand, colorspace::String, channelorder::String; x = 0, y = 0) where T<:Union{Unsigned,Bool}
     cols, rows, nimages = getsize(buffer, channelorder)
     ncolors = colorsize(buffer, channelorder)
     p = pointer(buffer)
-    depth = bitdepth(buffer)
+    depth = T == Bool ? 1 : bitdepth(buffer)
     for i = 1:nimages
         status = ccall((:MagickConstituteImage, libwand), Cint, (Ptr{Cvoid}, Cssize_t, Cssize_t, Ptr{UInt8}, Cint, Ptr{Cvoid}), wand, cols, rows, channelorder, storagetype(T), p)
         status == 0 && error(wand)
@@ -304,6 +304,8 @@ function readimage(wand::MagickWand, stream::Vector{UInt8})
     status == 0 && error(wand)
     nothing
 end
+
+readimage(wand::MagickWand, stream::IOBuffer) = readimage(wand, stream.data)
 
 function writeimage(wand::MagickWand, filename::AbstractString)
     open(filename, "w") do io

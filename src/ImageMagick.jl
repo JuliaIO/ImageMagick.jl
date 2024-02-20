@@ -1,10 +1,10 @@
 module ImageMagick
 
-using FixedPointNumbers, ColorTypes
 using FileIO: DataFormat, @format_str, Stream, File, filename, stream
 using InteractiveUtils: subtypes
 using ImageCore
-using Libdl
+using ImageMagick_jll
+using Base: convert
 
 Color1{T}           = Color{T,1}
 Color2{T,C<:Color1} = TransparentColor{C,T,2}
@@ -80,11 +80,23 @@ function _metadata(wand)
     # use an even # of fractional bits for depth>8 (see issue 242#issuecomment-68845157)
     evendepth = ((depth+1)>>1)<<1
     if depth <= 8
-        T = Normed{UInt8,8}     # otherwise use 8 fractional bits
+        if cs == "Gray"
+            cdepth = getimagechanneldepth(wand, GrayChannel)
+            if n > 1
+                for k = 1:n  # while it might seem that this should be 2:n, that doesn't work...
+                    nextimage(wand)
+                    cdepth = max(cdepth, getimagechanneldepth(wand, GrayChannel))
+                end
+                resetiterator(wand)
+            end
+            T = cdepth == 1 ? Bool : N0f8
+        else
+            T = N0f8     # otherwise use 8 fractional bits
+        end
     elseif depth <= 16
         T = Normed{UInt16,evendepth}
     else
-        @warn "some versions of ImageMagick give spurious low-order bits for 32-bit TIFFs"
+        @warn "some versions of ImageMagick give spurious low-order bits for 32-bit TIFFs" maxlog=1
         T = Normed{UInt32,evendepth}
     end
 
@@ -109,20 +121,20 @@ function _metadata(wand)
     sz, T, cs, channelorder
 end
 
-load(imagefile::File{T}, args...; key_args...) where {T <: DataFormat} = load_(filename(imagefile), args...; key_args...)
-load(filename::AbstractString, args...; key_args...) = load_(filename, args...; key_args...)
-save(imagefile::File{T}, args...; key_args...) where {T <: DataFormat} = save_(filename(imagefile), args...; key_args...)
-save(filename::AbstractString, args...; key_args...) = save_(filename, args...; key_args...)
+load(@nospecialize(imagefile::File{<:DataFormat}), @nospecialize(args...); key_args...) = load_(filename(imagefile), args...; key_args...)
+load(filename::AbstractString, @nospecialize(args...); key_args...) = load_(filename, args...; key_args...)
+save(@nospecialize(imagefile::File{<:DataFormat}), @nospecialize(args...); key_args...) = save_(filename(imagefile), args...; key_args...)
+save(filename::AbstractString, @nospecialize(args...); key_args...) = save_(filename, args...; key_args...)
 
-load(imgstream::Stream{T}, args...; key_args...) where {T <: DataFormat} = load_(stream(imgstream), args...; key_args...)
+load(@nospecialize(imgstream::Stream{<:DataFormat}), @nospecialize(args...); key_args...) = load_(stream(imgstream), args...; key_args...)
 load(imgstream::IO, args...; key_args...) = load_(imgstream, args...; key_args...)
-save(imgstream::Stream{T}, args...; key_args...) where {T <: DataFormat} = save_(imgstream, args...; key_args...)
+save(@nospecialize(imgstream::Stream{<:DataFormat}), args...; key_args...) = save_(imgstream, args...; key_args...)
 
 const ufixedtype = Dict(10=>N6f10, 12=>N4f12, 14=>N2f14, 16=>N0f16)
 
 readblob(data::Vector{UInt8}) = load_(data)
 
-function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Array, extraprop="", extrapropertynames=nothing, view=false)
+function load_(file::Union{AbstractString,IO,Vector{UInt8}}, permute_horizontal=true; ImageType=Array, extraprop="", extrapropertynames=nothing, view=false)
     if ImageType != Array
         error("this function now returns an Array, do not use ImageType keyword.")
     end
@@ -140,25 +152,26 @@ function load_(file::Union{AbstractString,IO,Vector{UInt8}}; ImageType=Array, ex
     exportimagepixels!(rawview(channelview(buf)), wand, cs, channelorder)
 
     orient = getimageproperty(wand, "exif:Orientation", false)
-    oriented_buf = get(orientation_dict, orient, pd)(buf)
+    default = (A,ph) -> ph ? vertical_major(A) : identity(A)
+    oriented_buf = get(orientation_dict, orient, default)(buf, permute_horizontal)
     view ? oriented_buf : collect(oriented_buf)
 end
 
 
-function save_(filename::AbstractString, img, permute_horizontal=true; mapi = identity, quality = nothing, kwargs...)
+function save_(filename::AbstractString, @nospecialize(img), permute_horizontal=true; mapi = identity, quality = nothing, kwargs...)
     wand = image2wand(img, mapi, quality, permute_horizontal; kwargs...)
     writeimage(wand, filename)
 end
 
 # This differs from `save_` for files because this is primarily used
 # by IJulia, and we want to restrict large images to make display faster.
-function save_(s::Stream, img, permute_horizontal=true; mapi = clamp01nan, quality = nothing)
-    wand = image2wand(img, mapi, quality, permute_horizontal)
+function save_(s::Stream, img, permute_horizontal=true; mapi = clamp01nan, quality = nothing, kwargs...)
+    wand = image2wand(img, mapi, quality, permute_horizontal; kwargs...)
     blob = getblob(wand, formatstring(s))
     write(stream(s), blob)
 end
 
-function image2wand(img, mapi=identity, quality=nothing, permute_horizontal=true; kwargs...)
+function image2wand(@nospecialize(img), mapi=identity, quality=nothing, permute_horizontal=true; kwargs...)
     local imgw
     try
         imgw = map(x->mapIM(mapi(x)), img)
@@ -166,7 +179,7 @@ function image2wand(img, mapi=identity, quality=nothing, permute_horizontal=true
         @warn "Mapping to the storage type failed; perhaps your data had out-of-range values?\nTry `map(clamp01nan, img)` to clamp values to a valid range."
         rethrow()
     end
-    permute_horizontal && (imgw = permutedims_horizontal(imgw))
+    permute_horizontal && (imgw = collect(vertical_major(imgw)))
     if ndims(imgw) > 3
         error("At most 3 dimensions are supported")
     end
@@ -174,7 +187,9 @@ function image2wand(img, mapi=identity, quality=nothing, permute_horizontal=true
     T = eltype(imgw)
     channelorder = T<:Real ? "Gray" : ColorTypes.colorant_string(T)
     if T <: Union{RGB,RGBA,ARGB,BGRA,ABGR}
-        cs = libversion() > v"6.7.5" ? "sRGB" : "RGB"
+        # For imagemagick versions <= v6.7.5, this should be "RGB",
+        # but since we ship our own version we always use "sRGB"
+        cs = "sRGB"
     else
         cs = channelorder
     end
@@ -197,6 +212,43 @@ end
 
 formatstring(s::Stream{DataFormat{S}}) where {S} = string(S)
 
+@doc raw"""
+    magickinfo(file::Union{AbstractString,IO})
+
+Reads an image `file` and returns an array of strings describing the property data in the image file.
+
+# Examples
+```julia-repl
+julia> p = magickinfo("Image.jpeg")
+63-element Array{String,1}:
+ "date:create"
+ "date:modify"
+ "exif:ApertureValue"
+ "exif:BrightnessValue"
+ "exif:ColorSpace"
+ "exif:ComponentsConfiguration"
+ "exif:DateTime"
+ "exif:DateTimeDigitized"
+ "exif:DateTimeOriginal"
+ "exif:ExifImageLength"
+ "exif:ExifImageWidth"
+ "exif:ExifOffset"
+ "exif:ExifVersion"
+ ⋮
+ "exif:thumbnail:JPEGInterchangeFormat"
+ "exif:thumbnail:JPEGInterchangeFormatLength"
+ "exif:thumbnail:ResolutionUnit"
+ "exif:thumbnail:XResolution"
+ "exif:thumbnail:YResolution"
+ "exif:WhiteBalance"
+ "exif:XResolution"
+ "exif:YCbCrPositioning"
+ "exif:YResolution"
+ "jpeg:colorspace"
+ "jpeg:sampling-factor"
+ "unknown"a
+```
+"""
 function magickinfo(file::Union{AbstractString,IO})
     wand = MagickWand()
     readimage(wand, file)
@@ -204,6 +256,25 @@ function magickinfo(file::Union{AbstractString,IO})
     getimageproperties(wand, "*")
 end
 
+@doc raw"""
+    magickinfo(file::Union{AbstractString,IO}, properties::Union{Tuple,AbstractVector})
+
+Reads an image `file` and returns a Dict containing the values for the requested `properties`.
+
+# Examples
+```julia-repl
+julia> magickinfo("IMG_6477.jpeg",
+           ("exif:DateTime","exif:GPSLatitude","exif:GPSLatitudeRef",
+            "exif:GPSLongitude","exif:GPSLongitudeRef","exif:GPSAltitude"))
+Dict{String,Any} with 6 entries:
+  "exif:GPSLongitudeRef" => "W"
+  "exif:GPSLatitude"     => "44/1, 22/1, 2326/100"
+  "exif:GPSLatitudeRef"  => "N"
+  "exif:GPSLongitude"    => "71/1, 13/1, 5301/100"
+  "exif:DateTime"        => "2020:01:22 13:17:41"
+  "exif:GPSAltitude"     => "261189/757"
+```
+"""
 function magickinfo(file::Union{AbstractString,IO}, properties::Union{Tuple,AbstractVector})
     wand = MagickWand()
     readimage(wand, file)
@@ -245,7 +316,7 @@ mapIM(c::RGBA{T}) where {T<:Normed} = c
 mapIM(x::UInt8) = reinterpret(N0f8, x)
 mapIM(x::UInt16) = reinterpret(N0f16, x)
 mapIM(x::UInt32) = reinterpret(N0f32, x)
-mapIM(x::Bool) = convert(N0f8, x)
+mapIM(x::Bool) = x
 mapIM(x::AbstractFloat) = convert(N0f8, x)
 mapIM(x::Normed) = x
 
@@ -253,8 +324,10 @@ mapIM(x::Normed) = x
 # imagemagick since it doesn't handle stride.
 to_contiguous(A::Array) = A
 to_contiguous(A::AbstractArray) = collect(A)
-to_contiguous(A::BitArray) = convert(Array{N0f8}, A)
-to_contiguous(A::ColorView) = to_contiguous(channelview(A))
+to_contiguous(A::BitArray) = convert(Array{Bool}, A)
+if isdefined(ImageCore, :ColorView)
+    to_contiguous(A::ColorView) = to_contiguous(channelview(A))
+end
 
 to_explicit(A::Array{C}) where {C<:Colorant} = to_explicit(channelview(A))
 function to_explicit(A::AbstractArray)
@@ -262,14 +335,11 @@ function to_explicit(A::AbstractArray)
     As .= A
     to_explicit(As)
 end
+to_explicit(A::Array{Bool}) = A
 to_explicit(A::Array{T}) where {T<:Normed} = rawview(A)
 to_explicit(A::Array{T}) where {T<:AbstractFloat} = to_explicit(convert(Array{N0f8}, A))
 
-permutedims_horizontal(img::AbstractVector) = img
-function permutedims_horizontal(img)
-    # Vertical-major is hard-coded here
-    p = [2;1;3:ndims(img)]
-    permutedims(img, p)
-end
+include("precompile.jl")
+_precompile_()
 
 end # module

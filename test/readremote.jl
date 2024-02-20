@@ -1,6 +1,10 @@
 using ImageMagick
-using FileIO, Colors, FixedPointNumbers, ZipFile
+using FileIO, ImageCore, ZipFile
 using Test
+if Base.VERSION >= v"1.6.0-DEV.1016"
+    import Downloads
+    download = Downloads.download
+end
 
 workdir = joinpath(tempdir(), "Images")
 writedir = joinpath(workdir, "write")
@@ -12,7 +16,7 @@ if !isdir(writedir)
 end
 
 @testset "Read remote" begin
-    urlbase = "http://www.imagemagick.org/Usage/images/"
+    urlbase = "https://legacy.imagemagick.org/Usage/images/"
 
     function getfile(name)
         file = joinpath(workdir, name)
@@ -49,15 +53,13 @@ end
         @test m[1] == reverse(size(img))
         @test ndims(img) == 2
         @test eltype(img) in (GrayA{N0f8}, RGBA{N0f8})
-        if Sys.islinux()
-            outname = joinpath(writedir, "wmark_image.png")
-            ImageMagick.save(outname, img)
-            sleep(0.2)
-            imgc = ImageMagick.load(outname)
-            @test img == imgc
-            open(outname, "w") do file
-                show(file, MIME("image/png"), img)
-            end
+        outname = joinpath(writedir, "wmark_image.png")
+        ImageMagick.save(outname, img)
+        sleep(0.2)
+        imgc = ImageMagick.load(outname)
+        @test img == imgc
+        open(outname, "w") do file
+            show(file, MIME("image/png"), img)
         end
         @test reinterpret(UInt32, map(RGB24, img)) ==
             map(x->x&0x00ffffff, reinterpret(UInt32, map(ARGB32, img)))
@@ -67,15 +69,14 @@ end
         file = getfile("rose.png")
         img = ImageMagick.load(file)
         @test ImageMagick.metadata(file) == (reverse(size(img)), RGB{N0f8})
-        # Mac reader reports RGB4, imagemagick reports RGB
+        # Mac reader reports RGBX, imagemagick reports RGB
         @test ndims(img) == 2
         @test eltype(img) == RGB{N0f8}
         outname = joinpath(writedir, "rose.tiff")
         ImageMagick.save(outname, img)
         imgc = ImageMagick.load(outname)
         T = eltype(imgc)
-        # Why does this one fail on OSX??
-        Sys.isapple() || @test img == imgc
+        @test img == imgc
         @test reinterpret(UInt32, map(RGB24, img)) ==
             map(x->x&0x00ffffff, reinterpret(UInt32, map(ARGB32, img)))
         imgrgb8 = map(RGB{N0f8}, img)
@@ -93,14 +94,12 @@ end
         @test ndims(img) == 2
         @test eltype(img) == RGBA{N0f16}
         outname = joinpath(writedir, "autumn_leaves.png")
-        Sys.isapple() || begin
-            ImageMagick.save(outname, img)
-            sleep(0.2)
-            imgc = ImageMagick.load(outname)
-            @test img == imgc
-            @test reinterpret(UInt32, map(RGB24, img)) ==
-                map(x->x&0x00ffffff, reinterpret(UInt32, map(ARGB32, img)))
-        end
+        ImageMagick.save(outname, img)
+        sleep(0.2)
+        imgc = ImageMagick.load(outname)
+        @test img == imgc
+        @test reinterpret(UInt32, map(RGB24, img)) ==
+            map(x->x&0x00ffffff, reinterpret(UInt32, map(ARGB32, img)))
         open(outname, "w") do file
             show(file, MIME("image/png"), img)
         end
@@ -122,7 +121,7 @@ end
     @testset "Images with a temporal dimension" begin
         fname = "swirl_video.gif"
         #fname = "bunny_anim.gif"  # this one has transparency but LibMagick gets confused about its size
-        file = getfile(fname)  # this also has transparency
+        file = getfile(fname)
         img = ImageMagick.load(file)
         @test ImageMagick.metadata(file) == (size(img)[[2,1,3]], RGB{N0f8})
         @test size(img, 3) == 26
@@ -134,39 +133,35 @@ end
     end
 
     @testset "Extra properties" begin
-        Sys.isapple() || begin
-            file = getfile("autumn_leaves.png")
-            # List properties
-            extraProps = magickinfo(file)
-            @show extraProps
+        file = getfile("autumn_leaves.png")
+        # List properties
+        extraProps = magickinfo(file)
 
-            img = ImageMagick.load(file)
-            @test ImageMagick.metadata(file) == (reverse(size(img)), RGBA{N0f16})
-            props = magickinfo(file, extraProps)
-            for key in extraProps
-                @test haskey(props, key) == true
-                @test props[key] != nothing
-            end
-
-            props = magickinfo(file, extraProps[1])
-            @test haskey(props, extraProps[1]) == true
-            @test props[extraProps[1]] != nothing
-
-            warnfile, io = mktemp()
-            props = redirect_stderr(io) do
-                magickinfo(file, "Nonexistent property")
-            end
-            close(io)
-            @test haskey(props, "Nonexistent property") == true
-            @test props["Nonexistent property"] == nothing
+        img = ImageMagick.load(file)
+        @test ImageMagick.metadata(file) == (reverse(size(img)), RGBA{N0f16})
+        props = magickinfo(file, extraProps)
+        for key in extraProps
+            @test haskey(props, key) == true
+            @test props[key] != nothing
         end
+
+        props = magickinfo(file, extraProps[1])
+        @test haskey(props, extraProps[1]) == true
+        @test props[extraProps[1]] != nothing
+
+        io = IOBuffer()
+        props = with_logger(SimpleLogger(io)) do
+            magickinfo(file, "Nonexistent property")
+        end
+        @test occursin("Undefined", String(take!(io)))
+        @test haskey(props, "Nonexistent property") == true
+        @test props["Nonexistent property"] == nothing
     end
 end
 
 @testset "EXIF orientation" begin
-    url = "http://magnushoff.com/assets/test-exiforientation.zip"
-    fn = joinpath(workdir, "test-exiforientation.zip")
-    download(url, fn)
+    # downloaded from http://magnushoff.com/assets/test-exiforientation.zip
+    fn = joinpath(@__DIR__, "images", "test-exiforientation.zip")
     first_img = true
     r = ZipFile.Reader(fn)
     local img0
@@ -182,5 +177,3 @@ end
     end
     ZipFile.close(r)
 end
-
-nothing
