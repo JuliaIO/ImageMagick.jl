@@ -43,7 +43,8 @@ const image_formats = [
     format"TIFF",
     format"WMF",
     format"WPG",
-    format"TGA"
+    format"TGA",
+    format"DCM"
 ]
 
 """
