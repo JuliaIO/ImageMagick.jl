@@ -450,3 +450,9 @@ function queryoption(option::AbstractString)
     p = ccall((:MagickQueryConfigureOption, libwand), Ptr{UInt8}, (Ptr{UInt8},), option)
     unsafe_string(p)
 end
+
+function setresolution(wand::MagickWand, x::Real, y::Real)
+	status = ccall((:MagickSetResolution, libwand), Cint, (Ptr{Cvoid}, Cdouble, Cdouble), wand, x, y)
+	status == 0 && error(wand)
+    nothing
+end
