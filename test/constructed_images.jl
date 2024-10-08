@@ -54,6 +54,7 @@ mutable struct TestType end
         ImageMagick.save(fn, a)
         b = ImageMagick.load(fn)
         @test eltype(b) == Gray{N0f8}
+        @test round.(b) == a # JPG is lossy
     end
 
     @testset "Gray png" begin
