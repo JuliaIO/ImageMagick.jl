@@ -77,7 +77,50 @@ const IMTypedict = Dict([(IMType[i], i) for i = 1:length(IMType)])
 const CStoIMTypedict = Dict("Gray" => "GrayscaleType", "GrayA" => "GrayscaleMatteType", "AGray" => "GrayscaleMatteType", "RGB" => "TrueColorType", "ARGB" => "TrueColorMatteType", "RGBA" => "TrueColorMatteType", "CMYK" => "ColorSeparationType", "I"=>"GrayscaleType", "IA"=>"GrayscaleMatteType", "AI"=>"GrayscaleMatteType", "BGRA"=>"TrueColorMatteType", "ABGR"=>"TrueColorMatteType")
 
 # Colorspace
-const IMColorspace = ["RGB", "Gray", "Transparent", "OHTA", "Lab", "XYZ", "YCbCr", "YCC", "YIQ", "YPbPr", "YUV", "CMYK", "sRGB"]
+# The colorspace order comes from the C struct definition
+# https://github.com/ImageMagick/ImageMagick/blob/e96022d5f377f2a4c0780be9f60ed44535dc5488/MagickCore/colorspace.h#L67
+# It starts at 0 with UndefinedColorspace, which is not used in the Julia interface
+const IMColorspace = [
+  "CMY"
+  "CMYK"
+  "Gray"
+  "HCL"
+  "HCLp"
+  "HSB"
+  "HSI"
+  "HSL"
+  "HSV"
+  "HWB"
+  "Lab"
+  "LCH"
+  "LCHab"
+  "LCHuv"
+  "Log"
+  "LMS"
+  "Luv"
+  "OHTA"
+  "Rec601YCbCr"
+  "Rec709YCbCr"
+  "RGB"
+  "scRGB"
+  "sRGB"
+  "Transparent"
+  "xyY"
+  "XYZ"
+  "YCbCr"
+  "YCC"
+  "YDbDr"
+  "YIQ"
+  "YPbPr"
+  "YUV"
+  "LinearGRAY"
+  "Jzazbz"
+  "DisplayP3"
+  "Adobe98"
+  "ProPhoto"
+  "Oklab"
+  "Oklch"
+]
 const IMColordict = Dict([(IMColorspace[i], i) for i = 1:length(IMColorspace)])
 for AC in vcat(subtypes(AlphaColor), subtypes(ColorAlpha))
     Cstr = ColorTypes.colorant_string(color_type(AC))
@@ -281,7 +324,12 @@ function readimage(wand::MagickWand, stream::IO)
     nothing
 end
 
-function readimage(wand::MagickWand, stream::Vector{UInt8})
+if VERSION >= v"1.11"
+    StreamTypes = Union{Vector{UInt8}, Memory{UInt8}}
+else
+    StreamTypes = Vector{UInt8}
+end 
+function readimage(wand::MagickWand, stream::StreamTypes)
     status = ccall((:MagickReadImageBlob, libwand), Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Cint), wand, stream, length(stream)*sizeof(eltype(stream)))
     status == 0 && error(wand)
     nothing
@@ -425,9 +473,6 @@ end
 
 # get the pixel depth
 getimagedepth(wand::MagickWand) = convert(Int, ccall((:MagickGetImageDepth, libwand), Csize_t, (Ptr{Cvoid},), wand))
-
-# pixel depth for given channel type
-getimagechanneldepth(wand::MagickWand, channelType::ChannelType) = convert(Int, ccall((:MagickGetImageChannelDepth, libwand), Csize_t, (Ptr{Cvoid}, UInt32), wand, channelType.value))
 
 pixelsetcolor(wand::PixelWand, colorstr::String) = ccall((:PixelSetColor, libwand), Csize_t, (Ptr{Cvoid}, Ptr{UInt8}), wand, colorstr) == 0 && error(wand)
 
