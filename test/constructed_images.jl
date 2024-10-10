@@ -357,9 +357,17 @@ mutable struct TestType end
         @test buf2view == Ar
     end
 
-    @testset "issue #206" begin
+    @testset "issue #206 - TIFFFile" begin
         filepath = testimage("camera", download_only=true)
         img = ImageMagick.load(filepath)
         @test size(img) == (512, 512)
     end
+
+    @testset "Issue #206-PNG File" begin 
+        A = Gray{N0f8}.(reshape(collect(0.0:0.01:0.49), 5, 10))
+        fn = joinpath(workdir, "temp.png")
+        ImageMagick.save(fn, A)
+        B = ImageMagick.load(fn)
+        @test A == B
+    end 
 end
