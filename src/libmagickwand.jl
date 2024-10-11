@@ -175,6 +175,11 @@ mutable struct MagickWand
         ptr = ccall((:NewMagickWand, libwand), Ptr{Cvoid}, ())
         ptr == C_NULL && throw(OutOfMemoryError())
         obj = new(ptr)
+
+        # Set the list of TIFF tags to ignore 
+        ccall((:MagickSetOption, libwand), Cint, (Ptr{Cvoid}, Ptr{UInt8}, Ptr{UInt8}), obj, "tiff:ignore-tags", 
+            "32934,34016,34017,34018,34019,34020,34021,34022,34023,34024,34025,34026,34027,34028,34029,34030,34031")
+
         finalizer(free, obj)
         obj
     end
