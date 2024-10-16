@@ -77,9 +77,87 @@ const IMTypedict = Dict([(IMType[i], i) for i = 1:length(IMType)])
 const CStoIMTypedict = Dict("Gray" => "GrayscaleType", "GrayA" => "GrayscaleMatteType", "AGray" => "GrayscaleMatteType", "RGB" => "TrueColorType", "ARGB" => "TrueColorMatteType", "RGBA" => "TrueColorMatteType", "CMYK" => "ColorSeparationType", "I"=>"GrayscaleType", "IA"=>"GrayscaleMatteType", "AI"=>"GrayscaleMatteType", "BGRA"=>"TrueColorMatteType", "ABGR"=>"TrueColorMatteType")
 
 # Colorspace
-const IMColorspace = ["RGB", "Gray", "Transparent", "OHTA", "Lab", "XYZ", "YCbCr", "YCC", "YIQ", "YPbPr", "YUV", "CMYK", "sRGB"]
+# The colorspace order comes from the C struct definition
+# https://github.com/ImageMagick/ImageMagick/blob/e96022d5f377f2a4c0780be9f60ed44535dc5488/MagickCore/colorspace.h#L67
+# It starts at 0 with UndefinedColorspace, which is not used in the Julia interface
+const IMColorspace = [
+  "CMY"
+  "CMYK"
+  "Gray"
+  "HCL"
+  "HCLp"
+  "HSB"
+  "HSI"
+  "HSL"
+  "HSV"
+  "HWB"
+  "Lab"
+  "LCH"
+  "LCHab"
+  "LCHuv"
+  "Log"
+  "LMS"
+  "Luv"
+  "OHTA"
+  "Rec601YCbCr"
+  "Rec709YCbCr"
+  "RGB"
+  "scRGB"
+  "sRGB"
+  "Transparent"
+  "xyY"
+  "XYZ"
+  "YCbCr"
+  "YCC"
+  "YDbDr"
+  "YIQ"
+  "YPbPr"
+  "YUV"
+  "LinearGRAY"
+  "Jzazbz"
+  "DisplayP3"
+  "Adobe98"
+  "ProPhoto"
+  "Oklab"
+  "Oklch"
+]
 const IMColordict = Dict([(IMColorspace[i], i) for i = 1:length(IMColorspace)])
-for AC in vcat(subtypes(AlphaColor), subtypes(ColorAlpha))
+
+# See the discussion of https://github.com/JuliaIO/ImageMagick.jl/issues/235
+# This can be removed once the `isbindingresolved` function is checked in InteractiveUtils.jl: subtypes 
+# So if it starts to cause problems in future version of Julia, it can be 
+# removed without any issues
+# This was copied from the Julia source code, and is used to avoid deprecation warnings
+# caused by deprecations on RGB1 and RGB4 in ColorTypes.jl
+function _subtypes_and_avoid_deprecation(x::Type)
+    mods = Base.loaded_modules_array()
+    xt = Base.unwrap_unionall(x)
+    if !isabstracttype(x) || !isa(xt, DataType)
+        # Fast path
+        return Type[]
+    end
+    sts = Vector{Any}()
+    while !isempty(mods)
+        m = pop!(mods)
+        xt = xt::DataType
+        for s in names(m, all = true)
+            if Base.isbindingresolved(m, s) && !Base.isdeprecated(m, s) && isdefined(m, s)
+                t = getfield(m, s)
+                dt = isa(t, UnionAll) ? Base.unwrap_unionall(t) : t
+                if isa(dt, DataType)
+                    if dt.name.name === s && dt.name.module == m && supertype(dt).name == xt.name
+                        ti = typeintersect(t, x)
+                        ti != Base.Bottom && push!(sts, ti)
+                    end
+                elseif isa(t, Module) && nameof(t) === s && parentmodule(t) === m && t !== m
+                    t === Base || push!(mods, t) # exclude Base, since it also parented by Main
+                end
+            end
+        end
+    end
+    return permute!(sts, sortperm(map(string, sts)))
+end
+for AC in vcat(_subtypes_and_avoid_deprecation(AlphaColor), _subtypes_and_avoid_deprecation(ColorAlpha))
     Cstr = ColorTypes.colorant_string(color_type(AC))
     if haskey(IMColordict, Cstr)
         IMColordict[ColorTypes.colorant_string(AC)] = IMColordict[Cstr]
@@ -132,6 +210,11 @@ mutable struct MagickWand
         ptr = ccall((:NewMagickWand, libwand), Ptr{Cvoid}, ())
         ptr == C_NULL && throw(OutOfMemoryError())
         obj = new(ptr)
+
+        # Set the list of TIFF tags to ignore 
+        ccall((:MagickSetOption, libwand), Cint, (Ptr{Cvoid}, Ptr{UInt8}, Ptr{UInt8}), obj, "tiff:ignore-tags", 
+            "32934,34016,34017,34018,34019,34020,34021,34022,34023,34024,34025,34026,34027,34028,34029,34030,34031")
+
         finalizer(free, obj)
         obj
     end
@@ -299,7 +382,12 @@ function readimage(wand::MagickWand, stream::IO)
     nothing
 end
 
-function readimage(wand::MagickWand, stream::Vector{UInt8})
+if VERSION >= v"1.11"
+    StreamTypes = Union{Vector{UInt8}, Memory{UInt8}}
+else
+    StreamTypes = Vector{UInt8}
+end 
+function readimage(wand::MagickWand, stream::StreamTypes)
     status = ccall((:MagickReadImageBlob, libwand), Cint, (Ptr{Cvoid}, Ptr{Cvoid}, Cint), wand, stream, length(stream)*sizeof(eltype(stream)))
     status == 0 && error(wand)
     nothing
@@ -448,9 +536,6 @@ end
 
 # get the pixel depth
 getimagedepth(wand::MagickWand) = convert(Int, ccall((:MagickGetImageDepth, libwand), Csize_t, (Ptr{Cvoid},), wand))
-
-# pixel depth for given channel type
-getimagechanneldepth(wand::MagickWand, channelType::ChannelType) = convert(Int, ccall((:MagickGetImageChannelDepth, libwand), Csize_t, (Ptr{Cvoid}, UInt32), wand, channelType.value))
 
 pixelsetcolor(wand::PixelWand, colorstr::String) = ccall((:PixelSetColor, libwand), Csize_t, (Ptr{Cvoid}, Ptr{UInt8}), wand, colorstr) == 0 && error(wand)
 

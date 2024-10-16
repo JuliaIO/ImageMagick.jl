@@ -43,7 +43,8 @@ const image_formats = [
     format"TIFF",
     format"WMF",
     format"WPG",
-    format"TGA"
+    format"TGA",
+    format"DCM"
 ]
 
 """
@@ -81,11 +82,11 @@ function _metadata(wand)
     evendepth = ((depth+1)>>1)<<1
     if depth <= 8
         if cs == "Gray"
-            cdepth = getimagechanneldepth(wand, GrayChannel)
+            cdepth = getimagedepth(wand)
             if n > 1
                 for k = 1:n  # while it might seem that this should be 2:n, that doesn't work...
                     nextimage(wand)
-                    cdepth = max(cdepth, getimagechanneldepth(wand, GrayChannel))
+                    cdepth = max(cdepth, getimagedepth(wand))
                 end
                 resetiterator(wand)
             end
