@@ -258,9 +258,11 @@ function magickinfo(file::Union{AbstractString,IO})
 end
 
 @doc raw"""
-    magickinfo(file::Union{AbstractString,IO}, properties::Union{Tuple,AbstractVector})
+    magickinfo(file::Union{AbstractString,IO}, properties::Union{Tuple,AbstractVector}; 
+        [ warnuser::Bool = true]
+    )
 
-Reads an image `file` and returns a Dict containing the values for the requested `properties`.
+Reads an image `file` and returns a Dict containing the values for the requested `properties`. Optionally raises a warning whenever the requested properties are undefined.
 
 # Examples
 ```julia-repl
@@ -276,18 +278,19 @@ Dict{String,Any} with 6 entries:
   "exif:GPSAltitude"     => "261189/757"
 ```
 """
-function magickinfo(file::Union{AbstractString,IO}, properties::Union{Tuple,AbstractVector})
+function magickinfo(file::Union{AbstractString,IO}, properties::Union{Tuple,AbstractVector}; 
+        warnuser::Bool=true)
     wand = MagickWand()
     readimage(wand, file)
     resetiterator(wand)
 
     props = Dict{String,Any}()
     for p in properties
-        props[p] = getimageproperty(wand, p)
+        props[p] = getimageproperty(wand, p, warnuser)
     end
     props
 end
-magickinfo(file::Union{AbstractString,IO}, properties...) = magickinfo(file, properties)
+magickinfo(file::Union{AbstractString,IO}, properties...; warnuser=true) = magickinfo(file, properties; warnuser)
 
 function setproperties!(wand; fps=nothing)
     if fps != nothing
