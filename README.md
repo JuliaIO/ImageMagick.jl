@@ -7,7 +7,7 @@
 [![Codecoverage Status][codecov-img]][codecov-url] [![Coveralls Status][coveralls-img]][coveralls-url]
 
 This package provides a wrapper around
-[ImageMagick](http://www.imagemagick.org/) version 6.  It was split off from
+[ImageMagick](http://www.imagemagick.org/) version 7.  It was split off from
 [Images.jl](https://github.com/timholy/Images.jl) to make image I/O more
 modular.
 
