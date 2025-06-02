@@ -156,6 +156,8 @@ end
         @test occursin("Undefined", String(take!(io)))
         @test haskey(props, "Nonexistent property") == true
         @test props["Nonexistent property"] == nothing
+
+        @test_nowarn magickinfo(file, "Nonexistent property", warnuser=false)
     end
 end
 

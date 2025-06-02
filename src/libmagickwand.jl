@@ -122,42 +122,7 @@ const IMColorspace = [
   "Oklch"
 ]
 const IMColordict = Dict([(IMColorspace[i], i) for i = 1:length(IMColorspace)])
-
-# See the discussion of https://github.com/JuliaIO/ImageMagick.jl/issues/235
-# This can be removed once the `isbindingresolved` function is checked in InteractiveUtils.jl: subtypes 
-# So if it starts to cause problems in future version of Julia, it can be 
-# removed without any issues
-# This was copied from the Julia source code, and is used to avoid deprecation warnings
-# caused by deprecations on RGB1 and RGB4 in ColorTypes.jl
-function _subtypes_and_avoid_deprecation(x::Type)
-    mods = Base.loaded_modules_array()
-    xt = Base.unwrap_unionall(x)
-    if !isabstracttype(x) || !isa(xt, DataType)
-        # Fast path
-        return Type[]
-    end
-    sts = Vector{Any}()
-    while !isempty(mods)
-        m = pop!(mods)
-        xt = xt::DataType
-        for s in names(m, all = true)
-            if Base.isbindingresolved(m, s) && !Base.isdeprecated(m, s) && isdefined(m, s)
-                t = getfield(m, s)
-                dt = isa(t, UnionAll) ? Base.unwrap_unionall(t) : t
-                if isa(dt, DataType)
-                    if dt.name.name === s && dt.name.module == m && supertype(dt).name == xt.name
-                        ti = typeintersect(t, x)
-                        ti != Base.Bottom && push!(sts, ti)
-                    end
-                elseif isa(t, Module) && nameof(t) === s && parentmodule(t) === m && t !== m
-                    t === Base || push!(mods, t) # exclude Base, since it also parented by Main
-                end
-            end
-        end
-    end
-    return permute!(sts, sortperm(map(string, sts)))
-end
-for AC in vcat(_subtypes_and_avoid_deprecation(AlphaColor), _subtypes_and_avoid_deprecation(ColorAlpha))
+for AC in vcat(subtypes(AlphaColor), subtypes(ColorAlpha))
     Cstr = ColorTypes.colorant_string(color_type(AC))
     if haskey(IMColordict, Cstr)
         IMColordict[ColorTypes.colorant_string(AC)] = IMColordict[Cstr]
